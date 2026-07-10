@@ -1,0 +1,6 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design system tokens are added in Phase 7.
+   Two themes are toggled by adding/removing class="dark" on <html>. */

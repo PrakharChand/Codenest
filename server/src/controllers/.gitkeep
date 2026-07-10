@@ -1,0 +1,2 @@
+# Controllers are added per-phase. See CODENEST_REFERENCE.md Section 4 for conventions.
+# Convention: controllers/ contains business logic only — no raw SQL, no URL handling.

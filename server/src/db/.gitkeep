@@ -1,0 +1,7 @@
+// db/ directory — populated in Phase 1
+// Will contain:
+//   migrations/   - numbered SQL migration files (001_create_users.sql, etc.)
+//   seed/         - optional dev seed data
+//   migrate.js    - migration runner script
+//   query.js      - thin pg query wrapper used by controllers
+// Placeholder to establish folder in git.

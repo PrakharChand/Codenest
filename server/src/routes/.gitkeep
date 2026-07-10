@@ -1,0 +1,2 @@
+# Routes are added per-phase. See CODENEST_REFERENCE.md Section 5 for the full list.
+# Convention: routes/ files define URL patterns and middleware chains only — no logic.
