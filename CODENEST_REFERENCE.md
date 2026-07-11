@@ -194,3 +194,5 @@ Three-dropdown adjective-animal-number flow. Lists defined in Phase 1 seed data.
 > Append a one-line note here after every phase completes. Never delete entries.
 
 - **Phase 0** — Foundation complete: monorepo scaffolded, .gitignore, .env.example, 6 identity rules, conventions, and route table committed. Awaiting Phase 1.
+- **Phase 1** — Database complete: 18 migrations (001–018), 16 feature tables + 2 lookup tables (anon_adjectives, anon_animals), migrate.js runner, seed.js (idempotent), verify.js constraint checker. Awaiting DB credentials from user to run live verification.
+
