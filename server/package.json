@@ -8,13 +8,15 @@
     "start": "node server.js",
     "migrate": "node src/db/migrate.js",
     "seed": "node src/db/seed.js",
-    "verify": "node src/db/verify.js"
+    "verify": "node src/db/verify.js",
+    "test": "node --test src/__tests__/*.test.js"
   },
   "engines": {
     "node": ">=18.0.0"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
+    "cookie-parser": "^1.4.7",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.5.1",
     "cors": "^2.8.5",
@@ -30,6 +32,5 @@
     "passport-google-oauth20": "^2.0.0",
     "pg": "^8.13.1",
     "socket.io": "^4.8.1"
-  },
-  "devDependencies": {}
+  }
 }

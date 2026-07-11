@@ -1,50 +1,71 @@
-const express = require('express');
-const cors = require('cors');
-const rateLimit = require('express-rate-limit');
-require('dotenv').config();
+/**
+ * server/src/app.js
+ *
+ * Express application — middleware, routes, and terminal handlers.
+ * Import order matters:
+ *   core middleware → routes → notFound → errorHandler (must be last)
+ *
+ * Note on cookie-parser: added in Phase 2 to support the httpOnly refresh
+ * token cookie strategy. This is a direct requirement of the locked auth
+ * convention (access token in body, refresh token in httpOnly cookie).
+ */
+
+const express      = require('express');
+const cors         = require('cors');
+const cookieParser = require('cookie-parser');
+const env          = require('./config/env'); // validates required vars at boot
+
+const { generalLimiter } = require('./middleware/rateLimit');
+const notFound       = require('./middleware/notFound');
+const errorHandler   = require('./middleware/errorHandler');
+const authRoutes      = require('./routes/authRoutes');
+const postRoutes      = require('./routes/postRoutes');
+const { nestedRouter: commentNestedRouter, flatRouter: commentFlatRouter } = require('./routes/commentRoutes');
+const userRoutes      = require('./routes/userRoutes');
+const communityRoutes = require('./routes/communityRoutes');
 
 const app = express();
 
-// ─── Core Middleware ───────────────────────────────────────────────
+// ── Core middleware ────────────────────────────────────────────────────────
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
-  credentials: true,
+  origin:      env.CLIENT_URL,
+  credentials: true,              // Required for httpOnly cookie to be sent cross-origin
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());          // Required to read req.cookies (refresh token)
 
-// Global rate limiter (overridden per-route as needed)
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: { code: 'RATE_LIMIT', message: 'Too many requests, please try again later.' } },
-});
-app.use(globalLimiter);
+// Global rate limiter — individual routes apply stricter authLimiter
+app.use(generalLimiter);
 
-// ─── Routes (mounted in Phase 2–5) ────────────────────────────────
-// Routes will be imported and mounted here as each phase completes.
-// Example: app.use('/api/auth', require('./routes/auth'));
+// ── Health check ──────────────────────────────────────────────────────────
 
-// ─── Health Check ─────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// ─── Global Error Handler (must be last) ──────────────────────────
-// Convention: every controller throws or calls next(err).
-// This handler normalizes all errors to the project JSON shape.
-app.use((err, _req, res, _next) => {
-  console.error(err);
-  const status = err.status || 500;
-  res.status(status).json({
-    error: {
-      code: err.code || 'INTERNAL_ERROR',
-      message: err.message || 'An unexpected error occurred.',
-      ...(err.field ? { field: err.field } : {}),
-    },
-  });
-});
+// ── API routes ────────────────────────────────────────────────────────────
+
+app.use('/api/auth',        authRoutes);                        // Phase 2
+app.use('/api/posts',       postRoutes);                        // Phase 3
+app.use('/api/posts',       commentNestedRouter);               // Phase 3: GET/POST /api/posts/:id/comments
+app.use('/api/comments',    commentFlatRouter);                 // Phase 3: DELETE /api/comments/:commentId
+app.use('/api/users',       userRoutes);                        // Phase 3: connections
+app.use('/api/communities', communityRoutes);                   // Phase 3
+
+// Phase 4: app.use('/api/shadow', shadowRoutes);
+// Phase 5: app.use('/api/notifications', notificationRoutes);
+// Phase 5: app.use('/api/upload', uploadRoutes);
+// Phase 5: app.use('/api/ai', aiRoutes);
+
+// ── Terminal middleware (order is critical) ───────────────────────────────
+// 1. notFound — catch all unmatched routes → ApiError 404
+// 2. errorHandler — convert any error to the locked JSON shape
+// These MUST be last.
+
+app.use(notFound);
+app.use(errorHandler);
 
 module.exports = app;

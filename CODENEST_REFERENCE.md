@@ -147,9 +147,91 @@ Three-dropdown adjective-animal-number flow. Lists defined in Phase 1 seed data.
 
 ---
 
+## 8. Auth Conventions
+
+> Established in Phase 2. These values must be consistent across all phases, especially Phase 7 (Axios layer) and Phase 11 (wiring).
+
+### Token Strategy
+
+| Token | Lifetime | Storage | Secret |
+|---|---|---|---|
+| Access token | 15 minutes (`JWT_ACCESS_EXPIRES_IN`) | JSON response body → `AuthContext` memory (never localStorage) | `JWT_ACCESS_SECRET` |
+| Refresh token | 7 days (`JWT_REFRESH_EXPIRES_IN`) | httpOnly + Secure + SameSite cookie named `refreshToken` | `JWT_REFRESH_SECRET` |
+
+**Why httpOnly cookie for refresh token:** A refresh token readable by JavaScript is the highest-value target for XSS attacks. Keeping it in an httpOnly cookie means JavaScript can never access it, even if the page is compromised.
+
+**Phase 7 implication:** The Axios instance in `client/src/api/axios.js` attaches the access token from memory (`AuthContext`). It does NOT manage the refresh cookie — that is sent automatically by the browser.
+
+**Phase 11 implication:** The `/api/auth/refresh` endpoint reads `req.cookies.refreshToken` — the cookie is sent automatically by the browser on every request to `/api/auth`.
+
+### bcrypt Salt Rounds
+
+**12 rounds.** Chosen to be slow enough to resist brute-force on stolen hashes while staying fast enough for login UX (< 500ms on typical hardware).
+
+### Cookie-parser
+
+`cookie-parser` was added in Phase 2 as a direct requirement of the httpOnly cookie strategy. It is documented here because it was not in the original locked stack list — this is the one transparent addition.
+
+---
+
+## 7. Phase Log
+
+> Append a one-line note here after every phase completes. Never delete entries.
+
+- **Phase 0** — Foundation complete: monorepo scaffolded, .gitignore, .env.example, 6 identity rules, conventions, and route table committed. Awaiting Phase 1.
+- **Phase 1** — Database complete: 18 migrations (001–018), 16 feature tables + 2 lookup tables (anon_adjectives, anon_animals), migrate.js runner, seed.js (idempotent), verify.js constraint checker. Awaiting DB credentials from user to run live verification.
+- **Phase 2** — Backend core complete: env.js (boot validation), ApiError, asyncHandler, errorHandler (Postgres error translation), notFound, validate, rateLimit (authLimiter/generalLimiter/aiLimiter), tokens.js (access+refresh+cookie helpers), requireAuth + requireAnonymousIdentity middleware, shadowSerializer (Rule 2 enforced), authController (register/login/refresh/logout/me/anonymousOptions/anonymousCreate), authRoutes, app.js wired. 11/11 tests pass. cookie-parser added (documented above).
+
+---
+
+## 9. API Conventions (Phase 3)
+
+### Pagination
+
+Every list endpoint uses `utils/paginate.js`. No route hand-rolls pagination.
+
+- Query params: `?page` (default 1), `?limit` (default 20, **hard max 50 — clamped**, never trust client)
+- Response envelope (identical on every list endpoint):
+  ```json
+  { "data": [...], "pagination": { "page", "limit", "total", "totalPages", "hasNext" } }
+  ```
+
+### Ownership
+
+For any edit/delete of a user-owned resource: ownership is checked at the **query level** (`WHERE id = $1 AND user_id = $2`). Zero rows affected → `ApiError.forbidden`. Never fetch-then-compare in JS — the database is the gate.
+
+### Counter integrity
+
+Counter + row mutations are **always transactional** via `utils/withTransaction.js`. `GREATEST(counter - 1, 0)` guards every decrement — counters never go negative.
+
+### Duplicate actions
+
+**Duplicate like / join / connect = idempotent success** (not 409). A double-tap feels harmless on the frontend and causes no data inconsistency. This is the project-wide convention — Phase 4 mirrors it.
+
+### Content limits
+
+| Field | Max length |
+|---|---|
+| Post title | 200 characters |
+| Post content | 50,000 characters |
+| Comment content | 5,000 characters |
+| Community name | 100 characters |
+| Community description | 1,000 characters |
+| Tag name | 50 characters |
+
+### Mutual connections
+
+"Mutual" = both directions of a connection exist: `(follower_id=A, following_id=B)` AND `(follower_id=B, following_id=A)`. Computed in SQL via EXISTS subquery — no second round-trip.
+
+### Schema evolution
+
+Migration 019 (`019_post_shares.sql`) added `shared_from_post_id` to `posts` in Phase 3. Reason: the share relationship became concrete only when building the share endpoint. Editing already-applied migrations would break `_migrations` idempotency — new numbered migrations are the traceable way to evolve a live schema.
+
+
 ## 5. Route Groups and Build Order
 
 | # | Route Prefix | Phase |
+
 |---|---|---|
 | 1 | POST /api/auth/register, login, refresh, logout | Phase 2 |
 | 2 | POST /api/identity/shadow (create anonymous identity) | Phase 2 |
@@ -195,4 +277,5 @@ Three-dropdown adjective-animal-number flow. Lists defined in Phase 1 seed data.
 
 - **Phase 0** — Foundation complete: monorepo scaffolded, .gitignore, .env.example, 6 identity rules, conventions, and route table committed. Awaiting Phase 1.
 - **Phase 1** — Database complete: 18 migrations (001–018), 16 feature tables + 2 lookup tables (anon_adjectives, anon_animals), migrate.js runner, seed.js (idempotent), verify.js constraint checker. Awaiting DB credentials from user to run live verification.
-
+- **Phase 2** — Backend core complete: env.js, ApiError, asyncHandler, errorHandler, notFound, validate, rateLimit, tokens.js, requireAuth + requireAnonymousIdentity, shadowSerializer, authController (7 endpoints), authRoutes. 11/11 tests pass.
+- **Phase 3** — Nest Feed backend complete: posts CRUD + like/unlike/share, comments CRUD, connections (follow/unfollow/list + mutual), communities (create/join/leave/post). paginate.js, withTransaction.js. Migration 019 added shared_from_post_id. API conventions locked (pagination, ownership, counters, duplicate-idempotency). 25/25 tests pass.

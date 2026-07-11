@@ -1,0 +1,66 @@
+/**
+ * server/src/config/env.js
+ *
+ * Single source for all environment variables.
+ * Convention: NO other file reads process.env directly — they import from here.
+ * This keeps secrets access in one auditable place and gives a clear startup
+ * error when a required variable is missing instead of a confusing runtime crash.
+ */
+
+require('dotenv').config();
+
+const REQUIRED = [
+  'DATABASE_URL',
+  'JWT_ACCESS_SECRET',
+  'JWT_REFRESH_SECRET',
+  'CLIENT_URL',
+  'PORT',
+];
+
+const missing = REQUIRED.filter((key) => !process.env[key]);
+if (missing.length > 0) {
+  console.error('\n❌ CodeNest server cannot start — missing required environment variables:');
+  missing.forEach((key) => console.error(`   • ${key}`));
+  console.error('\nCopy server/.env.example → server/.env and fill in the missing values.\n');
+  process.exit(1);
+}
+
+const env = Object.freeze({
+  // Server
+  PORT:              parseInt(process.env.PORT, 10) || 5000,
+  NODE_ENV:          process.env.NODE_ENV || 'development',
+
+  // Database
+  DATABASE_URL:      process.env.DATABASE_URL,
+
+  // JWT
+  JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET,
+  JWT_REFRESH_SECRET:process.env.JWT_REFRESH_SECRET,
+  JWT_ACCESS_EXPIRES_IN:  process.env.JWT_ACCESS_EXPIRES_IN  || '15m',
+  JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+
+  // Cloudinary
+  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_API_KEY:    process.env.CLOUDINARY_API_KEY,
+  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
+
+  // OAuth
+  GITHUB_CLIENT_ID:      process.env.GITHUB_CLIENT_ID,
+  GITHUB_CLIENT_SECRET:  process.env.GITHUB_CLIENT_SECRET,
+  GITHUB_CALLBACK_URL:   process.env.GITHUB_CALLBACK_URL,
+  GOOGLE_CLIENT_ID:      process.env.GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET:  process.env.GOOGLE_CLIENT_SECRET,
+  GOOGLE_CALLBACK_URL:   process.env.GOOGLE_CALLBACK_URL,
+
+  // Anthropic
+  ANTHROPIC_API_KEY:     process.env.ANTHROPIC_API_KEY,
+
+  // Client
+  CLIENT_URL:            process.env.CLIENT_URL,
+
+  // Derived
+  IS_PRODUCTION: process.env.NODE_ENV === 'production',
+  IS_DEVELOPMENT: process.env.NODE_ENV !== 'production',
+});
+
+module.exports = env;

@@ -1,30 +1,35 @@
-// Entry point — bootstraps HTTP + Socket.io server
-const app = require('./src/app');
+/**
+ * server/server.js
+ *
+ * Entry point — boots the HTTP + Socket.io server.
+ * Imports env FIRST so missing vars cause an immediate clear error.
+ */
+
+const env  = require('./src/config/env');  // validates required vars before anything else
+const app  = require('./src/app');
 const http = require('http');
 const { Server } = require('socket.io');
-require('dotenv').config();
-
-const PORT = process.env.PORT || 5000;
 
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin:      env.CLIENT_URL,
     credentials: true,
   },
 });
 
-// Attach io instance to app for use in controllers
+// Attach io to app so controllers can emit events (used from Phase 5 onward)
 app.set('io', io);
 
 io.on('connection', (socket) => {
-  console.log(`Socket connected: ${socket.id}`);
+  console.log(`[socket] connected: ${socket.id}`);
   socket.on('disconnect', () => {
-    console.log(`Socket disconnected: ${socket.id}`);
+    console.log(`[socket] disconnected: ${socket.id}`);
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`CodeNest server running on port ${PORT}`);
+server.listen(env.PORT, () => {
+  console.log(`\n✅ CodeNest server running on port ${env.PORT} [${env.NODE_ENV}]`);
+  console.log(`   Health: http://localhost:${env.PORT}/health\n`);
 });

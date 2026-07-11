@@ -1,45 +1,80 @@
 /**
- * shadowSerializer
+ * server/src/utils/shadowSerializer.js
  *
- * SECURITY: The ONLY place in the codebase allowed to format a Shadow response.
- * It has explicit access to only the anonymous columns — it can never see or
- * return real-identity fields (name, email, password_hash, avatar_url, bio,
- * github_url, twitter_url).
+ * SECURITY — Identity Rule 2:
+ * This is the SOLE formatter for any /api/shadow/ response that includes
+ * user identity data. It is structurally incapable of returning public
+ * identity fields: name, email, password_hash, avatar_url, bio, github_url,
+ * or twitter_url. These are not in its allow-list.
  *
- * Identity Rule 2 enforcement: queries feeding this serializer must already
- * SELECT only anonymous columns. This serializer is a second-layer guard.
+ * Usage contract:
+ *   1. Shadow SQL queries SELECT only anonymous columns (first-layer defense).
+ *   2. All results pass through this serializer before res.json() (second layer).
+ *   3. No shadow route may ever call res.json(rawDbRow) directly.
+ *
+ * Building this in Phase 2 means Phase 4 controllers physically import a
+ * ready-made guard and cannot accidentally omit the safety step.
  */
-const ALLOWED_SHADOW_FIELDS = [
+
+/**
+ * Fields this serializer is ALLOWED to return.
+ * Anything not in this list is stripped silently.
+ * Public identity fields are intentionally absent from this list.
+ */
+const SHADOW_USER_FIELDS = new Set([
   'id',
   'anonymous_username',
   'anonymous_avatar_url',
   'anonymous_reputation_score',
   'has_anonymous_identity',
   'created_at',
-  // Submission / review fields added here as Schema is finalized in Phase 1
-];
+]);
 
 /**
- * Serialize a single shadow user object.
- * Strips any field not in the allow-list.
- * @param {object} row - raw DB row
- * @returns {object} safe shadow user
+ * serializeShadowUser(row)
+ *
+ * Accepts a raw DB row and returns only the anonymous-safe fields.
+ * @param {object|null} row
+ * @returns {object|null}
  */
 function serializeShadowUser(row) {
   if (!row) return null;
-  return ALLOWED_SHADOW_FIELDS.reduce((acc, field) => {
-    if (field in row) acc[field] = row[field];
-    return acc;
-  }, {});
+  const safe = {};
+  for (const key of SHADOW_USER_FIELDS) {
+    if (key in row) safe[key] = row[key];
+  }
+  return safe;
 }
 
 /**
- * Serialize an array of shadow user rows.
+ * serializeShadowUsers(rows)
  * @param {object[]} rows
  * @returns {object[]}
  */
 function serializeShadowUsers(rows) {
-  return (rows || []).map(serializeShadowUser);
+  return Array.isArray(rows) ? rows.map(serializeShadowUser) : [];
 }
 
-module.exports = { serializeShadowUser, serializeShadowUsers, ALLOWED_SHADOW_FIELDS };
+/**
+ * serializeShadowIdentityResponse(row)
+ *
+ * Specifically for the anonymous identity creation endpoint:
+ * returns the fields the client needs to know after creation.
+ * @param {object} row
+ * @returns {object}
+ */
+function serializeShadowIdentityResponse(row) {
+  return {
+    anonymous_username:         row.anonymous_username,
+    anonymous_avatar_url:       row.anonymous_avatar_url,
+    anonymous_reputation_score: row.anonymous_reputation_score,
+    has_anonymous_identity:     row.has_anonymous_identity,
+  };
+}
+
+module.exports = {
+  serializeShadowUser,
+  serializeShadowUsers,
+  serializeShadowIdentityResponse,
+  SHADOW_USER_FIELDS,
+};
