@@ -227,6 +227,52 @@ Counter + row mutations are **always transactional** via `utils/withTransaction.
 
 Migration 019 (`019_post_shares.sql`) added `shared_from_post_id` to `posts` in Phase 3. Reason: the share relationship became concrete only when building the share endpoint. Editing already-applied migrations would break `_migrations` idempotency — new numbered migrations are the traceable way to evolve a live schema.
 
+Migration 020 (`020_shadow_reviews_unique.sql`) added a partial unique index on `(submission_id, reviewer_id) WHERE reviewer_id IS NOT NULL` in Phase 4. Reason: the race-condition risk (two tabs submitting reviews simultaneously) became concrete when building the review endpoint. The partial index allows Phase 5 AI reviews (`reviewer_id = NULL`) without a schema change.
+
+---
+
+## 10. Shadow Boundary (Phase 4)
+
+### Group Guard
+
+The entire `/api/shadow/` router is mounted in `app.js` behind **both** `requireAuth` **and** `requireAnonymousIdentity` at the mount point — not per-route. This makes it structurally impossible to add a Shadow route that forgets the guard. Identity Rule 4 (mode = route group) is architectural, not optional.
+
+### SQL Column Rule
+
+Every `SELECT` in shadow controllers uses an **explicit anonymous-only column list**. No `SELECT *`. No selecting `u.name`/`u.email`/`u.avatar_url`. The real `user_id` may appear in `WHERE`/`JOIN` conditions (for ownership and self-exclusion) but **never in any SELECT list or response object**.
+
+### Ownership-Branch Reveal Rule
+
+`GET /api/shadow/submissions/:id` branches on ownership at the query level:
+- **Owner** → full detail + reviewer `anonymous_username` (Review Reveal)
+- **Non-owner** → content visible for reviewing, reviewer usernames withheld
+- **Submitter's identity** → never revealed to anyone
+
+### Review Immutability
+
+A review is immutable once posted — no edit/delete endpoint exists. Reviews are permanent feedback.
+
+### Reputation Definition
+
+Reputation (`users.anonymous_reputation_score`) is a **stored running total** incremented transactionally at helpful-vote time — NOT recomputed on read. A helpful vote moves three things in one transaction:
+1. Insert `shadow_helpful_votes` row (composite PK dedupes)
+2. Increment `shadow_reviews.helpful_vote_count`
+3. Increment `users.anonymous_reputation_score` for the review author
+
+### Shadow Content Limits
+
+| Field | Max length |
+|---|---|
+| Submission title | 200 characters |
+| Submission content | 100,000 characters |
+| Submission question | 2,000 characters |
+| Language tag | 50 characters |
+| Shadow community post | 50,000 characters |
+
+### Queue Content Truncation
+
+Queue items show only the first 300 characters of submission content (truncated server-side).
+
 
 ## 5. Route Groups and Build Order
 
@@ -279,3 +325,84 @@ Migration 019 (`019_post_shares.sql`) added `shared_from_post_id` to `posts` in 
 - **Phase 1** — Database complete: 18 migrations (001–018), 16 feature tables + 2 lookup tables (anon_adjectives, anon_animals), migrate.js runner, seed.js (idempotent), verify.js constraint checker. Awaiting DB credentials from user to run live verification.
 - **Phase 2** — Backend core complete: env.js, ApiError, asyncHandler, errorHandler, notFound, validate, rateLimit, tokens.js, requireAuth + requireAnonymousIdentity, shadowSerializer, authController (7 endpoints), authRoutes. 11/11 tests pass.
 - **Phase 3** — Nest Feed backend complete: posts CRUD + like/unlike/share, comments CRUD, connections (follow/unfollow/list + mutual), communities (create/join/leave/post). paginate.js, withTransaction.js. Migration 019 added shared_from_post_id. API conventions locked (pagination, ownership, counters, duplicate-idempotency). 25/25 tests pass.
+- **Phase 4** — Nest Shadow backend complete: submissions (create/queue/mine/detail), structured reviews (DB-level dedupe via migration 020), helpful voting + transactional 3-way reputation, anonymous community, shadow profile. Group-level Shadow guard (requireAuth + requireAnonymousIdentity at mount point). Identity leak sweep passing on all 6 response shapes. 46/46 tests pass.
+- **Phase 5** — Backend support complete: notifications (emitted inside existing transactions from Feed/Shadow actions), Cloudinary uploads (public-identity only, memory storage, 5MB/PNG/JPEG/WebP), OAuth GitHub+Google (email-linking, same token spec as Phase 2, stateless Passport), AI routes (suggest-tags, anonymity-check, generate-roadmap, suggest-connections — all with 10s timeout + fail-open fallback), migration 021 (user_roadmaps), hourly AI-review cron (reviewer_id=NULL, partial-index forward-reservation pays off). Backend now feature-complete. 77/77 tests pass.
+
+---
+
+## 11. Phase 5 Conventions
+
+### Notification Identity Rule
+
+A Shadow-context notification must **never** contain real-identity text.
+- Wrong: `"Alice reviewed your code"`
+- Right: `"Your submission received a new review."`
+
+The message string is the caller's responsibility at write time. The `createNotification` helper does not validate this — convention is enforced by code review and the Phase 5 test suite (`Shadow notification — identity rule`).
+
+### Notification Architecture
+
+`createNotification({ userId, type, message, referenceId, identityContext, client })` accepts an optional `client` (pg PoolClient). When passed a client, the notification INSERT runs inside the caller's transaction — it is never created for a rolled-back action. When no client is passed, it runs as a standalone query.
+
+Decision: helpful votes (shadow) do **not** emit notifications — too noisy.
+
+### Upload Ordering Rule
+
+1. Upload to Cloudinary **first** — get the URL.
+2. Write the DB row **second** with the confirmed URL.
+
+Never insert a DB row referencing an image that failed to upload. A failed DB write after a successful upload leaves a harmless orphaned Cloudinary image. The reverse order would leave a broken DB reference.
+
+Old-asset cleanup: **update DB first, then best-effort delete old Cloudinary asset**. A failed cleanup logs but does not fail the request.
+
+### Upload Identity Restriction
+
+Avatar upload is a **public-identity action only**. No upload route may touch `anonymous_avatar_url`. The anonymous avatar is the DiceBear default assigned at identity-creation time. An uploaded image could leak identity (same image used elsewhere).
+
+Upload size cap: **5 MB**. Allowed types: `image/png`, `image/jpeg`, `image/webp`.
+
+### OAuth Account-Linking Precedence (canonical rule)
+
+Email is the identity key. On OAuth callback:
+1. Email matches existing user → **link** (log into existing account). Handles "registered with email/password, later clicks OAuth on same email".
+2. No user with that email → **create** new user (`password_hash = NULL`, `has_anonymous_identity = FALSE`).
+3. **Never** create two rows for one email.
+4. Provider returns no email → **fail clean** with a message to make email public or use email/password. Never invent a placeholder email.
+
+### OAuth Token Handoff (canonical rule — Phase 7/11 must match)
+
+On successful OAuth callback:
+1. Issue access token (same JWT spec: `{ sub: userId }`, 15m, `JWT_ACCESS_SECRET`).
+2. Set refresh token as httpOnly cookie (same cookie spec as Phase 2).
+3. Redirect to `CLIENT_URL/oauth-callback?token=<accessToken>`.
+
+Phase 7/11: read the `token` query param, store it in AuthContext memory, immediately remove it from the URL. **Refresh token must never appear in the URL.**
+
+### AI Service Contract (all five features)
+
+- **10-second timeout**: `AbortController`, cleared on success.
+- **Safe fallback on any failure**: API down, timeout, parse error → fallback returned, surrounding action continues. A failed AI call must never 500 the user.
+- **JSON-only response**: every prompt instructs Claude to return only a JSON object (no prose, no markdown wrapper). Response is parsed defensively; parse failure → fallback.
+- **`aiLimiter`**: 20 requests/hour/IP, applied at the route level on every AI route.
+- **Model**: `claude-sonnet-4-6`
+
+| Feature | Fallback |
+|---|---|
+| `suggest-tags` | `{ tags: [] }` |
+| `anonymity-check` | `{ safe: true, findings: [] }` (fail-open — AI down never blocks a submission) |
+| `generate-roadmap` | `null` → 503 (no partial DB write) |
+| `suggest-connections` | `{ suggestions: [] }` |
+| `generate-ai-review` (cron) | `null` → skip this submission this run |
+
+### AI Review Cron
+
+- Schedule: hourly (`0 * * * *`).
+- Started in `server.js` guarded by `NODE_ENV !== 'test'` — never runs during the test suite.
+- Eligible: `review_count = 0 AND created_at < NOW() - INTERVAL '24 hours'`.
+- Insert: `is_ai_review = TRUE`, `reviewer_id = NULL` (partial-unique index from migration 020 permits this — the Phase 4 forward-reservation pays off here with zero schema change).
+- Transaction: insert + `review_count++` + identity-free Shadow notification in one `withTransaction`.
+- Frontend: AI reviews are labeled and de-emphasized. The backend only marks `is_ai_review`.
+
+### Roadmap Storage
+
+One row per user (`UNIQUE(user_id)` on `user_roadmaps`). A regenerate UPSERTs — overwrites the previous roadmap. No versioning in Phase 5 scope.

@@ -3,6 +3,10 @@
  *
  * Entry point — boots the HTTP + Socket.io server.
  * Imports env FIRST so missing vars cause an immediate clear error.
+ *
+ * Cron jobs are started here (not in app.js) so they:
+ *   1. Never run during the test suite (NODE_ENV === 'test' guard)
+ *   2. Only start once — app.js can be imported by tests many times
  */
 
 const env  = require('./src/config/env');  // validates required vars before anything else
@@ -33,3 +37,9 @@ server.listen(env.PORT, () => {
   console.log(`\n✅ CodeNest server running on port ${env.PORT} [${env.NODE_ENV}]`);
   console.log(`   Health: http://localhost:${env.PORT}/health\n`);
 });
+
+// ── Background jobs — guarded: never run during tests ─────────────────────
+if (env.NODE_ENV !== 'test') {
+  const { startAIReviewCron } = require('./src/jobs/aiReviewJob');
+  startAIReviewCron();
+}

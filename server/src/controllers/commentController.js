@@ -14,6 +14,7 @@ const { query }                                    = require('../config/db');
 const withTransaction                              = require('../utils/withTransaction');
 const ApiError                                     = require('../utils/ApiError');
 const { parsePagination, buildPaginatedResponse }  = require('../utils/paginate');
+const createNotification                           = require('../utils/createNotification');
 
 const AUTHOR_CARD = `
   u.id          AS author_id,
@@ -55,7 +56,7 @@ async function createComment(req, res) {
   const userId = req.user.id;
   const { content } = req.body;
 
-  const { rows: postRows } = await query('SELECT id FROM posts WHERE id = $1', [postId]);
+  const { rows: postRows } = await query('SELECT id, user_id FROM posts WHERE id = $1', [postId]);
   if (!postRows.length) throw ApiError.notFound('Post not found.');
 
   const comment = await withTransaction(async (client) => {
@@ -69,6 +70,18 @@ async function createComment(req, res) {
       'UPDATE posts SET comment_count = comment_count + 1 WHERE id = $1',
       [postId]
     );
+    // Notify post owner about the new comment — never self-notify
+    const ownerId = postRows[0].user_id;
+    if (ownerId !== userId) {
+      await createNotification({
+        userId: ownerId,
+        type: 'comment',
+        message: 'Someone commented on your post.',
+        referenceId: postId,
+        identityContext: 'public',
+        client,
+      });
+    }
     return rows[0];
   });
 

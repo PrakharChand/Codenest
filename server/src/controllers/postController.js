@@ -21,6 +21,7 @@ const { query }                                    = require('../config/db');
 const withTransaction                              = require('../utils/withTransaction');
 const ApiError                                     = require('../utils/ApiError');
 const { parsePagination, buildPaginatedResponse }  = require('../utils/paginate');
+const createNotification                           = require('../utils/createNotification');
 
 // ── Author public card — reused in every post/comment query ──────────────
 // Only these public fields from the users table are ever returned.
@@ -235,8 +236,8 @@ async function likePost(req, res) {
   const postId = parseInt(req.params.id, 10);
   const userId = req.user.id;
 
-  // Confirm post exists
-  const { rows: postRows } = await query('SELECT id FROM posts WHERE id = $1', [postId]);
+  // Confirm post exists and get owner for notification
+  const { rows: postRows } = await query('SELECT id, user_id, title FROM posts WHERE id = $1', [postId]);
   if (!postRows.length) throw ApiError.notFound('Post not found.');
 
   await withTransaction(async (client) => {
@@ -244,12 +245,24 @@ async function likePost(req, res) {
       `INSERT INTO likes (user_id, post_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
       [userId, postId]
     );
-    // Only bump counter if a new like was actually inserted
+    // Only bump counter and notify if a new like was actually inserted
     if (rowCount > 0) {
       await client.query(
         'UPDATE posts SET like_count = like_count + 1 WHERE id = $1',
         [postId]
       );
+      // Notify post owner — never notify a user about their own action
+      const ownerId = postRows[0].user_id;
+      if (ownerId !== userId) {
+        await createNotification({
+          userId: ownerId,
+          type: 'like',
+          message: 'Someone liked your post.',
+          referenceId: postId,
+          identityContext: 'public',
+          client,
+        });
+      }
     }
   });
 
@@ -295,6 +308,11 @@ async function sharePost(req, res) {
   );
   if (!origRows.length) throw ApiError.notFound('Original post not found or is not public.');
 
+  const originalOwnerId = await (async () => {
+    const { rows } = await query('SELECT user_id FROM posts WHERE id = $1', [originalId]);
+    return rows[0]?.user_id;
+  })();
+
   const reshare = await withTransaction(async (client) => {
     const { rows } = await client.query(
       `INSERT INTO posts (user_id, title, content, visibility, shared_from_post_id)
@@ -306,6 +324,17 @@ async function sharePost(req, res) {
       'UPDATE posts SET share_count = share_count + 1 WHERE id = $1',
       [originalId]
     );
+    // Notify original author — never notify about own action
+    if (originalOwnerId && originalOwnerId !== userId) {
+      await createNotification({
+        userId: originalOwnerId,
+        type: 'share',
+        message: 'Someone shared your post.',
+        referenceId: originalId,
+        identityContext: 'public',
+        client,
+      });
+    }
     return rows[0];
   });
 

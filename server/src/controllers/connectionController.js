@@ -18,8 +18,10 @@
  */
 
 const { query }                                    = require('../config/db');
+const withTransaction                              = require('../utils/withTransaction');
 const ApiError                                     = require('../utils/ApiError');
 const { parsePagination, buildPaginatedResponse }  = require('../utils/paginate');
+const createNotification                           = require('../utils/createNotification');
 
 // ── POST /api/users/:id/connect ──────────────────────────────────────────
 
@@ -32,12 +34,25 @@ async function connect(req, res) {
   if (!rows.length) throw ApiError.notFound('User not found.');
 
   // Self-connect hits CHECK constraint → errorHandler converts 23514 → 400
-  await query(
-    `INSERT INTO connections (follower_id, following_id)
-     VALUES ($1, $2)
-     ON CONFLICT DO NOTHING`,
-    [followerId, followingId]
-  );
+  await withTransaction(async (client) => {
+    const { rowCount } = await client.query(
+      `INSERT INTO connections (follower_id, following_id)
+       VALUES ($1, $2)
+       ON CONFLICT DO NOTHING`,
+      [followerId, followingId]
+    );
+    // Notify followed user only when a real new connection was inserted
+    if (rowCount > 0) {
+      await createNotification({
+        userId: followingId,
+        type: 'connection',
+        message: 'Someone connected with you.',
+        referenceId: followerId,
+        identityContext: 'public',
+        client,
+      });
+    }
+  });
 
   return res.json({ message: 'Connected.' });
 }

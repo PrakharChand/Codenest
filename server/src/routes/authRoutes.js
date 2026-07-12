@@ -3,6 +3,15 @@
  *
  * URL definitions for /api/auth/* — no business logic here.
  * Convention: routes = URL + middleware chain only. Logic is in the controller.
+ *
+ * OAuth handoff mechanism (recorded in CODENEST_REFERENCE.md):
+ *   On successful OAuth callback, the server:
+ *     1. Issues an access token (same spec as Phase 2: JWT, sub=userId, 15m)
+ *     2. Sets the refresh token as an httpOnly cookie (same spec as Phase 2)
+ *     3. Redirects to CLIENT_URL/oauth-callback?token=<accessToken>
+ *   The frontend (Phase 7/11) reads the token query param, stores it in
+ *   AuthContext memory, then immediately clears it from the URL.
+ *   The refresh token is NEVER in the URL.
  */
 
 const express      = require('express');
@@ -22,6 +31,10 @@ const {
   anonymousOptions,
   anonymousCreate,
 } = require('../controllers/authController');
+
+const passport = require('../config/passport');
+const { signAccessToken, signRefreshToken, setRefreshCookie } = require('../utils/tokens');
+const env      = require('../config/env');
 
 // ── Validation chains ─────────────────────────────────────────────────────
 
@@ -76,4 +89,42 @@ router.post(
   asyncHandler(anonymousCreate)
 );
 
+// ── OAuth — GitHub ────────────────────────────────────────────────────────
+
+router.get('/github',
+  passport.authenticate('github', { session: false, scope: ['user:email'] })
+);
+
+router.get('/github/callback',
+  passport.authenticate('github', { session: false, failureRedirect: `${env.CLIENT_URL}/login?error=oauth_failed` }),
+  (req, res) => {
+    const user         = req.user;
+    const accessToken  = signAccessToken(user.id);
+    const refreshToken = signRefreshToken(user.id);
+    setRefreshCookie(res, refreshToken);
+    // Handoff: redirect with access token in query param.
+    // Phase 7/11 reads it into AuthContext memory and immediately clears it from the URL.
+    // Refresh token is NEVER in the URL.
+    res.redirect(`${env.CLIENT_URL}/oauth-callback?token=${accessToken}`);
+  }
+);
+
+// ── OAuth — Google ────────────────────────────────────────────────────────
+
+router.get('/google',
+  passport.authenticate('google', { session: false, scope: ['profile', 'email'] })
+);
+
+router.get('/google/callback',
+  passport.authenticate('google', { session: false, failureRedirect: `${env.CLIENT_URL}/login?error=oauth_failed` }),
+  (req, res) => {
+    const user         = req.user;
+    const accessToken  = signAccessToken(user.id);
+    const refreshToken = signRefreshToken(user.id);
+    setRefreshCookie(res, refreshToken);
+    res.redirect(`${env.CLIENT_URL}/oauth-callback?token=${accessToken}`);
+  }
+);
+
 module.exports = router;
+
