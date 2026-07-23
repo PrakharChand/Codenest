@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 import Avatar from '../atoms/Avatar';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
@@ -9,7 +10,10 @@ import HelpMenu from '../molecules/HelpMenu';
 
 export default function Navbar() {
   const { user, mode, switchMode, logout } = useAuth();
+  const { publicUnread, shadowUnread } = useNotifications();
   const navigate = useNavigate();
+
+  const activeUnread = mode === 'shadow' ? shadowUnread : publicUnread;
 
   const handleModeToggle = (targetMode) => {
     const res = switchMode(targetMode);
@@ -125,10 +129,15 @@ export default function Navbar() {
             <div className="flex items-center gap-3">
               <Link
                 to={mode === 'shadow' ? '/notifications?context=shadow' : '/notifications'}
-                className="text-muted hover:text-main text-sm"
-                title="Notifications"
+                className="relative text-muted hover:text-main text-sm"
+                title={`${mode === 'shadow' ? 'Shadow' : 'Public'} Notifications`}
               >
                 🔔
+                {activeUnread > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white animate-pulse">
+                    {activeUnread > 9 ? '9+' : activeUnread}
+                  </span>
+                )}
               </Link>
 
               <Dropdown

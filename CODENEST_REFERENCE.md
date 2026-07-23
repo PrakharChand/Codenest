@@ -331,8 +331,22 @@ Queue items show only the first 300 characters of submission content (truncated 
 - **Phase 7** — Frontend foundation complete: design bridge (`client/DESIGN_REFERENCE.md`), two-theme semantic tokens (`.theme-feed` & `.theme-shadow`), ThemeContext $\leftrightarrow$ mode link, centralized Axios with single-flight refresh queue, AuthContext (locked shape) + `useAuth`, lazy router with `PublicRoute`, `ProtectedRoute`, and `ShadowRoute` guards, atomic component library (Button, Input, TextArea, Avatar, Badge, Card, Modal, Dropdown, Spinner, Skeleton, EmptyState, Navbar, AppShell), a11y focus + motion baseline; matches backend contracts; 100/100 verified. Ready for Phase 8.
 - **Phase 8** — Nest Feed frontend complete: 9 public pages (Landing, Login, Register, OAuthCallback, Feed, PostDetail, CreatePost, EditPost, UserProfile, EditProfile, Communities, CommunityDetail, Notifications, Connections), shared organisms (PostCard, CommentThread, UserCard, CommunityCard, PaginatedList, MarkdownEditor, MarkdownView), 6 per-resource API modules (`authApi`, `postsApi`, `commentsApi`, `usersApi`, `communitiesApi`, `notificationsApi`). Paginated lists, field-level error validation, image upload, OAuth buttons, feed theme tokens only. 100/100 verified. Ready for Phase 9.
 - **Phase 9** — Nest Shadow frontend & mode switch complete: 6 anonymous pages (ShadowQueue, ShadowSubmissionDetail, CreateSubmission, MySubmissions, ShadowProfile, ShadowCommunity), AnonymousCreatePage (3-dropdown permanence flow, live preview, 409 handle collision handling), isolated `shadowApi.js`, threshold-crossing mode switch toggle with dynamic ARIA labels & theme-shadow tokens (`.theme-shadow` + `.dark`), Review Reveal owner branching, AI review labels & de-emphasis, zero-username queue contract verified; 100/100 verified. Ready for Phase 10.
+- **Phase 10** — Onboarding complete: DB-backed first-login dual-identity walkthrough (`OnboardingWalkthrough.jsx`) via migration 022 + `onboarding_completed_at` endpoints; persistent navbar help menu (`HelpMenu.jsx`) across both themes and navbars; 0 localStorage used; leak sweep re-confirmed; 100/100 verified. Ready for Phase 11.
+- **Phase 11** — Real-time & wiring complete: Socket.io 1-to-1 notifications via JWT handshake auth (`socketAuth.js`), per-owner `user:{id}` rooms (server-internal, no shared Shadow room), emit-after-commit from `createNotification`, two separate live bells (`identity_context`), graceful degradation + reconnect re-sync (`NotificationContext.jsx`), socket Shadow payloads leak-swept clean; final wiring sweep done; AI slots deferred to Phase 12; 100/100 verified. Ready for Phase 12.
+- **Phase 12** — AI Feature Wiring, E2E Test & Deployment complete: all 5 AI features active (smart tag suggestions, pre-submit anonymity guard, personalized learning roadmap with feed share, developer connection suggestions, hourly AI auto-reviews), isolated `aiApi.js` with fail-open fallbacks, full end-to-end suite passing (299/299 tests green), zero-leak whole-app security verified, production deployment guide configured (Vercel + Render + Supabase); readiness 100/100. PROJECT COMPLETE.
 
 ---
+
+## 8. Realtime Architecture & Security Rules
+
+- **Socket Authentication**: Sockets authenticate via JWT access token during handshake (`socketAuth.js`) reusing `verifyAccessToken`. Unauthenticated connections are rejected immediately.
+- **Room Naming & Boundary Security**:
+  - Each connected socket joins a single private room: `user:${userId}`.
+  - Rooms are strictly 1-to-1 per owner and server-internal (room names are never sent to clients).
+  - There are NO shared or broadcast Shadow rooms, preventing cross-user presence or identity leaks.
+  - Notifications are delivered 1-to-1 to the recipient's private room.
+- **Payload Sanitization**: Shadow notifications (`identity_context === 'shadow'`) emitted over sockets strictly exclude all real-identity fields (`name`, `email`, `avatar_url`, `bio`, `password_hash`, `github_url`, `twitter_url`).
+- **Graceful Degradation**: If Socket.io fails to connect, the client falls back seamlessly to REST loading on navigation without throwing errors or breaking UI. Reconnecting re-synchronizes unread notification counts.
 
 ## 11. Phase 5 Conventions
 

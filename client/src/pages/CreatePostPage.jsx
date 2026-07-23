@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { postsApi } from '../api/postsApi';
+import { aiApi } from '../api/aiApi';
 import Input from '../components/atoms/Input';
 import Button from '../components/atoms/Button';
 import Card from '../components/atoms/Card';
+import Badge from '../components/atoms/Badge';
 import MarkdownEditor from '../components/organisms/MarkdownEditor';
 
 export default function CreatePostPage() {
@@ -12,10 +14,40 @@ export default function CreatePostPage() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tagsInput, setTagsInput] = useState('');
+  const [suggestedTags, setSuggestedTags] = useState([]);
+  const [suggestingTags, setSuggestingTags] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+
+  const isSuggestDisabled = content.trim().length < 100;
+
+  const handleSuggestTags = async () => {
+    if (isSuggestDisabled) return;
+    setSuggestingTags(true);
+    try {
+      const res = await aiApi.suggestTags(content);
+      setSuggestedTags(res.tags || []);
+    } catch (err) {
+      // Fail-open fallback
+    } finally {
+      setSuggestingTags(false);
+    }
+  };
+
+  const handleAddSuggestedTag = (tag) => {
+    const existing = tagsInput
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean);
+
+    if (!existing.includes(tag)) {
+      const updated = [...existing, tag].join(', ');
+      setTagsInput(updated);
+    }
+    setSuggestedTags((prev) => prev.filter((t) => t !== tag));
+  };
 
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -41,7 +73,6 @@ export default function CreatePostPage() {
   const handleSubmit = async (visibility = 'public') => {
     setFieldErrors({});
 
-    // Client validation
     const errors = {};
     if (!title.trim()) errors.title = 'Title is required.';
     if (!content.trim()) errors.content = 'Post content cannot be empty.';
@@ -81,8 +112,14 @@ export default function CreatePostPage() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-main">Create New Post</h1>
-        {/* Phase 12 AI Tag Suggestion Affordance Slot */}
-        <Button variant="ghost" size="sm" disabled title="AI Tag Suggestion (Phase 12 feature)">
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={isSuggestDisabled}
+          isLoading={suggestingTags}
+          onClick={handleSuggestTags}
+          title={isSuggestDisabled ? 'Write at least 100 characters to use AI Tag Suggestion' : 'Generate AI Tags'}
+        >
           ✨ Suggest Tags (AI)
         </Button>
       </div>
@@ -104,13 +141,35 @@ export default function CreatePostPage() {
           required
         />
 
-        {/* Tags */}
-        <Input
-          label="Tags (comma separated)"
-          value={tagsInput}
-          onChange={(e) => setTagsInput(e.target.value)}
-          placeholder="javascript, react, webdev"
-        />
+        {/* Tags Input & AI Chips */}
+        <div className="space-y-2">
+          <Input
+            label="Tags (comma separated)"
+            value={tagsInput}
+            onChange={(e) => setTagsInput(e.target.value)}
+            placeholder="javascript, react, webdev"
+          />
+
+          {suggestedTags.length > 0 && (
+            <div className="space-y-1">
+              <span className="text-xs font-semibold text-primary">AI Suggested Tags (click to add):</span>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {suggestedTags.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => handleAddSuggestedTag(tag)}
+                    className="focus-visible:outline-none"
+                  >
+                    <Badge variant="primary" size="sm" className="cursor-pointer hover:bg-primary/20">
+                      + {tag}
+                    </Badge>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Image Upload */}
         <div className="space-y-2">

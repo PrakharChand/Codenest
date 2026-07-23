@@ -121,3 +121,11 @@ Components **MUST NEVER** branch on mode to select hardcoded colors (`mode === '
 - Single-flight refresh token queue in `axios.js`.
 - Strict API module separation between Feed and Shadow pages.
 
+---
+
+## 9. AI Integration & Fail-Open Fallback Rules
+
+- **Enhancement-Only Policy**: No AI API call ever gates or blocks a core user action.
+- **Fail-Open Fallback**: If an AI request fails, times out (10s limit), or returns empty results, the UI gracefully falls back to standard user workflows without error dialogs or blocking submit buttons.
+- **Anonymity Guard Pre-Submit Flow**: The pre-submit anonymity check in Nest Shadow displays advisory warnings if PII is detected, but always provides a "Submit Anyway" choice so false positives never prevent user submission.
+

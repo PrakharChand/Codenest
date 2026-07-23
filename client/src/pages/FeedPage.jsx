@@ -6,6 +6,8 @@ import { postsApi } from '../api/postsApi';
 import { usersApi } from '../api/usersApi';
 import PaginatedList from '../components/organisms/PaginatedList';
 import PostCard from '../components/organisms/PostCard';
+import AIRoadmapGenerator from '../components/organisms/AIRoadmapGenerator';
+import AIConnectionSuggestions from '../components/organisms/AIConnectionSuggestions';
 import Button from '../components/atoms/Button';
 import Card from '../components/atoms/Card';
 
@@ -13,7 +15,6 @@ export default function FeedPage() {
   const { user } = useAuth();
   const [profileStats, setProfileStats] = useState(null);
 
-  // Mocked activity data for Recharts contribution visualization
   const activityData = [
     { day: 'Mon', posts: 1, likes: 4 },
     { day: 'Tue', posts: 2, likes: 7 },
@@ -50,6 +51,9 @@ export default function FeedPage() {
           </Link>
         </div>
 
+        {/* AI Learning Roadmap Generator Component */}
+        <AIRoadmapGenerator />
+
         <PaginatedList
           fetchData={(params) => postsApi.list(params)}
           renderItem={(post) => <PostCard key={post.id} post={post} />}
@@ -60,7 +64,7 @@ export default function FeedPage() {
         />
       </div>
 
-      {/* Sidebar Column: Stats & Activity Chart */}
+      {/* Sidebar Column: Stats, AI Connection Suggestions, & Activity Chart */}
       <div className="space-y-6">
         {/* User Card Summary */}
         <Card className="space-y-4">
@@ -91,6 +95,9 @@ export default function FeedPage() {
             </div>
           </div>
         </Card>
+
+        {/* AI Smart Developer Connection Suggestions (Public Identity Only) */}
+        <AIConnectionSuggestions />
 
         {/* Weekly Activity Chart (Recharts) */}
         <Card className="space-y-3">

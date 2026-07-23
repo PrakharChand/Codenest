@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { shadowApi } from '../api/shadowApi';
+import { aiApi } from '../api/aiApi';
 import Input from '../components/atoms/Input';
 import TextArea from '../components/atoms/TextArea';
 import Button from '../components/atoms/Button';
 import Card from '../components/atoms/Card';
+import Modal from '../components/molecules/Modal';
 import MarkdownEditor from '../components/organisms/MarkdownEditor';
 
 export default function CreateSubmissionPage() {
@@ -17,22 +19,14 @@ export default function CreateSubmissionPage() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setFieldErrors({});
+  // AI Anonymity Check State
+  const [runningCheck, setRunningCheck] = useState(false);
+  const [anonymityWarnings, setAnonymityWarnings] = useState(null);
+  const [showWarningModal, setShowWarningModal] = useState(false);
 
-    const errors = {};
-    if (!title.trim()) errors.title = 'Title is required.';
-    if (!content.trim()) errors.content = 'Code content cannot be empty.';
-    if (!languageTag.trim()) errors.language_tag = 'Language tag is required.';
-    if (!question.trim()) errors.question = 'Specific question is required.';
-
-    if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors);
-      return;
-    }
-
+  const executeSubmission = async () => {
     setSubmitting(true);
+    setShowWarningModal(false);
     try {
       await shadowApi.createSubmission({
         title: title.trim(),
@@ -52,6 +46,60 @@ export default function CreateSubmissionPage() {
     }
   };
 
+  const handlePreSubmit = async (e) => {
+    e.preventDefault();
+    setFieldErrors({});
+
+    const errors = {};
+    if (!title.trim()) errors.title = 'Title is required.';
+    if (!content.trim()) errors.content = 'Code content cannot be empty.';
+    if (!languageTag.trim()) errors.language_tag = 'Language tag is required.';
+    if (!question.trim()) errors.question = 'Specific question is required.';
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+
+    // Pre-submit AI Anonymity Scan
+    setRunningCheck(true);
+    try {
+      const fullText = `${title}\n${question}\n${content}`;
+      const checkRes = await aiApi.anonymityCheck(fullText);
+
+      if (checkRes && checkRes.safe === false && checkRes.findings?.length > 0) {
+        setAnonymityWarnings(checkRes.findings);
+        setShowWarningModal(true);
+      } else {
+        await executeSubmission();
+      }
+    } catch (err) {
+      // Fail-open fallback: execute submission if AI check fails
+      await executeSubmission();
+    } finally {
+      setRunningCheck(false);
+    }
+  };
+
+  const handleManualCheck = async () => {
+    if (!content.trim()) return;
+    setRunningCheck(true);
+    try {
+      const fullText = `${title}\n${question}\n${content}`;
+      const checkRes = await aiApi.anonymityCheck(fullText);
+      if (checkRes && checkRes.safe === false && checkRes.findings?.length > 0) {
+        setAnonymityWarnings(checkRes.findings);
+        setShowWarningModal(true);
+      } else {
+        alert('✓ Anonymity check passed! No personal identity leaks detected.');
+      }
+    } catch (err) {
+      alert('Anonymity check service unavailable, proceed with standard submission.');
+    } finally {
+      setRunningCheck(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -62,8 +110,14 @@ export default function CreateSubmissionPage() {
           </p>
         </div>
 
-        {/* Phase 12 AI Anonymity Scan Affordance Slot */}
-        <Button variant="ghost" size="sm" disabled title="AI Anonymity Check (Phase 12 feature)">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={handleManualCheck}
+          isLoading={runningCheck}
+          disabled={!content.trim()}
+          title="Run pre-submit AI scan for accidental personal data leaks"
+        >
           🛡️ Run Anonymity Check (AI)
         </Button>
       </div>
@@ -85,7 +139,7 @@ export default function CreateSubmissionPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handlePreSubmit} className="space-y-6">
           <Input
             label="Submission Title *"
             value={title}
@@ -135,12 +189,47 @@ export default function CreateSubmissionPage() {
             <Button variant="secondary" size="md" onClick={() => navigate('/shadow/queue')}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" size="md" isLoading={submitting}>
+            <Button type="submit" variant="primary" size="md" isLoading={submitting || runningCheck}>
               Submit Code Anonymously
             </Button>
           </div>
         </form>
       </Card>
+
+      {/* AI Anonymity Warning Modal (Advisory, Non-blocking) */}
+      <Modal
+        isOpen={showWarningModal}
+        onClose={() => setShowWarningModal(false)}
+        title="⚠️ Potential Identity Leak Warning"
+        size="md"
+      >
+        <div className="space-y-4 text-sm text-main">
+          <p className="text-muted text-xs">
+            Our AI Anonymity Guard detected potential personal or identifying data in your submission:
+          </p>
+
+          <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 space-y-2 text-xs">
+            {anonymityWarnings?.map((w, idx) => (
+              <div key={idx} className="space-y-0.5 border-b border-warning/20 last:border-0 pb-1.5 last:pb-0">
+                <div className="font-bold text-warning capitalize">{w.type || 'Potential Leak'}</div>
+                <div className="font-mono text-main bg-surface px-2 py-0.5 rounded inline-block">
+                  {w.value}
+                </div>
+                {w.suggestion && <div className="text-muted italic">{w.suggestion}</div>}
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-main">
+            <Button variant="secondary" size="sm" onClick={() => setShowWarningModal(false)}>
+              Edit Submission
+            </Button>
+            <Button variant="primary" size="sm" onClick={executeSubmission} isLoading={submitting}>
+              Submit Anyway
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
