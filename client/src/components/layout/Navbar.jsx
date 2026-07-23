@@ -5,6 +5,7 @@ import Avatar from '../atoms/Avatar';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
 import Dropdown from '../molecules/Dropdown';
+import HelpMenu from '../molecules/HelpMenu';
 
 export default function Navbar() {
   const { user, mode, switchMode, logout } = useAuth();
@@ -41,7 +42,7 @@ export default function Navbar() {
     : [];
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-main bg-surface/90 backdrop-blur-md">
+    <header className="sticky top-0 z-40 w-full border-b border-main bg-surface/90 backdrop-blur-md transition-colors duration-300">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Brand & Mode Switcher */}
         <div className="flex items-center gap-6">
@@ -50,35 +51,47 @@ export default function Navbar() {
               Code<span className="text-primary">Nest</span>
             </span>
             <Badge variant={mode === 'shadow' ? 'primary' : 'default'} size="sm">
-              {mode === 'shadow' ? 'Shadow Mode' : 'Feed Mode'}
+              {mode === 'shadow' ? '👤 Shadow' : '🌐 Feed'}
             </Badge>
           </Link>
 
-          {/* Mode Switch Tabs */}
+          {/* Mode Switch Tabs (Threshold Crossing Component) */}
           {user && (
-            <div className="hidden sm:flex items-center rounded-lg border border-main bg-base p-1">
+            <div
+              className="hidden sm:flex items-center rounded-lg border border-main bg-base p-1"
+              role="group"
+              aria-label={`Currently in ${mode === 'feed' ? 'public feed' : 'anonymous shadow'} mode. Select to switch.`}
+            >
               <button
+                type="button"
                 onClick={() => handleModeToggle('feed')}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                  mode === 'feed' ? 'bg-surface text-primary shadow-xs' : 'text-muted hover:text-main'
+                aria-label="Switch to Nest Feed (Public Mode)"
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 ${
+                  mode === 'feed'
+                    ? 'bg-surface text-primary shadow-xs font-bold'
+                    : 'text-muted hover:text-main'
                 }`}
               >
-                Nest Feed
+                🌐 Nest Feed
               </button>
               <button
+                type="button"
                 onClick={() => handleModeToggle('shadow')}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                  mode === 'shadow' ? 'bg-surface text-primary shadow-xs' : 'text-muted hover:text-main'
+                aria-label="Switch to Nest Shadow (Anonymous Mode)"
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-all duration-200 ${
+                  mode === 'shadow'
+                    ? 'bg-surface text-primary shadow-xs font-bold'
+                    : 'text-muted hover:text-main'
                 }`}
               >
-                Nest Shadow
+                👤 Nest Shadow
               </button>
             </div>
           )}
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex items-center gap-4">
+        <nav className="flex items-center gap-3">
           {mode === 'feed' ? (
             <>
               <Link to="/feed" className="text-sm font-medium text-muted hover:text-main">
@@ -90,18 +103,31 @@ export default function Navbar() {
             </>
           ) : (
             <>
-              <Link to="/shadow/queue" className="text-sm font-medium text-muted hover:text-main">
-                Review Queue
+              <Link to="/shadow/queue" className="text-sm font-medium text-muted hover:text-main font-mono">
+                Queue
               </Link>
-              <Link to="/shadow/mine" className="text-sm font-medium text-muted hover:text-main">
-                My Submissions
+              <Link to="/shadow/submissions/new" className="text-sm font-medium text-muted hover:text-main font-mono">
+                + Submit
+              </Link>
+              <Link to="/shadow/mine" className="text-sm font-medium text-muted hover:text-main font-mono">
+                Mine
+              </Link>
+              <Link to="/shadow/community" className="text-sm font-medium text-muted hover:text-main font-mono">
+                Anon Community
               </Link>
             </>
           )}
 
+          {/* Persistent Navigation Help Menu */}
+          {user && <HelpMenu />}
+
           {user ? (
             <div className="flex items-center gap-3">
-              <Link to="/notifications" className="text-muted hover:text-main text-sm" title="Notifications">
+              <Link
+                to={mode === 'shadow' ? '/notifications?context=shadow' : '/notifications'}
+                className="text-muted hover:text-main text-sm"
+                title="Notifications"
+              >
                 🔔
               </Link>
 
@@ -113,6 +139,9 @@ export default function Navbar() {
                       name={mode === 'shadow' ? user.anonymous_username : user.name}
                       size="sm"
                     />
+                    <span className="hidden md:inline text-xs font-medium text-main">
+                      {mode === 'shadow' ? user.anonymous_username || 'Anonymous' : user.name}
+                    </span>
                   </button>
                 }
                 items={userMenuItems}

@@ -13,7 +13,9 @@ const router          = express.Router();
 const asyncHandler    = require('../utils/asyncHandler');
 const { requireAuth } = require('../middleware/auth');
 const { connect, disconnect, listConnections } = require('../controllers/connectionController');
+const { completeOnboarding } = require('../controllers/authController');
 
+router.post('/me/onboarding/complete', requireAuth, asyncHandler(completeOnboarding));
 router.post('/:id/connect',    requireAuth, asyncHandler(connect));
 router.delete('/:id/connect',  requireAuth, asyncHandler(disconnect));
 router.get('/:id/connections',             asyncHandler(listConnections));

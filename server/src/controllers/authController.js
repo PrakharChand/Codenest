@@ -26,7 +26,7 @@ const BCRYPT_SALT_ROUNDS = 12;
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 /** Safe public user fields returned after login/register — never password_hash */
-const PUBLIC_USER_FIELDS = 'id, name, email, avatar_url, bio, has_anonymous_identity, anonymous_username, created_at';
+const PUBLIC_USER_FIELDS = 'id, name, email, avatar_url, bio, has_anonymous_identity, anonymous_username, onboarding_completed_at, created_at';
 
 function issueTokens(res, userId) {
   const accessToken  = signAccessToken(userId);
@@ -257,4 +257,16 @@ async function anonymousCreate(req, res) {
   });
 }
 
-module.exports = { register, login, refresh, logout, me, anonymousOptions, anonymousCreate };
+/**
+ * POST /api/users/me/onboarding/complete or /api/auth/onboarding/complete
+ * Protected. Stamps onboarding_completed_at = NOW()
+ */
+async function completeOnboarding(req, res) {
+  const { rows } = await query(
+    `UPDATE users SET onboarding_completed_at = NOW(), updated_at = NOW() WHERE id = $1 RETURNING onboarding_completed_at`,
+    [req.user.id]
+  );
+  return res.json({ onboarding_completed_at: rows[0]?.onboarding_completed_at });
+}
+
+module.exports = { register, login, refresh, logout, me, anonymousOptions, anonymousCreate, completeOnboarding };

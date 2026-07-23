@@ -21,6 +21,21 @@ export const authApi = {
     return data;
   },
 
+  getAnonymousOptions: async () => {
+    const { data } = await api.get('/api/auth/anonymous/options');
+    return data;
+  },
+
+  createAnonymousIdentity: async (identityData) => {
+    const { data } = await api.post('/api/auth/anonymous/create', identityData);
+    return data;
+  },
+
+  completeOnboarding: async () => {
+    const { data } = await api.post('/api/users/me/onboarding/complete');
+    return data;
+  },
+
   getOAuthGitHubUrl: () => `${api.defaults.baseURL}/api/auth/github`,
   getOAuthGoogleUrl: () => `${api.defaults.baseURL}/api/auth/google`,
 };

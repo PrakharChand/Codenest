@@ -34,6 +34,7 @@ const ShadowSubmissionDetailPage = lazy(() => import('../pages/ShadowSubmissionD
 const CreateSubmissionPage = lazy(() => import('../pages/CreateSubmissionPage'));
 const MySubmissionsPage = lazy(() => import('../pages/MySubmissionsPage'));
 const ShadowProfilePage = lazy(() => import('../pages/ShadowProfilePage'));
+const ShadowCommunityPage = lazy(() => import('../pages/ShadowCommunityPage'));
 
 const PageLoader = () => (
   <div className="flex min-h-[60vh] items-center justify-center bg-base text-main">
@@ -72,6 +73,7 @@ export default function AppRoutes() {
         <Route path="/shadow/submissions/:id" element={<ShadowRoute><AppShell><ShadowSubmissionDetailPage /></AppShell></ShadowRoute>} />
         <Route path="/shadow/mine" element={<ShadowRoute><AppShell><MySubmissionsPage /></AppShell></ShadowRoute>} />
         <Route path="/shadow/me" element={<ShadowRoute><AppShell><ShadowProfilePage /></AppShell></ShadowRoute>} />
+        <Route path="/shadow/community" element={<ShadowRoute><AppShell><ShadowCommunityPage /></AppShell></ShadowRoute>} />
 
         {/* ─── Fallback Catch-All Route ──────────────────────────────────────── */}
         <Route path="*" element={<AppShell><div className="p-8 text-center"><h1 className="text-xl font-bold text-main">404 - Page Not Found</h1></div></AppShell>} />

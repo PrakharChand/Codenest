@@ -30,6 +30,7 @@ const {
   me,
   anonymousOptions,
   anonymousCreate,
+  completeOnboarding,
 } = require('../controllers/authController');
 
 const passport = require('../config/passport');
@@ -78,6 +79,7 @@ router.post('/logout',                                                  asyncHan
 
 // Protected
 router.get('/me', requireAuth, asyncHandler(me));
+router.post('/onboarding/complete', requireAuth, asyncHandler(completeOnboarding));
 
 // Anonymous identity (protected)
 router.get('/anonymous/options', requireAuth, asyncHandler(anonymousOptions));

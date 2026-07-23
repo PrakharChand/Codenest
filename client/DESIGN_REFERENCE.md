@@ -94,14 +94,30 @@ Components **MUST NEVER** branch on mode to select hardcoded colors (`mode === '
 1. **In-Memory Access Tokens**: Access tokens live strictly in React state / memory (`AuthContext`). **NEVER stored in `localStorage` or `sessionStorage`**.
 2. **HttpOnly Refresh Cookies**: Refresh tokens are handled automatically by browser cookies (set by backend).
 3. **Centralized HTTP via Axios**: All HTTP requests use `client/src/api/axios.js`. Raw `fetch()` calls are strictly forbidden in UI components.
-4. **Route Guards**:
+4. **Shadow API Isolation Rule**: Shadow pages (`/shadow/*`) MUST ONLY import `shadowApi.js` and NEVER import `postsApi`, `usersApi`, or `communitiesApi`. This physically segregates the public and anonymous data paths on the frontend.
+5. **Route Guards**:
    - `PublicRoute`: Allows unauthenticated access.
    - `ProtectedRoute`: Requires valid auth (`accessToken` or successful `/api/auth/me`). Redirects to login preserving `from` location.
    - `ShadowRoute`: Requires auth **and** `has_anonymous_identity = true`. Redirects to anonymous creation flow if missing.
 
 ---
 
-## 7. Verification Standards
+## 7. Mode-Switch Transition Specification
+
+- **Safety-Critical Boundary**: The mode-switch transition between Nest Feed and Nest Shadow must be unmissable to prevent identity confusion.
+- **Visual Mechanics**:
+  - Toggles `.theme-feed` vs `.theme-shadow` + `.dark` on `<html>`.
+  - Color & background transition: 300ms ease-in-out (`transition-colors duration-300`).
+  - Navbar identity swap: Real name & avatar $\leftrightarrow$ Permanent anonymous username & default avatar.
+  - Reduced Motion: Instant swap when `@media (prefers-reduced-motion: reduce)` is active.
+- **Accessibility**: Toggle button includes dynamic ARIA labels (e.g. `aria-label="Currently in public mode. Switch to anonymous shadow mode."`).
+- **Anon Identity Guard**: Clicking the switch when `has_anonymous_identity = false` automatically redirects the user to `/anonymous/create`.
+
+---
+
+## 8. Verification Standards
 - Zero hardcoded hex colors in components.
 - Clean production build (`npm run build`).
 - Single-flight refresh token queue in `axios.js`.
+- Strict API module separation between Feed and Shadow pages.
+
