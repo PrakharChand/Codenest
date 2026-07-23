@@ -37,8 +37,16 @@ const app = express();
 
 // ── Core middleware ────────────────────────────────────────────────────────
 
+const allowedOrigins = [env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:5174'];
+
 app.use(cors({
-  origin:      env.CLIENT_URL,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || (!env.IS_PRODUCTION && origin.startsWith('http://localhost:'))) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,              // Required for httpOnly cookie cross-origin
 }));
 
