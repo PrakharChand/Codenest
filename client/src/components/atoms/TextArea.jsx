@@ -1,0 +1,40 @@
+import React, { useId } from 'react';
+
+export default function TextArea({
+  label,
+  error,
+  id,
+  rows = 4,
+  className = '',
+  required = false,
+  ...props
+}) {
+  const generatedId = useId();
+  const textareaId = id || generatedId;
+  const errorId = `${textareaId}-error`;
+
+  return (
+    <div className="w-full space-y-1.5">
+      {label && (
+        <label htmlFor={textareaId} className="block text-sm font-medium text-main">
+          {label} {required && <span className="text-danger">*</span>}
+        </label>
+      )}
+      <textarea
+        id={textareaId}
+        rows={rows}
+        aria-invalid={!!error}
+        aria-describedby={error ? errorId : undefined}
+        className={`w-full rounded-md border border-main bg-surface px-3 py-2 text-sm text-main placeholder:text-subtle transition-colors focus-visible:border-focus focus-visible:ring-1 focus-visible:ring-border-focus ${
+          error ? 'border-danger focus-visible:border-danger' : ''
+        } ${className}`}
+        {...props}
+      />
+      {error && (
+        <p id={errorId} className="text-xs text-danger font-medium">
+          {typeof error === 'string' ? error : error.message}
+        </p>
+      )}
+    </div>
+  );
+}

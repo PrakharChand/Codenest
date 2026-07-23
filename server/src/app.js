@@ -63,7 +63,7 @@ app.get('/health', (_req, res) => {
 
 app.use('/api/auth',          authRoutes);            // Phase 2 + Phase 5 OAuth
 app.use('/api/posts',         postRoutes);            // Phase 3
-app.use('/api/posts',         commentNestedRouter);   // Phase 3: GET/POST /api/posts/:id/comments
+app.use('/api/posts/:postId/comments', commentNestedRouter); // Phase 3: GET/POST /api/posts/:postId/comments
 app.use('/api/comments',      commentFlatRouter);     // Phase 3: DELETE /api/comments/:commentId
 app.use('/api/users',         userRoutes);            // Phase 3: connections
 app.use('/api/communities',   communityRoutes);       // Phase 3

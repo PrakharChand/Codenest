@@ -2,5 +2,70 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Design system tokens are added in Phase 7.
-   Two themes are toggled by adding/removing class="dark" on <html>. */
+/* ─── Global Reset & Font System ────────────────────────────────────────── */
+:root {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Nest Feed Theme (Public — Warm, Open, Social Light/Warm Slate) ────── */
+:root,
+.theme-feed {
+  --bg-base: #F8FAFC;
+  --bg-surface: #FFFFFF;
+  --bg-surface-hover: #F1F5F9;
+  --bg-surface-subtle: #F8FAFC;
+  --border-main: #E2E8F0;
+  --border-focus: #4F46E5;
+  --text-main: #0F172A;
+  --text-muted: #475569;
+  --text-subtle: #94A3B8;
+  --color-primary: #4F46E5;
+  --color-primary-hover: #4338CA;
+  --color-primary-light: #EEF2FF;
+  --color-success: #10B981;
+  --color-danger: #EF4444;
+  --color-warning: #F59E0B;
+}
+
+/* ─── Nest Shadow Theme (Anonymous — Cool, Quiet, Focused Midnight Slate) ── */
+.theme-shadow,
+.dark {
+  --bg-base: #0F172A;
+  --bg-surface: #1E293B;
+  --bg-surface-hover: #334155;
+  --bg-surface-subtle: #0F172A;
+  --border-main: #334155;
+  --border-focus: #38BDF8;
+  --text-main: #F8FAFC;
+  --text-muted: #94A3B8;
+  --text-subtle: #64748B;
+  --color-primary: #0EA5E9;
+  --color-primary-hover: #0284C7;
+  --color-primary-light: #0369A1;
+  --color-success: #10B981;
+  --color-danger: #F87171;
+  --color-warning: #FBBF24;
+}
+
+/* ─── Global Focus & Motion Rules ────────────────────────────────────────── */
+*:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

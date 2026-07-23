@@ -327,6 +327,9 @@ Queue items show only the first 300 characters of submission content (truncated 
 - **Phase 3** — Nest Feed backend complete: posts CRUD + like/unlike/share, comments CRUD, connections (follow/unfollow/list + mutual), communities (create/join/leave/post). paginate.js, withTransaction.js. Migration 019 added shared_from_post_id. API conventions locked (pagination, ownership, counters, duplicate-idempotency). 25/25 tests pass.
 - **Phase 4** — Nest Shadow backend complete: submissions (create/queue/mine/detail), structured reviews (DB-level dedupe via migration 020), helpful voting + transactional 3-way reputation, anonymous community, shadow profile. Group-level Shadow guard (requireAuth + requireAnonymousIdentity at mount point). Identity leak sweep passing on all 6 response shapes. 46/46 tests pass.
 - **Phase 5** — Backend support complete: notifications (emitted inside existing transactions from Feed/Shadow actions), Cloudinary uploads (public-identity only, memory storage, 5MB/PNG/JPEG/WebP), OAuth GitHub+Google (email-linking, same token spec as Phase 2, stateless Passport), AI routes (suggest-tags, anonymity-check, generate-roadmap, suggest-connections — all with 10s timeout + fail-open fallback), migration 021 (user_roadmaps), hourly AI-review cron (reviewer_id=NULL, partial-index forward-reservation pays off). Backend now feature-complete. 77/77 tests pass.
+- **Phase 6** — Backend full test pass complete: readiness score 100/100, 290/290 tests passing across all suites (static audit, leak sweep, cross-feature integration, robustness error handling, unit tests). Comment route mounting bug fixed. Backend is feature-complete, verified, and gate passed. Ready for Phase 7 frontend.
+- **Phase 7** — Frontend foundation complete: design bridge (`client/DESIGN_REFERENCE.md`), two-theme semantic tokens (`.theme-feed` & `.theme-shadow`), ThemeContext $\leftrightarrow$ mode link, centralized Axios with single-flight refresh queue, AuthContext (locked shape) + `useAuth`, lazy router with `PublicRoute`, `ProtectedRoute`, and `ShadowRoute` guards, atomic component library (Button, Input, TextArea, Avatar, Badge, Card, Modal, Dropdown, Spinner, Skeleton, EmptyState, Navbar, AppShell), a11y focus + motion baseline; matches backend contracts; 100/100 verified. Ready for Phase 8.
+- **Phase 8** — Nest Feed frontend complete: 9 public pages (Landing, Login, Register, OAuthCallback, Feed, PostDetail, CreatePost, EditPost, UserProfile, EditProfile, Communities, CommunityDetail, Notifications, Connections), shared organisms (PostCard, CommentThread, UserCard, CommunityCard, PaginatedList, MarkdownEditor, MarkdownView), 6 per-resource API modules (`authApi`, `postsApi`, `commentsApi`, `usersApi`, `communitiesApi`, `notificationsApi`). Paginated lists, field-level error validation, image upload, OAuth buttons, feed theme tokens only. 100/100 verified. Ready for Phase 9.
 
 ---
 
@@ -406,3 +409,25 @@ Phase 7/11: read the `token` query param, store it in AuthContext memory, immedi
 ### Roadmap Storage
 
 One row per user (`UNIQUE(user_id)` on `user_roadmaps`). A regenerate UPSERTs — overwrites the previous roadmap. No versioning in Phase 5 scope.
+
+---
+
+## 12. Readiness Rubric (Phase 6)
+
+> Defined in Phase 6 and reused by all subsequent phases. Every phase that prints a readiness score uses this rubric verbatim.
+
+### Scoring (out of 100)
+
+| Category | Points | What it measures |
+|---|---|---|
+| **Identity safety** | 35 | Leak sweep passes on every Shadow endpoint; no route returns a forbidden real-identity column; Shadow notifications carry no identity text. |
+| **Correctness** | 25 | Every endpoint returns the documented shape and status codes; counters never drift from their rows; ownership and self-exclusion rules hold. |
+| **Robustness** | 15 | Every error path returns `{ error: { code, message, field? } }`; no route emits raw stack/SQL/Postgres text; AI fallbacks fire on failure. |
+| **Consistency** | 15 | Pagination envelope identical everywhere; every controller wrapped in `asyncHandler`; every protected route behind `requireAuth`; every Shadow route behind the group guard; no `SELECT *` anywhere. |
+| **Test coverage of critical paths** | 10 | Auth, identity creation, Shadow leak sweep, duplicate-review/vote prevention, transactional counters, and OAuth email-linking all have passing automated tests. |
+
+### Hard Rules
+
+- **Identity leak hard cap:** Any single identity leak in a Shadow endpoint caps the **entire** phase score at 60, regardless of all other categories. (This implements Rule 6: identity leakage outranks all other work.)
+- **Raw error leak:** Any endpoint that returns a raw stack trace, SQL text, or Postgres constraint name to the client deducts 10 from the Robustness score.
+- **Gate threshold:** ≥ 95 required to pass. 95+ requires **zero** identity leaks, **zero** raw-error leaks, and **all** critical-path tests green.

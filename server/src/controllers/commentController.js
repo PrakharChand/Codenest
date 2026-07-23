@@ -25,7 +25,7 @@ const AUTHOR_CARD = `
 // ── GET /api/posts/:id/comments ──────────────────────────────────────────
 
 async function listComments(req, res) {
-  const postId = parseInt(req.params.id, 10);
+  const postId = parseInt(req.params.postId, 10);
   const { page, limit, offset } = parsePagination(req.query);
 
   // Confirm post exists
@@ -52,7 +52,7 @@ async function listComments(req, res) {
 // ── POST /api/posts/:id/comments ─────────────────────────────────────────
 
 async function createComment(req, res) {
-  const postId = parseInt(req.params.id, 10);
+  const postId = parseInt(req.params.postId, 10);
   const userId = req.user.id;
   const { content } = req.body;
 

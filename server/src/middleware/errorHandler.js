@@ -35,7 +35,7 @@ function errorHandler(err, req, res, _next) {
   } else if (err.code === PG_FK_VIOLATION) {
     err = ApiError.badRequest('Referenced resource does not exist.');
   } else if (err.code === PG_CHECK_VIOLATION) {
-    err = ApiError.badRequest('Value violates a database constraint.');
+    err = ApiError.badRequest('The request contains an invalid value.');
   }
 
   // ── 2. Determine status and shape ────────────────────────────────────

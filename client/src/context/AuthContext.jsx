@@ -1,52 +1,110 @@
-// AuthContext — single source of truth for authentication state.
-// Shape: { user, mode, accessToken, login, logout, switchMode }
-//
-// - user: null | { id, email, name, anonymous_username, has_anonymous_identity, ... }
-// - mode: 'feed' | 'shadow'  (which identity the UI is rendering)
-// - accessToken: string | null
-// - login(userData, token): sets user + token after successful auth
-// - logout(): clears all auth state
-// - switchMode(newMode): toggles between 'feed' and 'shadow'
-//
-// Full implementation (persistence, refresh, hydration) added in Phase 7.
-import { createContext, useContext, useState, useCallback } from 'react'
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import api, { setAccessToken, getAccessToken, setOnAuthFailure } from '../api/axios';
+import { ThemeProvider } from './ThemeContext';
 
-const AuthContext = createContext(null)
+const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [mode, setMode] = useState('feed')
-  const [accessToken, setAccessToken] = useState(null)
+  const [user, setUser] = useState(null);
+  const [mode, setMode] = useState('feed'); // 'feed' | 'shadow'
+  const [accessTokenState, setAccessTokenState] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [anonNotice, setAnonNotice] = useState(false);
 
-  const login = useCallback((userData, token) => {
-    setUser(userData)
-    setAccessToken(token)
-    localStorage.setItem('accessToken', token)
-  }, [])
+  // Set up axial failure handler
+  useEffect(() => {
+    setOnAuthFailure(() => {
+      setUser(null);
+      setAccessTokenState(null);
+      setAccessToken(null);
+      setMode('feed');
+    });
+  }, []);
 
-  const logout = useCallback(() => {
-    setUser(null)
-    setAccessToken(null)
-    setMode('feed')
-    localStorage.removeItem('accessToken')
-  }, [])
+  // Rehydrate auth state on mount via GET /api/auth/me
+  useEffect(() => {
+    async function rehydrate() {
+      try {
+        // Attempt silent refresh first if no access token exists
+        let token = getAccessToken();
+        if (!token) {
+          const refreshRes = await api.post('/api/auth/refresh');
+          token = refreshRes.data.accessToken;
+          setAccessToken(token);
+          setAccessTokenState(token);
+        }
 
-  const switchMode = useCallback((newMode) => {
-    if (newMode !== 'feed' && newMode !== 'shadow') return
-    setMode(newMode)
-  }, [])
+        const { data } = await api.get('/api/auth/me');
+        setUser(data.user);
+      } catch (err) {
+        // Unauthenticated or refresh failed — clean state
+        setUser(null);
+        setAccessToken(null);
+        setAccessTokenState(null);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    rehydrate();
+  }, []);
+
+  const login = (userData, token) => {
+    setUser(userData);
+    setAccessToken(token);
+    setAccessTokenState(token);
+    setMode('feed');
+  };
+
+  const logout = async () => {
+    try {
+      await api.post('/api/auth/logout');
+    } catch (err) {
+      // Ignore errors on logout
+    } finally {
+      setUser(null);
+      setAccessToken(null);
+      setAccessTokenState(null);
+      setMode('feed');
+    }
+  };
+
+  const switchMode = (targetMode) => {
+    if (targetMode === 'shadow') {
+      if (!user?.has_anonymous_identity) {
+        setAnonNotice(true);
+        return { needsAnonSetup: true };
+      }
+    }
+    setAnonNotice(false);
+    setMode(targetMode);
+    return { success: true };
+  };
+
+  const value = {
+    user,
+    setUser,
+    mode,
+    accessToken: accessTokenState,
+    isLoading,
+    login,
+    logout,
+    switchMode,
+    anonNotice,
+    setAnonNotice,
+  };
 
   return (
-    <AuthContext.Provider value={{ user, mode, accessToken, login, logout, switchMode }}>
-      {children}
+    <AuthContext.Provider value={value}>
+      <ThemeProvider mode={mode}>{children}</ThemeProvider>
     </AuthContext.Provider>
-  )
+  );
 }
 
 export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>')
-  return ctx
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }
-
-export default AuthContext
