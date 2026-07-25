@@ -34,6 +34,7 @@ const uploadRoutes       = require('./routes/uploadRoutes');
 const aiRoutes           = require('./routes/aiRoutes');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // ── Core middleware ────────────────────────────────────────────────────────
 

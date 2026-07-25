@@ -13,10 +13,11 @@ require('dotenv').config();
 const { Pool } = require('pg');
 
 const isProduction = process.env.NODE_ENV === 'production';
+const hasSSLParam = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('sslmode=');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: isProduction ? { rejectUnauthorized: false } : false,
+  ssl: isProduction || hasSSLParam ? { rejectUnauthorized: false } : false,
   // Pool sizing — sensible defaults for Render free tier and Supabase session-mode
   max: 10,
   idleTimeoutMillis: 30_000,
