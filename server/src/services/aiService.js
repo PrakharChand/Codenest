@@ -1,59 +1,63 @@
 /**
  * server/src/services/aiService.js
  *
- * All Anthropic Claude API calls go through this service.
+ * All Google Gemini API calls go through this service.
+ * Provider changed from Anthropic Claude → Google Gemini (gemini-1.5-flash, free).
+ * All five feature contracts are identical — only the underlying API call changes.
  *
- * Conventions (all locked in CODENEST_REFERENCE.md):
- *   - 10-second timeout: AbortController, cleared on success.
- *   - try/catch + safe fallback: a failed AI call NEVER breaks the
- *     surrounding user action. The route returns its fallback.
- *   - JSON-only response contract: every prompt instructs Claude to
- *     return ONLY JSON, no prose or markdown wrapper.
- *   - Defensive JSON parse: on parse failure, return the fallback.
- *   - aiLimiter from rateLimit.js: applied at the route level, not here.
+ * Conventions (unchanged from original design):
+ *   - 15-second timeout: AbortController, cleared on success.
+ *   - try/catch + safe fallback: a failed AI call NEVER breaks the user action.
+ *   - JSON-only response contract: every prompt instructs Gemini to return ONLY JSON.
+ *   - Defensive JSON parse + markdown-fence strip: handles ```json ... ``` wrappers.
+ *   - aiLimiter applied at route level, not here.
  *
- * Five features, in build order:
+ * Five features:
  *   1. suggestTags
  *   2. anonymityCheck      ← most product-critical
  *   3. generateRoadmap
  *   4. suggestConnections
- *   5. generateAIReview    ← used by the cron job, not a user route
+ *   5. generateAIReview    ← cron job only, not a user route
  */
 
-const { anthropic, CLAUDE_MODEL } = require('../config/anthropic');
+const { genAI, GEMINI_MODEL } = require('../config/gemini');
 
-const AI_TIMEOUT_MS = 10_000; // 10 seconds
+const AI_TIMEOUT_MS = 15_000; // 15 seconds (Gemini is slightly slower on first call)
 
 /**
- * callClaude(prompt, fallback)
+ * callGemini(prompt, fallback)
  * Core wrapper: timeout + try/catch + JSON parse + fallback.
  * @param {string} prompt
  * @param {*} fallback
  * @returns {Promise<*>}
  */
-async function callClaude(prompt, fallback) {
+async function callGemini(prompt, fallback) {
   const controller = new AbortController();
-  const timer      = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
 
   try {
-    const response = await anthropic.messages.create(
-      {
-        model:      CLAUDE_MODEL,
-        max_tokens: 1024,
-        messages:   [{ role: 'user', content: prompt }],
+    const model = genAI.getGenerativeModel({
+      model: GEMINI_MODEL,
+      generationConfig: {
+        responseMimeType: 'application/json', // Force JSON output from Gemini
+        maxOutputTokens: 1024,
+        temperature: 0.2, // Low temperature for consistent structured output
       },
-      { signal: controller.signal }
-    );
+    });
 
+    const result = await model.generateContent(prompt, { signal: controller.signal });
     clearTimeout(timer);
 
-    const text = response.content?.[0]?.text ?? '';
-    // Strip any markdown code fences if Claude adds them despite instructions
-    const cleaned = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+    const text = result.response.text();
+    // Strip markdown code fences if present despite responseMimeType instruction
+    const cleaned = text
+      .replace(/^```(?:json)?\n?/, '')
+      .replace(/\n?```$/, '')
+      .trim();
     return JSON.parse(cleaned);
   } catch (err) {
     clearTimeout(timer);
-    console.warn(`[aiService] Claude call failed (${err.name}: ${err.message}). Returning fallback.`);
+    console.warn(`[aiService] Gemini call failed (${err.name}: ${err.message}). Returning fallback.`);
     return fallback;
   }
 }
@@ -75,7 +79,7 @@ Example output: {"tags":["javascript","react","hooks","state-management"]}
 Content:
 ${content.slice(0, 4000)}`;
 
-  return callClaude(prompt, { tags: [] });
+  return callGemini(prompt, { tags: [] });
 }
 
 // ── 2. anonymityCheck ─────────────────────────────────────────────────────
@@ -85,8 +89,7 @@ ${content.slice(0, 4000)}`;
  * text might contain identity-revealing information.
  *
  * Fail-open design: if AI is down, returns { safe: true, findings: [] }.
- * The guard is advisory — it warns, never blocks. The frontend decides what to show.
- * This route is called client-side BEFORE the Phase 4 submit call.
+ * The guard is advisory — it warns, never blocks.
  *
  * @param {string} text - submission text to analyze
  * @returns {{ safe: boolean, findings: Array<{ type, value, suggestion }> }}
@@ -114,7 +117,7 @@ Text to analyze:
 ${text.slice(0, 8000)}`;
 
   // Fail-open: if AI is down, do not block the submission
-  return callClaude(prompt, { safe: true, findings: [] });
+  return callGemini(prompt, { safe: true, findings: [] });
 }
 
 // ── 3. generateRoadmap ────────────────────────────────────────────────────
@@ -147,7 +150,7 @@ Return ONLY a JSON object with this shape:
 }
 No prose, no markdown, no explanation — only the JSON object.`;
 
-  return callClaude(prompt, null);
+  return callGemini(prompt, null);
 }
 
 // ── 4. suggestConnections ─────────────────────────────────────────────────
@@ -157,15 +160,14 @@ No prose, no markdown, no explanation — only the JSON object.`;
  * Returns suggestions with a reason string.
  * Public-identity only — never reads Shadow data.
  *
- * The actual DB reads happen in aiController; this function just wraps the Claude call.
  * @param {object[]} myPosts - current user's recent posts
- * @param {object[]} candidates - other users' recent posts (already query-level excluded: self + already-connected)
+ * @param {object[]} candidates - other users' recent posts (already excluded: self + connected)
  * @returns {{ suggestions: Array<{ user_id: number, reason: string }> }}
  */
 async function suggestConnections(myPosts, candidates) {
   if (!candidates.length) return { suggestions: [] };
 
-  const myTopics    = myPosts.map((p) => p.title).join(', ') || 'various topics';
+  const myTopics = myPosts.map((p) => p.title).join(', ') || 'various topics';
   const candidatesText = candidates.slice(0, 20).map((c) =>
     `user_id:${c.user_id}, posts: ${c.titles}`
   ).join('\n');
@@ -184,7 +186,7 @@ Return ONLY a JSON object with this shape:
 }
 Include at most 5 suggestions, ranked by relevance. No prose, no markdown — only the JSON object.`;
 
-  return callClaude(prompt, { suggestions: [] });
+  return callGemini(prompt, { suggestions: [] });
 }
 
 // ── 5. generateAIReview ───────────────────────────────────────────────────
@@ -217,7 +219,7 @@ Return ONLY a JSON object with this exact shape:
 helpfulness_rating must be an integer between 1 and 5.
 No prose, no markdown wrapper — only the JSON object.`;
 
-  return callClaude(prompt, null);
+  return callGemini(prompt, null);
 }
 
 module.exports = { suggestTags, anonymityCheck, generateRoadmap, suggestConnections, generateAIReview };

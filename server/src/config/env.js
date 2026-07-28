@@ -52,8 +52,8 @@ const env = Object.freeze({
   GOOGLE_CLIENT_SECRET:  process.env.GOOGLE_CLIENT_SECRET,
   GOOGLE_CALLBACK_URL:   process.env.GOOGLE_CALLBACK_URL,
 
-  // Anthropic
-  ANTHROPIC_API_KEY:     process.env.ANTHROPIC_API_KEY,
+  // Google Gemini AI (replaces Anthropic Claude)
+  GEMINI_API_KEY:        process.env.GEMINI_API_KEY,
 
   // Client
   CLIENT_URL:            process.env.CLIENT_URL,
