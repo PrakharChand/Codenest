@@ -1,10 +1,17 @@
 import React from 'react';
 
-export default function Avatar({ src, name, size = 'md', className = '' }) {
-  const sizeStyles = {
-    sm: 'w-8 h-8 text-xs',
-    md: 'w-10 h-10 text-sm',
-    lg: 'w-16 h-16 text-xl',
+/**
+ * Avatar — user profile picture or initials fallback
+ * Sizes: sm | md | lg | xl | 2xl
+ * ring prop: adds a violet ring on hover (for interactive avatars)
+ */
+export default function Avatar({ src, name, size = 'md', className = '', ring = false }) {
+  const sizeMap = {
+    sm:  'w-8 h-8 text-xs',
+    md:  'w-10 h-10 text-sm',
+    lg:  'w-14 h-14 text-lg',
+    xl:  'w-20 h-20 text-2xl',
+    '2xl': 'w-28 h-28 text-4xl',
   };
 
   const getInitials = (str) => {
@@ -14,18 +21,28 @@ export default function Avatar({ src, name, size = 'md', className = '' }) {
     return str.slice(0, 2).toUpperCase();
   };
 
+  const ringStyle = ring
+    ? 'ring-2 ring-[var(--color-primary)] ring-offset-2 ring-offset-[var(--bg-surface)]'
+    : 'ring-1 ring-[var(--border-main)]';
+
   return (
     <div
-      className={`relative inline-flex items-center justify-center overflow-hidden rounded-full border border-main bg-surface-hover font-semibold text-main shrink-0 ${sizeStyles[size]} ${className}`}
+      className={[
+        'relative inline-flex items-center justify-center overflow-hidden rounded-full',
+        'bg-gradient-to-br from-[var(--color-primary-light)] to-[var(--bg-surface-hover)]',
+        'font-semibold text-[var(--color-primary)] shrink-0',
+        'transition-all duration-150',
+        sizeMap[size] || sizeMap.md,
+        ringStyle,
+        className,
+      ].join(' ')}
     >
       {src ? (
         <img
           src={src}
           alt={name || 'User avatar'}
           className="h-full w-full object-cover"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none';
-          }}
+          onError={(e) => { e.currentTarget.style.display = 'none'; }}
         />
       ) : (
         <span>{getInitials(name)}</span>

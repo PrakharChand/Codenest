@@ -1,5 +1,14 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+/**
+ * Navbar.jsx — DEPRECATED
+ *
+ * Navigation is now split between:
+ *   - Sidebar.jsx  → fixed left sidebar on desktop (≥ lg)
+ *   - BottomNav.jsx → fixed bottom tab bar on mobile (< lg)
+ *
+ * Both are composed in AppShell.jsx.
+ * This file is kept as a reference only and is no longer imported anywhere.
+ */
+
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import Avatar from '../atoms/Avatar';
