@@ -1,14 +1,25 @@
 import axios from 'axios';
 
-// In-memory access token store (never stored in localStorage)
-let accessToken = null;
+// sessionStorage-backed access token store.
+// sessionStorage survives page refresh within the same tab but is cleared
+// when the tab is closed — safe compromise between UX and security.
+// The httpOnly refresh-token cookie is still the ground truth; sessionStorage
+// is only a fast-path seed so rehydrate() can skip the /refresh round-trip.
+const SS_KEY = 'cn_at'; // short, non-obvious key
+
 let onAuthFailureCallback = null;
 
 export const setAccessToken = (token) => {
-  accessToken = token;
+  if (token) {
+    try { sessionStorage.setItem(SS_KEY, token); } catch { /* private browsing */ }
+  } else {
+    try { sessionStorage.removeItem(SS_KEY); } catch { /* ignore */ }
+  }
 };
 
-export const getAccessToken = () => accessToken;
+export const getAccessToken = () => {
+  try { return sessionStorage.getItem(SS_KEY) || null; } catch { return null; }
+};
 
 export const setOnAuthFailure = (callback) => {
   onAuthFailureCallback = callback;
@@ -42,8 +53,9 @@ const processQueue = (error, token = null) => {
 // ── Request Interceptor ────────────────────────────────────────────────────
 api.interceptors.request.use(
   (config) => {
-    if (accessToken && !config.headers.Authorization) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
+    const token = getAccessToken();
+    if (token && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },

@@ -21,26 +21,27 @@ export function AuthProvider({ children }) {
     });
   }, []);
 
-  // Rehydrate auth state on mount via GET /api/auth/me
+  // Rehydrate auth state on mount.
+  // Fast path: if sessionStorage has a token → call /auth/me directly.
+  // The response interceptor will auto-refresh via httpOnly cookie if it 401s.
+  // Slow path: no token → call /refresh first to get a new token from cookie.
   useEffect(() => {
     async function rehydrate() {
       try {
-        // Attempt silent refresh first if no access token exists
-        let token = getAccessToken();
-        if (!token) {
+        const existing = getAccessToken();
+        if (!existing) {
+          // No sessionStorage token — try refresh via httpOnly cookie
           const refreshRes = await api.post('/api/auth/refresh');
-          token = refreshRes.data.accessToken;
-          setAccessToken(token);
-          setAccessTokenState(token);
+          setAccessToken(refreshRes.data.accessToken);
         }
-
+        // By this point either we had a valid token or just refreshed one.
+        // /auth/me will use it via the request interceptor.
         const { data } = await api.get('/api/auth/me');
         setUser(data.user);
       } catch (err) {
-        // Unauthenticated or refresh failed — clean state
+        // Genuinely not logged in (refresh cookie expired/missing)
         setUser(null);
         setAccessToken(null);
-        setAccessTokenState(null);
       } finally {
         setIsLoading(false);
       }
