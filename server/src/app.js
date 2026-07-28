@@ -38,18 +38,28 @@ app.set('trust proxy', 1);
 
 // ── Core middleware ────────────────────────────────────────────────────────
 
-const allowedOrigins = [env.CLIENT_URL, 'http://localhost:5173', 'http://localhost:5174'];
+const allowedOrigins = [
+  'https://codenest-two-eta.vercel.app',   // Vercel production
+  'https://codenest-sg3f.onrender.com',    // Render (self-origin, for health checks)
+  'http://localhost:5173',                  // Vite dev
+  'http://localhost:5174',                  // Vite dev (alt port)
+  env.CLIENT_URL,                           // env override (trimmed below)
+].filter(Boolean).map((o) => o.replace(/\/$/, '')); // strip trailing slashes
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || (!env.IS_PRODUCTION && origin.startsWith('http://localhost:'))) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    // Allow no-origin requests (curl, health checks, server-to-server)
+    if (!origin) return callback(null, true);
+    // Strip trailing slash from incoming origin before comparison
+    const clean = origin.replace(/\/$/, '');
+    if (allowedOrigins.includes(clean) || (!env.IS_PRODUCTION && clean.startsWith('http://localhost:'))) {
+      return callback(null, true);
     }
+    return callback(new Error(`CORS: origin '${origin}' not allowed`));
   },
-  credentials: true,              // Required for httpOnly cookie cross-origin
+  credentials: true,   // Required for httpOnly cookie cross-origin
 }));
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
