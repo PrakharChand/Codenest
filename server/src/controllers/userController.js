@@ -49,12 +49,12 @@ async function searchUsers(req, res) {
             CASE WHEN c.follower_id IS NOT NULL THEN TRUE ELSE FALSE END AS "isFollowing"
      FROM users u
      LEFT JOIN connections c
-       ON c.follower_id = $3 AND c.following_id = u.id
+       ON c.follower_id = $2 AND c.following_id = u.id
      WHERE (u.name ILIKE $1)
-       AND u.id <> COALESCE($3, -1)
+       AND u.id <> COALESCE($2, -1)
      ORDER BY u.name ASC
      LIMIT 20`,
-    [pattern, pattern, viewerId]
+    [pattern, viewerId]
   );
 
   return res.json({ results: rows });

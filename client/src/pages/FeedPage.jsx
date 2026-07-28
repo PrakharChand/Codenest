@@ -80,18 +80,24 @@ export default function FeedPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-center border-t border-main pt-3 text-xs">
+          <div className="grid grid-cols-3 gap-2 text-center border-t border-main pt-3 text-xs">
             <div>
               <span className="block font-bold text-main text-base">
-                {profileStats?.post_count || 0}
+                {profileStats?.postCount ?? 0}
               </span>
               <span className="text-muted">Posts</span>
             </div>
             <div>
               <span className="block font-bold text-main text-base">
-                {profileStats?.connection_count || 0}
+                {profileStats?.followerCount ?? 0}
               </span>
-              <span className="text-muted">Connections</span>
+              <span className="text-muted">Followers</span>
+            </div>
+            <div>
+              <span className="block font-bold text-main text-base">
+                {profileStats?.followingCount ?? 0}
+              </span>
+              <span className="text-muted">Following</span>
             </div>
           </div>
         </Card>

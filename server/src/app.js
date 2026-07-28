@@ -94,7 +94,7 @@ app.use('/api/shadow',        requireAuth, requireAnonymousIdentity, shadowRoute
 
 // Phase 5
 app.use('/api/notifications', notificationRoutes);   // notification bell
-app.use('/api',               uploadRoutes);          // /api/users/:id/avatar, /api/posts/upload-image
+app.use('/api/upload',        uploadRoutes);        // /api/upload/users/:id/avatar, /api/upload/posts/upload-image
 app.use('/api/ai',            aiRoutes);              // AI features (aiLimiter applied per-route)
 
 // ── Terminal middleware (order is critical — must be last) ─────────────────
