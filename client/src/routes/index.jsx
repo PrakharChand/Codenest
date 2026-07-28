@@ -24,6 +24,7 @@ const CommunitiesPage = lazy(() => import('../pages/CommunitiesPage'));
 const CommunityDetailPage = lazy(() => import('../pages/CommunityDetailPage'));
 const NotificationsPage = lazy(() => import('../pages/NotificationsPage'));
 const ConnectionsPage = lazy(() => import('../pages/ConnectionsPage'));
+const ExplorePage = lazy(() => import('../pages/ExplorePage'));
 
 // Anonymous Setup
 const AnonymousCreatePage = lazy(() => import('../pages/AnonymousCreatePage'));
@@ -62,6 +63,7 @@ export default function AppRoutes() {
         <Route path="/communities" element={<ProtectedRoute><AppShell><CommunitiesPage /></AppShell></ProtectedRoute>} />
         <Route path="/communities/:id" element={<ProtectedRoute><AppShell><CommunityDetailPage /></AppShell></ProtectedRoute>} />
         <Route path="/connections" element={<ProtectedRoute><AppShell><ConnectionsPage /></AppShell></ProtectedRoute>} />
+        <Route path="/explore" element={<ProtectedRoute><AppShell><ExplorePage /></AppShell></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><AppShell><NotificationsPage /></AppShell></ProtectedRoute>} />
 
         {/* ─── Anonymous Identity Setup Route ────────────────────────────────── */}
