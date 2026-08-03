@@ -121,23 +121,35 @@ async function updateProfile(req, res) {
   // Users can only update their own profile
   if (req.user.id !== targetId) throw ApiError.forbidden('You can only update your own profile.');
 
-  const { name, bio, github_url, twitter_url } = req.body;
+  const { name, bio, github_url, twitter_url, avatar_url } = req.body;
 
+  // For URLs: allow explicit clearing (empty string → NULL stored)
+  // For name/bio: COALESCE keeps existing value if not provided
   const { rows } = await query(
     `UPDATE users
-     SET name = COALESCE($1, name),
-         bio = COALESCE($2, bio),
-         github_url = COALESCE($3, github_url),
-         twitter_url = COALESCE($4, twitter_url),
-         updated_at = NOW()
-     WHERE id = $5
+     SET name        = COALESCE($1, name),
+         bio         = COALESCE($2, bio),
+         github_url  = $3,
+         twitter_url = $4,
+         avatar_url  = COALESCE($5, avatar_url),
+         updated_at  = NOW()
+     WHERE id = $6
      RETURNING id, name, bio, github_url, twitter_url, avatar_url, created_at`,
-    [name || null, bio || null, github_url || null, twitter_url || null, targetId]
+    [
+      name        || null,
+      bio         || null,
+      github_url  !== undefined ? (github_url  || null) : null,
+      twitter_url !== undefined ? (twitter_url || null) : null,
+      avatar_url  || null,
+      targetId,
+    ]
   );
+
 
   if (!rows.length) throw ApiError.notFound('User not found.');
   return res.json(rows[0]);
 }
+
 
 module.exports = { searchUsers, exploreUsers, getUserProfile, updateProfile };
 

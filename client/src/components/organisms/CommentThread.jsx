@@ -63,21 +63,21 @@ function DateDivider({ label }) {
 // ── Single Comment ─────────────────────────────────────────────────────────
 
 function CommentItem({ comment, currentUser, onDelete }) {
-  const isOwner = currentUser && currentUser.id === comment.user_id;
+  const isOwner = currentUser && currentUser.id === comment.author_id;
   const timeAgo = comment.created_at
     ? formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })
     : 'recently';
 
   return (
     <div className="flex gap-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] p-4 transition-colors hover:bg-[var(--bg-surface-hover)]">
-      <Link to={`/users/${comment.user_id}`} className="shrink-0">
+      <Link to={`/users/${comment.author_id}`} className="shrink-0">
         <Avatar src={comment.author_avatar_url} name={comment.author_name} size="sm" />
       </Link>
       <div className="flex-1 min-w-0 space-y-1.5">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap min-w-0">
             <Link
-              to={`/users/${comment.user_id}`}
+              to={`/users/${comment.author_id}`}
               className="text-sm font-semibold text-main hover:text-primary transition-colors truncate"
             >
               {comment.author_name}

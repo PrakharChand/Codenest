@@ -86,7 +86,8 @@ export default function UserProfilePage() {
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold text-main">{profile.name}</h1>
-                {isMutual && <Badge variant="primary" size="sm">Mutual Connection</Badge>}
+                {profile.isMutual && <Badge variant="primary" size="sm">Mutual Connection</Badge>}
+
               </div>
               <p className="text-xs text-subtle">
                 Joined{' '}
