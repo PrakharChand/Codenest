@@ -19,9 +19,8 @@ export default function UserProfilePage() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [connected, setConnected] = useState(false);
-  const [isMutual, setIsMutual] = useState(false);
-  const [connectLoading, setConnectLoading] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
 
   const isSelf = currentUser && currentUser.id === parseInt(id, 10);
 
@@ -32,8 +31,7 @@ export default function UserProfilePage() {
       try {
         const data = await usersApi.getProfile(id);
         setProfile(data);
-        setConnected(data.isConnected || false);
-        setIsMutual(data.isMutual || false);
+        setIsFollowing(data.isFollowing || false);
       } catch (err) {
         setError(err.message || 'Failed to load user profile.');
       } finally {
@@ -43,22 +41,21 @@ export default function UserProfilePage() {
     loadProfile();
   }, [id]);
 
-  const handleToggleConnect = async () => {
+  const handleToggleFollow = async () => {
     if (isSelf) return;
-    setConnectLoading(true);
+    setFollowLoading(true);
     try {
-      if (connected) {
+      if (isFollowing) {
         await usersApi.disconnect(id);
-        setConnected(false);
-        setIsMutual(false);
+        setIsFollowing(false);
       } else {
         await usersApi.connect(id);
-        setConnected(true);
+        setIsFollowing(true);
       }
     } catch (err) {
       alert(err.message || 'Action failed.');
     } finally {
-      setConnectLoading(false);
+      setFollowLoading(false);
     }
   };
 
@@ -100,6 +97,22 @@ export default function UserProfilePage() {
             </div>
           </div>
 
+          {/* Stats row */}
+          <div className="flex items-center gap-6 flex-wrap">
+            <div className="text-center">
+              <div className="text-xl font-extrabold text-main">{profile.postCount ?? 0}</div>
+              <div className="text-xs text-subtle">Posts</div>
+            </div>
+            <div className="text-center">
+              <div className="text-xl font-extrabold text-main">{profile.followerCount ?? 0}</div>
+              <div className="text-xs text-subtle">Followers</div>
+            </div>
+            <div className="text-center">
+              <div className="text-xl font-extrabold text-main">{profile.followingCount ?? 0}</div>
+              <div className="text-xs text-subtle">Following</div>
+            </div>
+          </div>
+
           <div>
             {isSelf ? (
               <Link to="/settings/profile">
@@ -110,12 +123,12 @@ export default function UserProfilePage() {
             ) : (
               currentUser && (
                 <Button
-                  variant={connected ? 'secondary' : 'primary'}
+                  variant={isFollowing ? 'secondary' : 'primary'}
                   size="sm"
-                  onClick={handleToggleConnect}
-                  isLoading={connectLoading}
+                  onClick={handleToggleFollow}
+                  isLoading={followLoading}
                 >
-                  {connected ? 'Connected' : 'Connect'}
+                  {isFollowing ? 'Following' : 'Follow'}
                 </Button>
               )
             )}

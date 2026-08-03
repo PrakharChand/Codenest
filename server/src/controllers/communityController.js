@@ -60,17 +60,30 @@ async function listCommunities(req, res) {
 
 async function getCommunity(req, res) {
   const communityId = parseInt(req.params.id, 10);
-  const { page, limit, offset } = parsePagination(req.query);
+  const viewerId   = req.user?.id ?? null;
 
   const { rows: commRows } = await query(
     `SELECT c.id, c.name, c.description, c.member_count, c.created_at,
-            ${AUTHOR_CARD}
+            c.created_by,
+            ${AUTHOR_CARD},
+            CASE WHEN cm.user_id IS NOT NULL THEN TRUE ELSE FALSE END AS is_member,
+            CASE WHEN c.created_by = $2 THEN TRUE ELSE FALSE END AS is_admin
      FROM communities c
      LEFT JOIN users u ON u.id = c.created_by
+     LEFT JOIN community_members cm ON cm.community_id = c.id AND cm.user_id = $2
      WHERE c.id = $1`,
-    [communityId]
+    [communityId, viewerId]
   );
   if (!commRows.length) throw ApiError.notFound('Community not found.');
+
+  return res.json(commRows[0]);
+}
+
+// ── GET /api/communities/:id/posts ─────────────────────────────────────────
+
+async function getPostsByCommunity(req, res) {
+  const communityId = parseInt(req.params.id, 10);
+  const { page, limit, offset } = parsePagination(req.query);
 
   const [postCount, postRows] = await Promise.all([
     query('SELECT COUNT(*) FROM community_posts WHERE community_id = $1', [communityId]),
@@ -87,10 +100,7 @@ async function getCommunity(req, res) {
   ]);
 
   const total = parseInt(postCount.rows[0].count, 10);
-  return res.json({
-    community: commRows[0],
-    posts: buildPaginatedResponse(postRows.rows, total, page, limit),
-  });
+  return res.json(buildPaginatedResponse(postRows.rows, total, page, limit));
 }
 
 // ── POST /api/communities — create ───────────────────────────────────────
@@ -203,6 +213,6 @@ async function createCommunityPost(req, res) {
 }
 
 module.exports = {
-  listCommunities, getCommunity, createCommunity,
+  listCommunities, getCommunity, getPostsByCommunity, createCommunity,
   joinCommunity, leaveCommunity, createCommunityPost,
 };

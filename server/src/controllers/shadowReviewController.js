@@ -74,4 +74,46 @@ async function createReview(req, res) {
   return res.status(201).json(review);
 }
 
-module.exports = { createReview };
+// ── GET /api/shadow/my-reviews ────────────────────────────────────────────
+// Returns all submissions the current user has reviewed.
+// SECURITY: Only anonymous fields. No real identities of submitters or self.
+
+async function getMyReviews(req, res) {
+  const { parsePagination, buildPaginatedResponse } = require('../utils/paginate');
+  const reviewerId = req.user.id;
+  const { page, limit, offset } = parsePagination(req.query);
+
+  const [countResult, dataResult] = await Promise.all([
+    query(
+      'SELECT COUNT(*) FROM shadow_reviews WHERE reviewer_id = $1',
+      [reviewerId]
+    ),
+    query(
+      // SECURITY: Explicit column list — no user_id, no reviewer_id in output
+      `SELECT
+         sr.id           AS review_id,
+         sr.what_good,
+         sr.what_improve,
+         sr.resources,
+         sr.helpfulness_rating,
+         sr.helpful_vote_count,
+         sr.is_ai_review,
+         sr.created_at   AS reviewed_at,
+         ss.id           AS submission_id,
+         ss.title        AS submission_title,
+         ss.language_tag,
+         ss.review_count
+       FROM shadow_reviews sr
+       JOIN shadow_submissions ss ON ss.id = sr.submission_id
+       WHERE sr.reviewer_id = $1
+       ORDER BY sr.created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [reviewerId, limit, offset]
+    ),
+  ]);
+
+  const total = parseInt(countResult.rows[0].count, 10);
+  return res.json(buildPaginatedResponse(dataResult.rows, total, page, limit));
+}
+
+module.exports = { createReview, getMyReviews };

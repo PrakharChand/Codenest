@@ -10,9 +10,11 @@ const router         = express.Router();
 
 const asyncHandler   = require('../utils/asyncHandler');
 const validate       = require('../middleware/validate');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, optionalAuth } = require('../middleware/auth');
+
+
 const {
-  listCommunities, getCommunity, createCommunity,
+  listCommunities, getCommunity, getPostsByCommunity, createCommunity,
   joinCommunity, leaveCommunity, createCommunityPost,
 } = require('../controllers/communityController');
 
@@ -29,9 +31,10 @@ const communityPostValidation = [
                  .isLength({ max: 50000 }).withMessage('Content must be 50,000 characters or fewer.'),
 ];
 
-// Public
-router.get('/',    asyncHandler(listCommunities));
-router.get('/:id', asyncHandler(getCommunity));
+// Public (optional auth for is_member computation)
+router.get('/',      asyncHandler(listCommunities));
+router.get('/:id',   optionalAuth, asyncHandler(getCommunity));
+router.get('/:id/posts', asyncHandler(getPostsByCommunity));
 
 // Protected
 router.post('/',               requireAuth, communityValidation,     validate, asyncHandler(createCommunity));

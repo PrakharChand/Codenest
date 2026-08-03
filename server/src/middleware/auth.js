@@ -76,3 +76,45 @@ function requireAnonymousIdentity(req, _res, next) {
 }
 
 module.exports = { requireAuth, requireAnonymousIdentity };
+
+/**
+ * optionalAuth
+ *
+ * Like requireAuth but does NOT reject unauthenticated requests.
+ * If a valid Bearer token is present, req.user is populated as usual.
+ * If no token (or invalid token), req.user remains undefined and next() is called.
+ *
+ * Use for endpoints that show different data to authenticated vs guest callers.
+ * Example: GET /api/communities/:id — returns is_member=true only if authenticated.
+ */
+async function optionalAuth(req, _res, next) {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return next(); // no token → guest, skip
+    }
+
+    const { verifyAccessToken } = require('../utils/tokens');
+    const { query }             = require('../config/db');
+
+    const token   = authHeader.slice(7);
+    let payload;
+    try { payload = verifyAccessToken(token); } catch { return next(); } // invalid token → guest
+
+    const userId = parseInt(payload.sub, 10);
+    const { rows } = await query(
+      'SELECT id, has_anonymous_identity FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (rows.length) {
+      req.user = { id: rows[0].id, hasAnonymousIdentity: rows[0].has_anonymous_identity };
+    }
+
+    next();
+  } catch (err) {
+    next(); // on any error, treat as guest — don't block the request
+  }
+}
+
+module.exports = { requireAuth, requireAnonymousIdentity, optionalAuth };

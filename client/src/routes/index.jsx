@@ -34,6 +34,7 @@ const ShadowQueuePage = lazy(() => import('../pages/ShadowQueuePage'));
 const ShadowSubmissionDetailPage = lazy(() => import('../pages/ShadowSubmissionDetailPage'));
 const CreateSubmissionPage = lazy(() => import('../pages/CreateSubmissionPage'));
 const MySubmissionsPage = lazy(() => import('../pages/MySubmissionsPage'));
+const MyReviewsPage = lazy(() => import('../pages/MyReviewsPage'));
 const ShadowProfilePage = lazy(() => import('../pages/ShadowProfilePage'));
 const ShadowCommunityPage = lazy(() => import('../pages/ShadowCommunityPage'));
 
@@ -74,6 +75,7 @@ export default function AppRoutes() {
         <Route path="/shadow/submissions/new" element={<ShadowRoute><AppShell><CreateSubmissionPage /></AppShell></ShadowRoute>} />
         <Route path="/shadow/submissions/:id" element={<ShadowRoute><AppShell><ShadowSubmissionDetailPage /></AppShell></ShadowRoute>} />
         <Route path="/shadow/mine" element={<ShadowRoute><AppShell><MySubmissionsPage /></AppShell></ShadowRoute>} />
+        <Route path="/shadow/my-reviews" element={<ShadowRoute><AppShell><MyReviewsPage /></AppShell></ShadowRoute>} />
         <Route path="/shadow/me" element={<ShadowRoute><AppShell><ShadowProfilePage /></AppShell></ShadowRoute>} />
         <Route path="/shadow/community" element={<ShadowRoute><AppShell><ShadowCommunityPage /></AppShell></ShadowRoute>} />
 

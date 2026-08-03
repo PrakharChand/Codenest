@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import Avatar from '../atoms/Avatar';
 import Badge from '../atoms/Badge';
+import ThemeToggle from '../atoms/ThemeToggle';
 
 // ── Nav icon helpers ──────────────────────────────────────────────────────
 
@@ -151,6 +152,8 @@ export default function Sidebar() {
             Code<span className="text-[var(--color-primary)]">Nest</span>
           </span>
         </Link>
+        {/* Theme toggle — only visible in Feed mode */}
+        <ThemeToggle />
       </div>
 
       {/* ─── Quick search (Feed only) ──────────────────────────────── */}
@@ -249,6 +252,7 @@ export default function Sidebar() {
             <NavItem to="/shadow/queue" icon={<QueueIcon />} label="Queue" active={is('/shadow/queue')} />
             <NavItem to="/shadow/submissions/new" icon={<SubmitIcon />} label="Submit Code" active={is('/shadow/submissions/new')} />
             <NavItem to="/shadow/mine" icon={<MineIcon />} label="My Submissions" active={is('/shadow/mine')} />
+            <NavItem to="/shadow/my-reviews" icon={<AnonIcon />} label="My Reviews" active={is('/shadow/my-reviews')} />
             <NavItem to="/shadow/community" icon={<AnonIcon />} label="Anon Community" active={is('/shadow/community')} />
             <NavItem
               to="/notifications?context=shadow"
@@ -295,11 +299,18 @@ export default function Sidebar() {
                   Profile
                 </Link>
                 <Link
-                  to="/settings/profile"
+                  to="/settings"
                   className="flex items-center gap-2 px-3 py-2.5 text-sm text-[var(--text-main)] hover:bg-[var(--bg-surface-hover)]"
                   onClick={() => setUserMenuOpen(false)}
                 >
                   Settings
+                </Link>
+                <Link
+                  to="/settings/profile"
+                  className="flex items-center gap-2 px-3 py-2.5 text-sm text-[var(--text-main)] hover:bg-[var(--bg-surface-hover)]"
+                  onClick={() => setUserMenuOpen(false)}
+                >
+                  Edit Profile
                 </Link>
                 <button
                   onClick={handleLogout}

@@ -5,6 +5,7 @@ import { postsApi } from '../api/postsApi';
 import PaginatedList from '../components/organisms/PaginatedList';
 import PostCard from '../components/organisms/PostCard';
 import Button from '../components/atoms/Button';
+import ThemeToggle from '../components/atoms/ThemeToggle';
 
 // ── Feature data ──────────────────────────────────────────────────────────
 
@@ -42,6 +43,26 @@ export default function LandingPage() {
 
   return (
     <div className="space-y-16">
+      {/* ── Top nav bar for logged-out visitors ───────────────────── */}
+      {!user && (
+        <nav className="flex items-center justify-between pb-2">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-[var(--color-primary)] flex items-center justify-center">
+              <span className="text-white font-bold text-xs">CN</span>
+            </div>
+            <span className="text-sm font-bold text-[var(--text-main)]">Code<span className="text-[var(--color-primary)]">Nest</span></span>
+          </div>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <Link to="/login">
+              <Button variant="secondary" size="sm">Sign In</Button>
+            </Link>
+            <Link to="/register">
+              <Button variant="primary" size="sm">Get Started</Button>
+            </Link>
+          </div>
+        </nav>
+      )}
 
       {/* ── Hero Section (logged-out only) ─────────────────────────────── */}
       {!user && (

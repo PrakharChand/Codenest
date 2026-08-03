@@ -21,7 +21,7 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─── Nest Feed Theme — Deep Violet + Warm Slate ────────────────────────── */
+/* ─── Nest Feed Theme — Light (default) Deep Violet + Warm Slate ──────────── */
 :root,
 .theme-feed {
   /* Surfaces */
@@ -65,6 +65,48 @@
   /* Sidebar width */
   --sidebar-width: 240px;
 }
+
+/* ─── Nest Feed Theme — Dark (Ocean Blue) ────────────────────────────────── */
+.theme-feed.dark-mode {
+  /* Surfaces — deep ocean blue-grey */
+  --bg-base:            #0D1117;
+  --bg-surface:         #161B22;
+  --bg-surface-hover:   #21262D;
+  --bg-surface-subtle:  #0D1117;
+
+  /* Borders */
+  --border-main:        #30363D;
+  --border-focus:       #7C3AED;
+
+  /* Text */
+  --text-main:          #E6EDF3;
+  --text-muted:         #8B949E;
+  --text-subtle:        #484F58;
+
+  /* Primary — keep Deep Violet */
+  --color-primary:       #A78BFA;
+  --color-primary-hover: #8B5CF6;
+  --color-primary-light: #1E1433;
+  --color-primary-dim:   rgba(167, 139, 250, 0.12);
+
+  /* Semantic */
+  --color-success:  #3FB950;
+  --color-danger:   #F85149;
+  --color-warning:  #E3B341;
+
+  /* Elevation shadows — dark */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 4px 0 rgba(0, 0, 0, 0.5), 0 1px 2px -1px rgba(167, 139, 250, 0.08);
+  --shadow-md: 0 4px 16px -2px rgba(0, 0, 0, 0.6), 0 2px 6px -2px rgba(167, 139, 250, 0.10);
+  --shadow-lg: 0 20px 48px -8px rgba(0, 0, 0, 0.8), 0 8px 20px -4px rgba(167, 139, 250, 0.12);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --sidebar-width: 240px;
+}
+
 
 /* ─── Nest Shadow Theme — Cyan-Teal + Zinc Midnight ─────────────────────── */
 .theme-shadow,

@@ -28,7 +28,7 @@ const {
   createSubmission, getQueue, getMySubmissions, getSubmission,
 } = require('../controllers/shadowSubmissionController');
 
-const { createReview } = require('../controllers/shadowReviewController');
+const { createReview, getMyReviews } = require('../controllers/shadowReviewController');
 const { voteHelpful, getShadowProfile } = require('../controllers/shadowVoteController');
 const { listShadowCommunityPosts, createShadowCommunityPost } = require('../controllers/shadowCommunityController');
 
@@ -66,6 +66,7 @@ router.get('/submissions/:id',                                   asyncHandler(ge
 
 // ── Reviews ───────────────────────────────────────────────────────────────
 router.post('/submissions/:id/reviews', reviewValidation, validate, asyncHandler(createReview));
+router.get('/my-reviews',                                            asyncHandler(getMyReviews));
 
 // ── Helpful voting ────────────────────────────────────────────────────────
 router.post('/reviews/:id/helpful',                              asyncHandler(voteHelpful));
