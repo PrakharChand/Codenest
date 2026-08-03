@@ -1,3 +1,10 @@
+/**
+ * client/src/pages/EditProfilePage.jsx
+ *
+ * Edit public profile: bio, links, avatar selection.
+ * Avatar is chosen from a curated grid — no file upload.
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -7,6 +14,8 @@ import TextArea from '../components/atoms/TextArea';
 import Button from '../components/atoms/Button';
 import Card from '../components/atoms/Card';
 import Avatar from '../components/atoms/Avatar';
+import AvatarPicker from '../components/organisms/AvatarPicker';
+import { FEED_AVATARS } from '../utils/avatars';
 
 export default function EditProfilePage() {
   const { user, setUser } = useAuth();
@@ -19,12 +28,10 @@ export default function EditProfilePage() {
     avatar_url: '',
   });
 
-  const [avatarFile, setAvatarFile] = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState('');
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -34,7 +41,6 @@ export default function EditProfilePage() {
         twitter_url: user.twitter_url || '',
         avatar_url: user.avatar_url || '',
       });
-      setAvatarPreview(user.avatar_url || '');
     }
   }, [user]);
 
@@ -45,36 +51,9 @@ export default function EditProfilePage() {
     }
   };
 
-  const handleAvatarFileChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
-      setFieldErrors({ avatar: 'File size must be under 5 MB.' });
-      return;
-    }
-
-    // Validate type
-    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      setFieldErrors({ avatar: 'Allowed image types: PNG, JPEG, WebP.' });
-      return;
-    }
-
-    setAvatarFile(file);
-    setUploadingAvatar(true);
-    setFieldErrors({});
-
-    try {
-      const res = await usersApi.uploadAvatar(user.id, file);
-      setAvatarPreview(res.url);
-      setFormData((prev) => ({ ...prev, avatar_url: res.url }));
-    } catch (err) {
-      setFieldErrors({ avatar: err.message || 'Avatar upload failed.' });
-    } finally {
-      setUploadingAvatar(false);
-    }
+  const handleAvatarSelect = (url) => {
+    setFormData((prev) => ({ ...prev, avatar_url: url }));
+    setShowAvatarPicker(false);
   };
 
   const handleSubmit = async (e) => {
@@ -101,7 +80,12 @@ export default function EditProfilePage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold text-main">Edit Public Profile</h1>
+      <div>
+        <h1 className="text-2xl font-bold text-main">Edit Public Profile</h1>
+        <p className="text-sm text-muted mt-1">
+          Update your public identity on Nest Feed.
+        </p>
+      </div>
 
       <Card className="p-6 md:p-8 space-y-6">
         {successMessage && (
@@ -116,24 +100,38 @@ export default function EditProfilePage() {
           </div>
         )}
 
-        {/* Avatar Upload Section */}
+        {/* Avatar Selection */}
         <div className="flex items-center gap-6 border-b border-main pb-6">
-          <Avatar src={avatarPreview} name={user?.name} size="lg" />
+          <Avatar src={formData.avatar_url} name={user?.name} size="lg" />
           <div className="space-y-2">
             <label className="block text-sm font-medium text-main">Public Avatar</label>
-            <input
-              type="file"
-              accept="image/png, image/jpeg, image/webp"
-              onChange={handleAvatarFileChange}
-              disabled={uploadingAvatar}
-              className="text-xs text-muted file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-surface-hover file:text-main hover:file:bg-primary-light"
-            />
-            {uploadingAvatar && <p className="text-xs text-primary">Uploading image to Cloudinary...</p>}
-            {fieldErrors.avatar && <p className="text-xs text-danger font-medium">{fieldErrors.avatar}</p>}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowAvatarPicker((v) => !v)}
+            >
+              {showAvatarPicker ? 'Close Picker' : 'Choose Avatar'}
+            </Button>
+            <p className="text-xs text-subtle">Click an avatar below to select it.</p>
           </div>
         </div>
 
-        {/* Form Details */}
+        {/* Avatar Grid Picker */}
+        {showAvatarPicker && (
+          <div className="border border-main rounded-xl p-4 bg-surface-subtle">
+            <p className="text-xs font-semibold text-muted mb-3 uppercase tracking-wide">
+              Choose your public avatar
+            </p>
+            <AvatarPicker
+              avatars={FEED_AVATARS}
+              selected={formData.avatar_url}
+              onSelect={handleAvatarSelect}
+              columns={5}
+            />
+          </div>
+        )}
+
+        {/* Profile Details Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <TextArea
             label="Bio"

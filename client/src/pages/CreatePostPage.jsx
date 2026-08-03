@@ -62,7 +62,8 @@ export default function CreatePostPage() {
     setFieldErrors({});
     try {
       const res = await postsApi.uploadImage(file);
-      setImageUrl(res.url);
+      setImageUrl(res.image_url);
+
     } catch (err) {
       setFieldErrors({ image: err.message || 'Image upload failed.' });
     } finally {

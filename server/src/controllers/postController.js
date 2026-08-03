@@ -49,10 +49,15 @@ async function getPostTags(postId) {
 
 async function listPosts(req, res) {
   const { page, limit, offset } = parsePagination(req.query);
-  const { tag, search, sort }   = req.query;
+  const { tag, search, sort, author_id } = req.query;
 
   const params = [];
   const where  = [`p.visibility = 'public'`];
+
+  if (author_id) {
+    params.push(parseInt(author_id, 10));
+    where.push(`p.user_id = $${params.length}`);
+  }
 
   if (tag) {
     params.push(tag.toLowerCase());

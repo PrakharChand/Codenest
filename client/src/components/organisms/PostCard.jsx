@@ -10,8 +10,10 @@ import { useAuth } from '../../context/AuthContext';
 export default function PostCard({ post, onPostDeleted }) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(post.isLiked || false);
   const [likeCount, setLikeCount] = useState(post.like_count || 0);
+  const [shared, setShared] = useState(false);
+  const [shareCount, setShareCount] = useState(post.share_count || 0);
 
   const isOwner = user && user.id === post.author_id;
 
@@ -46,11 +48,14 @@ export default function PostCard({ post, onPostDeleted }) {
       navigate('/login');
       return;
     }
+    if (shared) return; // prevent double-share
     try {
       await postsApi.share(post.id);
-      alert('Post reshared successfully!');
+      setShared(true);
+      setShareCount((prev) => prev + 1);
+      setTimeout(() => setShared(false), 2000);
     } catch (err) {
-      alert(err.message || 'Could not share post.');
+      // show nothing — silently fail or post already shared
     }
   };
 
@@ -155,10 +160,12 @@ export default function PostCard({ post, onPostDeleted }) {
           <button
             type="button"
             onClick={handleShare}
-            className="flex items-center gap-1.5 font-medium hover:text-main"
+            className={`flex items-center gap-1.5 font-medium transition-colors ${
+              shared ? 'text-success' : 'hover:text-main'
+            }`}
           >
-            <span>🔁</span>
-            <span>{post.share_count || 0}</span>
+            <span>{shared ? '✅' : '🔁'}</span>
+            <span>{shareCount}</span>
           </button>
         </div>
       </div>

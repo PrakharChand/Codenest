@@ -25,6 +25,7 @@ const CommunityDetailPage = lazy(() => import('../pages/CommunityDetailPage'));
 const NotificationsPage = lazy(() => import('../pages/NotificationsPage'));
 const ConnectionsPage = lazy(() => import('../pages/ConnectionsPage'));
 const ExplorePage = lazy(() => import('../pages/ExplorePage'));
+const SettingsPage = lazy(() => import('../pages/SettingsPage'));
 
 // Anonymous Setup
 const AnonymousCreatePage = lazy(() => import('../pages/AnonymousCreatePage'));
@@ -60,6 +61,7 @@ export default function AppRoutes() {
         <Route path="/posts/:id" element={<ProtectedRoute><AppShell><PostDetailPage /></AppShell></ProtectedRoute>} />
         <Route path="/posts/:id/edit" element={<ProtectedRoute><AppShell><EditPostPage /></AppShell></ProtectedRoute>} />
         <Route path="/users/:id" element={<ProtectedRoute><AppShell><UserProfilePage /></AppShell></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><AppShell><SettingsPage /></AppShell></ProtectedRoute>} />
         <Route path="/settings/profile" element={<ProtectedRoute><AppShell><EditProfilePage /></AppShell></ProtectedRoute>} />
         <Route path="/communities" element={<ProtectedRoute><AppShell><CommunitiesPage /></AppShell></ProtectedRoute>} />
         <Route path="/communities/:id" element={<ProtectedRoute><AppShell><CommunityDetailPage /></AppShell></ProtectedRoute>} />
@@ -69,6 +71,7 @@ export default function AppRoutes() {
 
         {/* ─── Anonymous Identity Setup Route ────────────────────────────────── */}
         <Route path="/anonymous/create" element={<ProtectedRoute><AppShell><AnonymousCreatePage /></AppShell></ProtectedRoute>} />
+        <Route path="/shadow/create" element={<ProtectedRoute><AppShell><AnonymousCreatePage /></AppShell></ProtectedRoute>} />
 
         {/* ─── Nest Shadow Routes (Requires Auth AND Anonymous Identity) ─────── */}
         <Route path="/shadow/queue" element={<ShadowRoute><AppShell><ShadowQueuePage /></AppShell></ShadowRoute>} />

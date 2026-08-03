@@ -43,10 +43,10 @@ export const postsApi = {
 
   uploadImage: async (file) => {
     const formData = new FormData();
-    formData.append('file', file);
-    const { data } = await api.post('/api/upload', formData, {
+    formData.append('image', file);
+    const { data } = await api.post('/api/upload/posts/upload-image', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    return data;
+    return data; // { image_url: '...' }
   },
 };
