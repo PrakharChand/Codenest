@@ -1,15 +1,18 @@
 /**
  * server/src/controllers/aiController.js
  *
- * Thin route handlers that validate input, call aiService,
- * and return results or their safe fallbacks.
+ * Route handlers for Google Gemini AI features:
+ *  - POST /api/ai/suggest-tags
+ *  - POST /api/ai/anonymity-check
+ *  - POST /api/ai/generate-roadmap
+ *  - POST /api/ai/suggest-connections
  *
- * Every route applies aiLimiter (20 req/hour/IP) — applied at route level.
- * All wrapped in asyncHandler at the route level.
+ * All handlers validate inputs, forward user ID for log tracing, and delegate
+ * to aiService. 100% backward compatible with existing frontend component contracts.
  */
 
-const { query }    = require('../config/db');
-const ApiError     = require('../utils/ApiError');
+const { query } = require('../config/db');
+const ApiError  = require('../utils/ApiError');
 const {
   suggestTags,
   anonymityCheck,
@@ -18,32 +21,28 @@ const {
 } = require('../services/aiService');
 
 // ── POST /api/ai/suggest-tags ─────────────────────────────────────────────
-// Body: { content } — require ≥100 chars
-
 async function suggestTagsRoute(req, res) {
   const { content } = req.body;
   if (!content || content.length < 100) {
     throw ApiError.badRequest('Content must be at least 100 characters for tag suggestions.');
   }
-  const result = await suggestTags(content);
+
+  const result = await suggestTags(content, req.user?.id);
   return res.json(result);
 }
 
 // ── POST /api/ai/anonymity-check ──────────────────────────────────────────
-// Body: { text } — advisory only, fail-open
-
 async function anonymityCheckRoute(req, res) {
   const { text } = req.body;
   if (!text || !text.trim()) {
     throw ApiError.badRequest('text is required.');
   }
-  const result = await anonymityCheck(text);
+
+  const result = await anonymityCheck(text, req.user?.id);
   return res.json(result);
 }
 
 // ── POST /api/ai/generate-roadmap ─────────────────────────────────────────
-// Body: { level, knownTech, goal, hoursPerWeek }
-
 async function generateRoadmapRoute(req, res) {
   const { level, knownTech, goal, hoursPerWeek } = req.body;
 
@@ -54,16 +53,19 @@ async function generateRoadmapRoute(req, res) {
     throw ApiError.badRequest('Goal must be at least 20 characters.');
   }
 
-  const roadmapData = await generateRoadmap({ level, knownTech, goal, hoursPerWeek });
+  const roadmapData = await generateRoadmap({ level, knownTech, goal, hoursPerWeek }, req.user?.id);
 
-  if (!roadmapData) {
-    // AI failed — return a clear message, no partial write
+  // If roadmap generation completely failed (fallback returned)
+  if (!roadmapData || roadmapData.fallback || !roadmapData.phases?.length) {
     return res.status(503).json({
-      error: { code: 'AI_UNAVAILABLE', message: "Couldn't generate a roadmap right now. Please try again shortly." },
+      error: {
+        code: 'AI_UNAVAILABLE',
+        message: "Couldn't generate a roadmap right now. Please try again shortly.",
+      },
     });
   }
 
-  // Upsert: one roadmap per user — regenerate overwrites
+  // Upsert user roadmap
   await query(
     `INSERT INTO user_roadmaps (user_id, roadmap_data, generated_at)
      VALUES ($1, $2, NOW())
@@ -75,19 +77,14 @@ async function generateRoadmapRoute(req, res) {
 }
 
 // ── POST /api/ai/suggest-connections ─────────────────────────────────────
-// Public-identity only — never reads Shadow data.
-
 async function suggestConnectionsRoute(req, res) {
   const userId = req.user.id;
 
-  // Fetch current user's recent posts
   const { rows: myPosts } = await query(
     `SELECT id, title FROM posts WHERE user_id = $1 ORDER BY created_at DESC LIMIT 10`,
     [userId]
   );
 
-  // Fetch candidate users' recent posts:
-  // Exclude self and already-connected users at query level (Phase 3 pattern)
   const { rows: candidates } = await query(
     `SELECT u.id AS user_id, STRING_AGG(p.title, ', ' ORDER BY p.created_at DESC) AS titles
      FROM users u
@@ -103,8 +100,13 @@ async function suggestConnectionsRoute(req, res) {
     [userId]
   );
 
-  const result = await suggestConnections(myPosts, candidates);
+  const result = await suggestConnections(myPosts, candidates, userId);
   return res.json(result);
 }
 
-module.exports = { suggestTagsRoute, anonymityCheckRoute, generateRoadmapRoute, suggestConnectionsRoute };
+module.exports = {
+  suggestTagsRoute,
+  anonymityCheckRoute,
+  generateRoadmapRoute,
+  suggestConnectionsRoute,
+};

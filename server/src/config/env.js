@@ -3,8 +3,7 @@
  *
  * Single source for all environment variables.
  * Convention: NO other file reads process.env directly — they import from here.
- * This keeps secrets access in one auditable place and gives a clear startup
- * error when a required variable is missing instead of a confusing runtime crash.
+ * Keeps secrets and settings centralized, validated, and documented.
  */
 
 require('dotenv').config();
@@ -52,8 +51,12 @@ const env = Object.freeze({
   GOOGLE_CLIENT_SECRET:  process.env.GOOGLE_CLIENT_SECRET,
   GOOGLE_CALLBACK_URL:   process.env.GOOGLE_CALLBACK_URL,
 
-  // Google Gemini AI (replaces Anthropic Claude)
+  // Google Gemini AI Configuration (No magic numbers)
   GEMINI_API_KEY:        process.env.GEMINI_API_KEY,
+  GEMINI_MODEL:          process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+  AI_TIMEOUT_MS:         parseInt(process.env.AI_TIMEOUT_MS, 10) || 15000,
+  AI_MAX_RETRIES:        parseInt(process.env.AI_MAX_RETRIES, 10) || 2,
+  AI_CACHE_TTL_MS:       parseInt(process.env.AI_CACHE_TTL_MS, 10) || 600000, // 10 minutes
 
   // Client
   CLIENT_URL:            process.env.CLIENT_URL,
