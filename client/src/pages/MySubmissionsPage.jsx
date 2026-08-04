@@ -33,7 +33,7 @@ export default function MySubmissionsPage() {
         emptyTitle="You haven't submitted any code for review yet"
         emptyDescription="Submit a code snippet to get constructive, bias-free feedback from developers!"
         emptyActionLabel="Submit Code Now"
-        onEmptyAction={() => navigate('/feed')}
+        onEmptyAction={() => navigate('/shadow/submissions/new')}
       />
     </div>
   );
