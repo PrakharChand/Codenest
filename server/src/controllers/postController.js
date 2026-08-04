@@ -358,7 +358,7 @@ async function getTrendingPosts(req, res) {
   const total = countRes.rows[0]?.count || 0;
 
   const { rows } = await query(
-    `SELECT p.id, p.title, p.content, p.visibility, p.created_at, p.updated_at,
+    `SELECT p.id, p.title, p.content, p.visibility, p.created_at,
             ${AUTHOR_CARD},
             (SELECT COUNT(*)::int FROM likes WHERE post_id = p.id) AS like_count,
             (SELECT COUNT(*)::int FROM comments WHERE post_id = p.id) AS comment_count,
