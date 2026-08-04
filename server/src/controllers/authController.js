@@ -8,6 +8,7 @@
  * (recorded in CODENEST_REFERENCE.md under Auth Conventions)
  */
 
+const crypto     = require('crypto');
 const bcrypt     = require('bcryptjs');
 const { query, getClient } = require('../config/db');
 const ApiError   = require('../utils/ApiError');
@@ -26,11 +27,16 @@ const BCRYPT_SALT_ROUNDS = 12;
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 /** Safe public user fields returned after login/register — never password_hash */
-const PUBLIC_USER_FIELDS = 'id, name, email, avatar_url, bio, has_anonymous_identity, anonymous_username, onboarding_completed_at, created_at';
+const PUBLIC_USER_FIELDS = 'id, name, email, avatar_url, bio, has_anonymous_identity, anonymous_username, is_onboarded, verified, onboarding_completed_at, created_at';
 
-function issueTokens(res, userId) {
+async function issueTokens(res, userId) {
   const accessToken  = signAccessToken(userId);
   const refreshToken = signRefreshToken(userId);
+
+  // Hash refresh token for storage & token rotation security
+  const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+  await query('UPDATE users SET refresh_token_hash = $1 WHERE id = $2', [tokenHash, userId]);
+
   setRefreshCookie(res, refreshToken);
   return accessToken;
 }
@@ -44,20 +50,29 @@ function issueTokens(res, userId) {
 async function register(req, res) {
   const { name, email, password } = req.body;
 
-  const password_hash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+  // Duplicate email check — case-insensitive
+  const existing = await query(
+    'SELECT id FROM users WHERE LOWER(email) = LOWER($1)',
+    [email]
+  );
+  if (existing.rows.length) {
+    throw ApiError.conflict('An account with this email address already exists.', 'email');
+  }
 
-  // Unique-violation (23505) on email is caught by errorHandler → clean 409 with field: 'email'
+  const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+  const verificationToken = crypto.randomBytes(32).toString('hex');
+
   const { rows } = await query(
-    `INSERT INTO users (name, email, password_hash)
-     VALUES ($1, $2, $3)
+    `INSERT INTO users (name, email, password_hash, verification_token)
+     VALUES ($1, $2, $3, $4)
      RETURNING ${PUBLIC_USER_FIELDS}`,
-    [name, email.toLowerCase(), password_hash]
+    [name, email, passwordHash, verificationToken]
   );
 
   const user        = rows[0];
-  const accessToken = issueTokens(res, user.id);
+  const accessToken = await issueTokens(res, user.id);
 
-  return res.status(201).json({ accessToken, user });
+  return res.status(201).json({ user, accessToken, verification_token: verificationToken });
 }
 
 // ── Login ─────────────────────────────────────────────────────────────────
@@ -69,52 +84,59 @@ async function register(req, res) {
 async function login(req, res) {
   const { email, password } = req.body;
 
-  // Load password_hash for comparison only — not returned to client
   const { rows } = await query(
-    `SELECT id, password_hash, ${PUBLIC_USER_FIELDS} FROM users WHERE email = $1`,
-    [email.toLowerCase()]
+    `SELECT id, password_hash, name, email, avatar_url, bio,
+            has_anonymous_identity, anonymous_username, is_onboarded, onboarding_completed_at, created_at
+     FROM users WHERE LOWER(email) = LOWER($1)`,
+    [email]
   );
 
-  const user = rows[0];
+  if (!rows.length) throw ApiError.unauthorized('Invalid email or password.');
 
-  // Generic error — does not reveal whether email or password was wrong
-  const GENERIC_ERROR = ApiError.unauthorized('Invalid email or password.');
+  const user       = rows[0];
+  const match      = await bcrypt.compare(password, user.password_hash);
+  if (!match) throw ApiError.unauthorized('Invalid email or password.');
 
-  if (!user) throw GENERIC_ERROR;
-  if (!user.password_hash) {
-    // OAuth-only account — no local password
-    throw ApiError.unauthorized('This account uses OAuth. Please sign in with GitHub or Google.');
-  }
+  delete user.password_hash;
+  const accessToken = await issueTokens(res, user.id);
 
-  const matches = await bcrypt.compare(password, user.password_hash);
-  if (!matches) throw GENERIC_ERROR;
-
-  const accessToken = issueTokens(res, user.id);
-
-  // Build the response object — explicitly omit password_hash
-  const { password_hash: _removed, ...safeUser } = user;
-
-  return res.json({ accessToken, user: safeUser });
+  return res.json({ user, accessToken });
 }
 
 // ── Refresh ───────────────────────────────────────────────────────────────
 
 /**
  * POST /api/auth/refresh
- * Reads refresh token from httpOnly cookie, issues new access token + rotates cookie.
+ * Reads refresh token from httpOnly cookie, issues brand new rotated tokens
+ * and invalidates previous refresh token (Refresh Token Rotation).
  */
 async function refresh(req, res) {
   const token = req.cookies?.[REFRESH_COOKIE_NAME];
   if (!token) throw ApiError.unauthorized('No refresh token provided.');
 
-  const payload = verifyRefreshToken(token); // throws 401 if invalid
+  const payload = verifyRefreshToken(token);
   const userId  = parseInt(payload.sub, 10);
+  const incomingHash = crypto.createHash('sha256').update(token).digest('hex');
 
-  // Confirm user still exists
-  const { rows } = await query('SELECT id FROM users WHERE id = $1', [userId]);
+  // Fetch user & verify token hash matches stored hash
+  const { rows } = await query(
+    'SELECT id, refresh_token_hash FROM users WHERE id = $1',
+    [userId]
+  );
   if (!rows.length) throw ApiError.unauthorized('User account not found.');
 
-  const accessToken = issueTokens(res, userId);
+  const storedHash = rows[0].refresh_token_hash;
+
+  // Token reuse / theft detection: if stored hash doesn't match incoming hash,
+  // invalidate stored hash and reject request immediately (401)
+  if (!storedHash || storedHash !== incomingHash) {
+    await query('UPDATE users SET refresh_token_hash = NULL WHERE id = $1', [userId]);
+    clearRefreshCookie(res);
+    throw ApiError.unauthorized('Invalid refresh token or token reuse detected.');
+  }
+
+  // Rotate tokens: issue brand new access token + new refresh token
+  const accessToken = await issueTokens(res, userId);
   return res.json({ accessToken });
 }
 
@@ -258,15 +280,41 @@ async function anonymousCreate(req, res) {
 }
 
 /**
- * POST /api/users/me/onboarding/complete or /api/auth/onboarding/complete
- * Protected. Stamps onboarding_completed_at = NOW()
+ * GET /api/auth/verify/:token
+ * Public. Verifies user account using verification_token.
  */
-async function completeOnboarding(req, res) {
+async function verifyEmail(req, res) {
+  const { token } = req.params;
+  if (!token) throw ApiError.badRequest('Verification token is required.');
+
   const { rows } = await query(
-    `UPDATE users SET onboarding_completed_at = NOW(), updated_at = NOW() WHERE id = $1 RETURNING onboarding_completed_at`,
-    [req.user.id]
+    `UPDATE users
+     SET verified = TRUE,
+         verification_token = NULL,
+         updated_at = NOW()
+     WHERE verification_token = $1
+     RETURNING id, name, email, verified`,
+    [token]
   );
-  return res.json({ onboarding_completed_at: rows[0]?.onboarding_completed_at });
+
+  if (!rows.length) {
+    throw ApiError.badRequest('Invalid or expired email verification token.');
+  }
+
+  return res.json({
+    message: 'Email verified successfully! You now have full access.',
+    user: rows[0],
+  });
 }
 
-module.exports = { register, login, refresh, logout, me, anonymousOptions, anonymousCreate, completeOnboarding };
+module.exports = {
+  register,
+  login,
+  refresh,
+  logout,
+  me,
+  anonymousOptions,
+  anonymousCreate,
+  completeOnboarding,
+  verifyEmail,
+};

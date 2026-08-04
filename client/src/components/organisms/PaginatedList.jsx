@@ -11,6 +11,7 @@ export default function PaginatedList({
   emptyDescription = 'There are no items to display right now.',
   emptyActionLabel,
   onEmptyAction,
+  preset,
   limit = 20,
   className = '',
   refreshTrigger = 0,
@@ -103,6 +104,7 @@ export default function PaginatedList({
   if (!data || data.length === 0) {
     return (
       <EmptyState
+        preset={preset}
         title={emptyTitle}
         description={emptyDescription}
         actionLabel={emptyActionLabel}

@@ -60,6 +60,11 @@ export const postsApi = {
     return data;
   },
 
+  trending: async (params = {}) => {
+    const { data } = await api.get('/api/posts/trending', { params });
+    return data;
+  },
+
   create: async (postData) => {
     const { data } = await api.post('/api/posts', postData);
     // Cache Invalidation after posting & optimistic prepend

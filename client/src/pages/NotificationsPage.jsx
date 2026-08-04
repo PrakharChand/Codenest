@@ -97,7 +97,8 @@ export default function NotificationsPage() {
         </Card>
       ) : notifications.length === 0 ? (
         <EmptyState
-          title="No notifications yet"
+          preset="notifications"
+          title="You are all caught up!"
           description="When developers connect with you, like your posts, or comment, updates will appear here."
         />
       ) : (

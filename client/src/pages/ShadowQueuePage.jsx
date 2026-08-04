@@ -454,6 +454,7 @@ export default function ShadowQueuePage() {
       {/* ── Queue list ─────────────────────────────────────────────────── */}
       <PaginatedList
         key={languageFromUrl} // force full remount when filter changes (resets page to 1)
+        preset="shadow"
         fetchData={fetchQueue}
         refreshTrigger={refreshTrigger}
         renderItem={(submission) => (

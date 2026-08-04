@@ -31,6 +31,7 @@ const {
   anonymousOptions,
   anonymousCreate,
   completeOnboarding,
+  verifyEmail,
 } = require('../controllers/authController');
 
 const passport = require('../config/passport');
@@ -76,6 +77,7 @@ router.post('/register', authLimiter, registerValidation,   validate, asyncHandl
 router.post('/login',    authLimiter, loginValidation,       validate, asyncHandler(login));
 router.post('/refresh',  authLimiter,                                  asyncHandler(refresh));
 router.post('/logout',                                                  asyncHandler(logout));
+router.get('/verify/:token',                                           asyncHandler(verifyEmail));
 
 // Protected
 router.get('/me', requireAuth, asyncHandler(me));

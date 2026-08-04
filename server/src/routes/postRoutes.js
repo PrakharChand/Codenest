@@ -14,7 +14,7 @@ const validate      = require('../middleware/validate');
 const { requireAuth } = require('../middleware/auth');
 const {
   listPosts, getPost, createPost, updatePost, deletePost,
-  likePost, unlikePost, sharePost,
+  likePost, unlikePost, sharePost, getTrendingPosts,
 } = require('../controllers/postController');
 
 // Content limits — match CODENEST_REFERENCE.md
@@ -36,8 +36,9 @@ const postValidation = [
 ];
 
 // Public
-router.get('/',    asyncHandler(listPosts));
-router.get('/:id', asyncHandler(getPost));         // auth optional — loaded from token in controller
+router.get('/',         asyncHandler(listPosts));
+router.get('/trending', asyncHandler(getTrendingPosts));
+router.get('/:id',      asyncHandler(getPost));         // auth optional — loaded from token in controller
 
 // Protected — feed mutations
 router.post('/',      requireAuth, postValidation, validate, asyncHandler(createPost));

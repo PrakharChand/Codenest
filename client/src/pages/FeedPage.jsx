@@ -8,15 +8,20 @@ import PostCard from '../components/organisms/PostCard';
 import AIRoadmapGenerator from '../components/organisms/AIRoadmapGenerator';
 import AIConnectionSuggestions from '../components/organisms/AIConnectionSuggestions';
 import WeeklyActivityChart from '../components/organisms/WeeklyActivityChart';
-import Button from '../components/atoms/Button';
-import Card from '../components/atoms/Card';
-import Avatar from '../components/atoms/Avatar';
-import SEO from '../components/atoms/SEO';
+import ShadowDiscoveryBanner from '../components/organisms/ShadowDiscoveryBanner';
+import Button from '../atoms/Button';
+import Card from '../atoms/Card';
+import Avatar from '../atoms/Avatar';
+import SEO from '../atoms/SEO';
 
 export default function FeedPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [profileStats, setProfileStats] = useState(null);
+
+  // Fix 10: Default to 'trending' tab if user has < 5 connections, else 'following'
+  const [activeTab, setActiveTab] = useState('following');
+  const [tabInitialized, setTabInitialized] = useState(false);
 
   useEffect(() => {
     async function loadStats() {
@@ -24,12 +29,17 @@ export default function FeedPage() {
       try {
         const data = await usersApi.getProfile(user.id);
         setProfileStats(data);
+        if (!tabInitialized) {
+          const count = data?.followingCount ?? 0;
+          setActiveTab(count < 5 ? 'trending' : 'following');
+          setTabInitialized(true);
+        }
       } catch (err) {
         // Fallback
       }
     }
     loadStats();
-  }, [user]);
+  }, [user, tabInitialized]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -48,14 +58,61 @@ export default function FeedPage() {
           </Link>
         </div>
 
+        {/* Fix 11: Shadow Mode Discovery Banner */}
+        <ShadowDiscoveryBanner />
+
         {/* AI Learning Roadmap Generator Component */}
         <AIRoadmapGenerator />
 
+        {/* Fix 10: Following vs Trending Feed Tabs */}
+        <div className="flex items-center border-b border-[var(--border-main)] gap-4 pt-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab('following')}
+            className={`pb-2.5 text-xs font-bold transition-colors border-b-2 ${
+              activeTab === 'following'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted hover:text-main'
+            }`}
+          >
+            Following Feed
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('trending')}
+            className={`pb-2.5 text-xs font-bold transition-colors border-b-2 flex items-center gap-1.5 ${
+              activeTab === 'trending'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted hover:text-main'
+            }`}
+          >
+            <span>🔥</span>
+            <span>Trending (Top 24h)</span>
+            {profileStats && profileStats.followingCount < 5 && activeTab === 'trending' && (
+              <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-primary-light text-primary rounded-full">
+                Recommended
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Feed List */}
         <PaginatedList
-          fetchData={(params) => postsApi.list(params)}
+          key={activeTab}
+          preset="feed"
+          fetchData={(params) =>
+            activeTab === 'trending'
+              ? postsApi.trending(params)
+              : postsApi.list(params)
+          }
           renderItem={(post) => <PostCard key={post.id} post={post} />}
-          emptyTitle="Your feed is empty"
-          emptyDescription="Connect with other developers or explore public posts to see content here."
+          emptyTitle={activeTab === 'trending' ? 'No trending posts yet' : 'Your feed is empty'}
+          emptyDescription={
+            activeTab === 'trending'
+              ? 'Be the first developer to share an insightful post today!'
+              : 'Connect with other developers or switch to the Trending tab to explore posts.'
+          }
           emptyActionLabel="Explore Communities"
           onEmptyAction={() => navigate('/communities')}
         />

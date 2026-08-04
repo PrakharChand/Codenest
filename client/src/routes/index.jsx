@@ -6,10 +6,12 @@ import ShadowRoute from './ShadowRoute';
 import Spinner from '../components/atoms/Spinner';
 import AppShell from '../components/layout/AppShell';
 
-// ── Lazy-loaded Page Components ────────────────────────────────────────────
+// Synchronously loaded entry pages (Landing & Login) for instant first paint
+import LandingPage from '../pages/LandingPage';
+import LoginPage from '../pages/LoginPage';
+
+// ── Fix 2: Route-based Code Splitting (React.lazy + Suspense) ─────────────
 // Public Pages
-const LandingPage = lazy(() => import('../pages/LandingPage'));
-const LoginPage = lazy(() => import('../pages/LoginPage'));
 const RegisterPage = lazy(() => import('../pages/RegisterPage'));
 const OAuthCallbackPage = lazy(() => import('../pages/OAuthCallbackPage'));
 
@@ -30,7 +32,7 @@ const SettingsPage = lazy(() => import('../pages/SettingsPage'));
 // Anonymous Setup
 const AnonymousCreatePage = lazy(() => import('../pages/AnonymousCreatePage'));
 
-// Shadow Pages (Lazy loaded separately for bundle efficiency)
+// Shadow Pages (Lazy loaded separately for bundle size reduction)
 const ShadowQueuePage = lazy(() => import('../pages/ShadowQueuePage'));
 const ShadowSubmissionDetailPage = lazy(() => import('../pages/ShadowSubmissionDetailPage'));
 const CreateSubmissionPage = lazy(() => import('../pages/CreateSubmissionPage'));

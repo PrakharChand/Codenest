@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
+import { optimizeCloudinaryUrl } from '../../utils/imageOptimizer';
 
 /**
  * Avatar — user profile picture or initials fallback
  * Sizes: sm | md | lg | xl | 2xl
- * ring prop: adds a violet ring on hover (for interactive avatars)
+ * Applies Cloudinary transformations (w_80 / w_400, f_webp, q_auto)
  */
 export default function Avatar({ src, name, size = 'md', className = '', ring = false }) {
   const [imgError, setImgError] = useState(false);
@@ -27,6 +28,9 @@ export default function Avatar({ src, name, size = 'md', className = '', ring = 
     ? 'ring-2 ring-[var(--color-primary)] ring-offset-2 ring-offset-[var(--bg-surface)]'
     : 'ring-1 ring-[var(--border-main)]';
 
+  // Apply Cloudinary optimization
+  const optimizedSrc = optimizeCloudinaryUrl(src, size === 'lg' || size === 'xl' || size === '2xl' ? 'large' : 'avatar');
+
   return (
     <div
       className={[
@@ -39,9 +43,9 @@ export default function Avatar({ src, name, size = 'md', className = '', ring = 
         className,
       ].join(' ')}
     >
-      {src && !imgError ? (
+      {optimizedSrc && !imgError ? (
         <img
-          src={src}
+          src={optimizedSrc}
           alt={name || 'User avatar'}
           className="h-full w-full object-cover"
           onError={() => setImgError(true)}

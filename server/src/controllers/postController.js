@@ -346,7 +346,43 @@ async function sharePost(req, res) {
   return res.status(201).json(reshare);
 }
 
+// ── GET /api/posts/trending — trending posts ──────────────────────────────
+
+async function getTrendingPosts(req, res) {
+  const { page, limit, offset } = parsePagination(req.query);
+  const userId = req.user ? req.user.id : 0;
+
+  const countRes = await query(
+    `SELECT COUNT(*)::int AS count FROM posts WHERE visibility = 'public' AND created_at >= NOW() - INTERVAL '7 days'`
+  );
+  const total = countRes.rows[0]?.count || 0;
+
+  const { rows } = await query(
+    `SELECT p.id, p.title, p.content, p.visibility, p.created_at, p.updated_at,
+            ${AUTHOR_CARD},
+            (SELECT COUNT(*)::int FROM likes WHERE post_id = p.id) AS like_count,
+            (SELECT COUNT(*)::int FROM comments WHERE post_id = p.id) AS comment_count,
+            EXISTS(SELECT 1 FROM likes WHERE post_id = p.id AND user_id = $1) AS "isLiked"
+     FROM posts p
+     JOIN users u ON u.id = p.user_id
+     WHERE p.visibility = 'public'
+       AND p.created_at >= NOW() - INTERVAL '7 days'
+     ORDER BY (
+       (SELECT COUNT(*) FROM likes WHERE post_id = p.id) * 2 +
+       (SELECT COUNT(*) FROM comments WHERE post_id = p.id) * 3
+     ) DESC, p.created_at DESC
+     LIMIT $2 OFFSET $3`,
+    [userId, limit, offset]
+  );
+
+  for (const post of rows) {
+    post.tags = await getPostTags(post.id);
+  }
+
+  return res.json(buildPaginatedResponse(rows, page, limit, total));
+}
+
 module.exports = {
   listPosts, getPost, createPost, updatePost, deletePost,
-  likePost, unlikePost, sharePost,
+  likePost, unlikePost, sharePost, getTrendingPosts,
 };
