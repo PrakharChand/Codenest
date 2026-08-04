@@ -9,10 +9,10 @@ import AIRoadmapGenerator from '../components/organisms/AIRoadmapGenerator';
 import AIConnectionSuggestions from '../components/organisms/AIConnectionSuggestions';
 import WeeklyActivityChart from '../components/organisms/WeeklyActivityChart';
 import ShadowDiscoveryBanner from '../components/organisms/ShadowDiscoveryBanner';
-import Button from '../atoms/Button';
-import Card from '../atoms/Card';
-import Avatar from '../atoms/Avatar';
-import SEO from '../atoms/SEO';
+import Button from '../components/atoms/Button';
+import Card from '../components/atoms/Card';
+import Avatar from '../components/atoms/Avatar';
+import SEO from '../components/atoms/SEO';
 
 export default function FeedPage() {
   const { user } = useAuth();
