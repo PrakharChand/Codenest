@@ -4,41 +4,68 @@ import api from './axios';
  * client/src/api/aiApi.js
  *
  * AI Feature API Module.
- * Wraps all /api/ai/* endpoints with fail-open safety.
+ * Connects frontend components to /api/ai/* backend endpoints.
+ * Aligns parameter names (camelCase) with backend routes & controllers.
  */
 export const aiApi = {
+  /**
+   * POST /api/ai/suggest-tags
+   * @param {string} content
+   * @returns {Promise<{ tags: string[], fallback?: boolean }>}
+   */
   suggestTags: async (content) => {
     try {
       const { data } = await api.post('/api/ai/suggest-tags', { content });
       return data;
     } catch (err) {
-      // Fail-open fallback: return empty tag list
-      return { tags: [], fallback: true };
+      return { tags: [], fallback: true, error: err.message };
     }
   },
 
-  anonymityCheck: async (content) => {
+  /**
+   * POST /api/ai/anonymity-check
+   * @param {string} text
+   * @returns {Promise<{ safe: boolean, findings: Array, fallback?: boolean }>}
+   */
+  anonymityCheck: async (text) => {
     try {
-      const { data } = await api.post('/api/ai/anonymity-check', { content });
+      // Backend expects { text }
+      const { data } = await api.post('/api/ai/anonymity-check', { text });
       return data;
     } catch (err) {
-      // Fail-open fallback: assume safe if service is unavailable
-      return { safe: true, findings: [], fallback: true };
+      return { safe: true, findings: [], fallback: true, error: err.message };
     }
   },
 
-  generateRoadmap: async (roadmapData) => {
-    const { data } = await api.post('/api/ai/generate-roadmap', roadmapData);
+  /**
+   * POST /api/ai/generate-roadmap
+   * @param {{ level: string, knownTech: string, goal: string, hoursPerWeek: number }} payload
+   * @returns {Promise<object>}
+   */
+  generateRoadmap: async ({ level, knownTech, known_tech, goal, hoursPerWeek, hours_per_week }) => {
+    // Normalize parameter names to camelCase expected by backend (knownTech, hoursPerWeek)
+    const payload = {
+      level,
+      knownTech: typeof knownTech === 'string' ? knownTech : Array.isArray(known_tech) ? known_tech.join(', ') : String(knownTech || ''),
+      goal: goal.trim(),
+      hoursPerWeek: Number(hoursPerWeek || hours_per_week || 10),
+    };
+
+    const { data } = await api.post('/api/ai/generate-roadmap', payload);
     return data;
   },
 
+  /**
+   * POST /api/ai/suggest-connections
+   * @returns {Promise<{ suggestions: Array, fallback?: boolean }>}
+   */
   suggestConnections: async () => {
     try {
-      const { data } = await api.get('/api/ai/suggest-connections');
+      // Backend route is POST /api/ai/suggest-connections
+      const { data } = await api.post('/api/ai/suggest-connections');
       return data;
     } catch (err) {
-      // Fail-open fallback: return empty suggestions list
-      return { suggestions: [], fallback: true };
+      return { suggestions: [], fallback: true, error: err.message };
     }
   },
 };

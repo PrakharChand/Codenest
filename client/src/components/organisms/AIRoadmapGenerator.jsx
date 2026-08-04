@@ -29,17 +29,21 @@ export default function AIRoadmapGenerator() {
     setError(null);
     setShareSuccess(false);
     try {
+      // Fix Issue 1: Send camelCase property names (knownTech, hoursPerWeek) matching backend schema
       const res = await aiApi.generateRoadmap({
         level,
-        known_tech: knownTech.split(',').map((t) => t.trim()).filter(Boolean),
+        knownTech: knownTech.trim(),
         goal: goal.trim(),
-        hours_per_week: Number(hoursPerWeek),
+        hoursPerWeek: Number(hoursPerWeek),
       });
-      setRoadmap(res.roadmap || res);
+
+      const generatedData = res.roadmap || res;
+      setRoadmap(generatedData);
       toast.success('Learning roadmap generated!');
     } catch (err) {
-      setError(err.message || 'Could not generate roadmap. Please try again.');
-      toast.error(err.message || 'Could not generate roadmap. Please try again.');
+      const errMsg = err.message || 'Could not generate roadmap. Please try again.';
+      setError(errMsg);
+      toast.error(errMsg);
     } finally {
       setGenerating(false);
     }
@@ -49,13 +53,21 @@ export default function AIRoadmapGenerator() {
     if (!roadmap) return;
     setSharing(true);
     try {
-      const content = `🚀 **My AI Learning Roadmap: ${roadmap.title || 'Developer Growth Plan'}**\n\n${roadmap.summary || ''}\n\n` +
-        (roadmap.weeks || [])
-          .map((w) => `**Week ${w.week}: ${w.topic}**\n- ${w.tasks?.join('\n- ')}`)
-          .join('\n\n');
+      const phasesText = (roadmap.phases || roadmap.weeks || [])
+        .map(
+          (p, idx) =>
+            `**${p.title || `Phase ${idx + 1}`} (${p.duration_weeks || 2} weeks)**\n` +
+            `- **Topics:** ${(p.topics || []).join(', ')}\n` +
+            (p.milestone ? `- **Milestone:** ${p.milestone}` : '')
+        )
+        .join('\n\n');
+
+      const content = `🚀 **AI Learning Roadmap: ${roadmap.summary || 'Developer Growth Plan'}**\n\n` +
+        `**Total Duration:** ${roadmap.total_weeks || 12} weeks\n\n` +
+        `${phasesText}`;
 
       await postsApi.create({
-        title: `Learning Roadmap: ${roadmap.title || 'Growth Plan'}`,
+        title: `Learning Roadmap: ${roadmap.summary?.slice(0, 60) || 'Developer Growth Plan'}`,
         content,
         visibility: 'public',
         tags: ['learning', 'roadmap', 'growth'],
@@ -69,6 +81,8 @@ export default function AIRoadmapGenerator() {
     }
   };
 
+  const phasesList = roadmap?.phases || roadmap?.weeks || [];
+
   return (
     <Card className="p-6 space-y-5">
       <div className="flex items-center justify-between border-b border-main pb-3">
@@ -76,7 +90,7 @@ export default function AIRoadmapGenerator() {
           <span className="text-xl">🗺️</span>
           <div>
             <h3 className="font-bold text-main">Personalized AI Learning Roadmap</h3>
-            <p className="text-xs text-muted">Generate a custom week-by-week study plan</p>
+            <p className="text-xs text-muted">Generate a custom study plan based on your tech stack and goals</p>
           </div>
         </div>
         <Badge variant="primary" size="sm">AI Powered</Badge>
@@ -111,7 +125,7 @@ export default function AIRoadmapGenerator() {
             </div>
 
             <Input
-              label="Known Technologies (comma separated)"
+              label="Known Technologies (comma separated) *"
               value={knownTech}
               onChange={(e) => setKnownTech(e.target.value)}
               placeholder="e.g. JavaScript, React, Node"
@@ -154,33 +168,49 @@ export default function AIRoadmapGenerator() {
         </form>
       ) : (
         <div className="space-y-4">
-          <div className="space-y-1">
-            <h4 className="font-bold text-main">{roadmap.title}</h4>
-            <p className="text-xs text-muted leading-relaxed">{roadmap.summary}</p>
+          <div className="space-y-1 bg-surface-subtle p-3.5 rounded-xl border border-main">
+            <div className="flex items-center justify-between">
+              <h4 className="font-bold text-main text-sm">Target Growth Summary</h4>
+              <Badge variant="primary" size="sm">{roadmap.total_weeks || 12} Weeks Plan</Badge>
+            </div>
+            <p className="text-xs text-muted leading-relaxed pt-1">{roadmap.summary}</p>
           </div>
 
-          {/* Interactive Week Checklist */}
-          <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
-            {roadmap.weeks?.map((w, idx) => (
-              <div key={idx} className="rounded-lg border border-main bg-surface-subtle p-3 space-y-2 text-xs">
+          {/* Interactive Phase Checklist */}
+          <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+            {phasesList.map((phase, idx) => (
+              <div key={idx} className="rounded-xl border border-main bg-surface p-3.5 space-y-2.5 text-xs">
                 <div className="font-bold text-primary flex items-center justify-between">
-                  <span>Week {w.week}: {w.topic}</span>
+                  <span>Phase {idx + 1}: {phase.title || `Learning Module ${idx + 1}`}</span>
+                  <span className="text-[11px] font-normal text-muted">{phase.duration_weeks || 2} weeks</span>
                 </div>
-                <ul className="space-y-1 text-muted">
-                  {w.tasks?.map((t, tIdx) => (
-                    <li key={tIdx} className="flex items-start gap-2">
-                      <input type="checkbox" className="mt-0.5 rounded border-main text-primary" />
-                      <span>{t}</span>
-                    </li>
-                  ))}
-                </ul>
+
+                {phase.topics?.length > 0 && (
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-semibold text-main block">Key Topics:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {phase.topics.map((topic, tIdx) => (
+                        <span key={tIdx} className="px-2 py-0.5 rounded bg-primary/10 text-primary font-mono text-[11px]">
+                          {topic}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {phase.milestone && (
+                  <div className="text-muted text-[11px] pt-1 border-t border-main/50 flex items-start gap-1">
+                    <span className="font-semibold text-main">🎯 Milestone:</span>
+                    <span>{phase.milestone}</span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
 
           <div className="flex items-center justify-between pt-2 border-t border-main">
             <Button variant="ghost" size="sm" onClick={() => setRoadmap(null)}>
-              🔄 Regenerate
+              🔄 Generate New
             </Button>
             <Button variant="primary" size="sm" onClick={handleShareToFeed} isLoading={sharing}>
               📢 Share to Nest Feed

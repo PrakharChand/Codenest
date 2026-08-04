@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { postsApi } from '../api/postsApi';
 import { aiApi } from '../api/aiApi';
 import Input from '../components/atoms/Input';
@@ -24,13 +25,22 @@ export default function CreatePostPage() {
   const isSuggestDisabled = content.trim().length < 100;
 
   const handleSuggestTags = async () => {
-    if (isSuggestDisabled) return;
+    if (isSuggestDisabled) {
+      toast.error('Please write at least 100 characters in your post content to generate AI tags.');
+      return;
+    }
+
     setSuggestingTags(true);
     try {
       const res = await aiApi.suggestTags(content);
-      setSuggestedTags(res.tags || []);
+      if (res && Array.isArray(res.tags) && res.tags.length > 0) {
+        setSuggestedTags(res.tags);
+        toast.success(`Generated ${res.tags.length} AI tag suggestions!`);
+      } else {
+        toast.info('No specific tags generated. Try expanding your post text.');
+      }
     } catch (err) {
-      // Fail-open fallback
+      toast.error('AI Tag suggestion service unavailable.');
     } finally {
       setSuggestingTags(false);
     }
@@ -45,6 +55,7 @@ export default function CreatePostPage() {
     if (!existing.includes(tag)) {
       const updated = [...existing, tag].join(', ');
       setTagsInput(updated);
+      toast.success(`Added tag: #${tag}`);
     }
     setSuggestedTags((prev) => prev.filter((t) => t !== tag));
   };
@@ -63,7 +74,6 @@ export default function CreatePostPage() {
     try {
       const res = await postsApi.uploadImage(file);
       setImageUrl(res.image_url);
-
     } catch (err) {
       setFieldErrors({ image: err.message || 'Image upload failed.' });
     } finally {
@@ -97,6 +107,7 @@ export default function CreatePostPage() {
         image_url: imageUrl || null,
         tags,
       });
+      toast.success('Post published!');
       navigate(`/posts/${newPost.id}`);
     } catch (err) {
       if (err.field) {
@@ -116,10 +127,9 @@ export default function CreatePostPage() {
         <Button
           variant="secondary"
           size="sm"
-          disabled={isSuggestDisabled}
           isLoading={suggestingTags}
           onClick={handleSuggestTags}
-          title={isSuggestDisabled ? 'Write at least 100 characters to use AI Tag Suggestion' : 'Generate AI Tags'}
+          title="Generate AI Tags from your post content"
         >
           ✨ Suggest Tags (AI)
         </Button>
@@ -134,7 +144,7 @@ export default function CreatePostPage() {
 
         {/* Title */}
         <Input
-          label="Post Title"
+          label="Post Title *"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           error={fieldErrors.title}
@@ -152,7 +162,7 @@ export default function CreatePostPage() {
           />
 
           {suggestedTags.length > 0 && (
-            <div className="space-y-1">
+            <div className="space-y-1 pt-1">
               <span className="text-xs font-semibold text-primary">AI Suggested Tags (click to add):</span>
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {suggestedTags.map((tag) => (
@@ -194,7 +204,7 @@ export default function CreatePostPage() {
         {/* Markdown Content Editor */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-main">Content (Markdown supported) *</label>
-          <MarkdownEditor value={content} onChange={setContent} placeholder="Write your post content here..." />
+          <MarkdownEditor value={content} onChange={setContent} placeholder="Write your post content here (min 100 chars for AI tags)..." />
           {fieldErrors.content && <p className="text-xs text-danger font-medium">{fieldErrors.content}</p>}
         </div>
 
