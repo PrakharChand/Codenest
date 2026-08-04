@@ -100,16 +100,16 @@ router.get('/github',
 );
 
 router.get('/github/callback',
-  passport.authenticate('github', { session: false, failureRedirect: `${env.CLIENT_URL}/login?error=oauth_failed` }),
-  (req, res) => {
-    const user         = req.user;
-    const accessToken  = signAccessToken(user.id);
-    const refreshToken = signRefreshToken(user.id);
-    setRefreshCookie(res, refreshToken);
-    // Handoff: redirect with access token in query param.
-    // Phase 7/11 reads it into AuthContext memory and immediately clears it from the URL.
-    // Refresh token is NEVER in the URL.
-    res.redirect(`${env.CLIENT_URL}/oauth-callback?token=${accessToken}`);
+  (req, res, next) => {
+    passport.authenticate('github', { session: false }, (err, user) => {
+      if (err || !user) {
+        return res.redirect(`${env.CLIENT_URL || 'https://codenest-two-eta.vercel.app'}/login?error=oauth_failed`);
+      }
+      const accessToken  = signAccessToken(user.id);
+      const refreshToken = signRefreshToken(user.id);
+      setRefreshCookie(res, refreshToken);
+      return res.redirect(`${env.CLIENT_URL || 'https://codenest-two-eta.vercel.app'}/oauth-callback?token=${accessToken}`);
+    })(req, res, next);
   }
 );
 
@@ -120,13 +120,16 @@ router.get('/google',
 );
 
 router.get('/google/callback',
-  passport.authenticate('google', { session: false, failureRedirect: `${env.CLIENT_URL}/login?error=oauth_failed` }),
-  (req, res) => {
-    const user         = req.user;
-    const accessToken  = signAccessToken(user.id);
-    const refreshToken = signRefreshToken(user.id);
-    setRefreshCookie(res, refreshToken);
-    res.redirect(`${env.CLIENT_URL}/oauth-callback?token=${accessToken}`);
+  (req, res, next) => {
+    passport.authenticate('google', { session: false }, (err, user) => {
+      if (err || !user) {
+        return res.redirect(`${env.CLIENT_URL || 'https://codenest-two-eta.vercel.app'}/login?error=oauth_failed`);
+      }
+      const accessToken  = signAccessToken(user.id);
+      const refreshToken = signRefreshToken(user.id);
+      setRefreshCookie(res, refreshToken);
+      return res.redirect(`${env.CLIENT_URL || 'https://codenest-two-eta.vercel.app'}/oauth-callback?token=${accessToken}`);
+    })(req, res, next);
   }
 );
 

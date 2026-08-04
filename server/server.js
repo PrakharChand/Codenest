@@ -3,16 +3,13 @@
  *
  * Entry point — boots the HTTP + Socket.io server.
  * Imports env FIRST so missing vars cause an immediate clear error.
- *
- * Cron jobs and socket server initialization are done here so they:
- *   1. Never run during the test suite (NODE_ENV === 'test' guard)
- *   2. Only start once — app.js can be imported by tests many times
  */
 
-const env  = require('./src/config/env');  // validates required vars before anything else
+const env  = require('./src/config/env');
 const app  = require('./src/app');
 const http = require('http');
 const { initRealtime } = require('./src/realtime/io');
+const { runMigrations } = require('./src/db/migrate');
 
 const server = http.createServer(app);
 
@@ -20,13 +17,25 @@ const server = http.createServer(app);
 const io = initRealtime(server);
 app.set('io', io);
 
-server.listen(env.PORT, () => {
-  console.log(`\n✅ CodeNest server running on port ${env.PORT} [${env.NODE_ENV}]`);
-  console.log(`   Health: http://localhost:${env.PORT}/health\n`);
-});
+// Boot server & execute automatic database migrations
+async function boot() {
+  if (env.NODE_ENV !== 'test') {
+    try {
+      await runMigrations({ exitOnFinish: false });
+    } catch (err) {
+      console.error('[boot] DB Migration notice:', err.message);
+    }
+  }
 
-// ── Background jobs — guarded: never run during tests ─────────────────────
-if (env.NODE_ENV !== 'test') {
-  const { startAIReviewCron } = require('./src/jobs/aiReviewJob');
-  startAIReviewCron();
+  server.listen(env.PORT, () => {
+    console.log(`\n✅ CodeNest server running on port ${env.PORT} [${env.NODE_ENV}]`);
+    console.log(`   Health: http://localhost:${env.PORT}/health\n`);
+  });
+
+  if (env.NODE_ENV !== 'test') {
+    const { startAIReviewCron } = require('./src/jobs/aiReviewJob');
+    startAIReviewCron();
+  }
 }
+
+boot();
