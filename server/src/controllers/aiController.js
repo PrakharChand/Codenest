@@ -1,14 +1,7 @@
 /**
  * server/src/controllers/aiController.js
  *
- * Route handlers for Google Gemini AI features:
- *  - POST /api/ai/suggest-tags
- *  - POST /api/ai/anonymity-check
- *  - POST /api/ai/generate-roadmap
- *  - POST /api/ai/suggest-connections
- *
- * All handlers validate inputs, forward user ID for log tracing, and delegate
- * to aiService. 100% backward compatible with existing frontend component contracts.
+ * Route handlers for Google Gemini AI features.
  */
 
 const { query } = require('../config/db');
@@ -44,7 +37,15 @@ async function anonymityCheckRoute(req, res) {
 
 // ── POST /api/ai/generate-roadmap ─────────────────────────────────────────
 async function generateRoadmapRoute(req, res) {
-  const { level, knownTech, goal, hoursPerWeek } = req.body;
+  let { level, knownTech, known_tech, goal, hoursPerWeek, hours_per_week } = req.body;
+
+  // Normalize aliases (knownTech vs known_tech, hoursPerWeek vs hours_per_week)
+  knownTech = knownTech || known_tech;
+  hoursPerWeek = hoursPerWeek || hours_per_week;
+
+  if (Array.isArray(knownTech)) {
+    knownTech = knownTech.join(', ');
+  }
 
   if (!level || !knownTech || !goal || !hoursPerWeek) {
     throw ApiError.badRequest('level, knownTech, goal, and hoursPerWeek are all required.');
@@ -53,9 +54,11 @@ async function generateRoadmapRoute(req, res) {
     throw ApiError.badRequest('Goal must be at least 20 characters.');
   }
 
-  const roadmapData = await generateRoadmap({ level, knownTech, goal, hoursPerWeek }, req.user?.id);
+  const roadmapData = await generateRoadmap(
+    { level, knownTech, goal, hoursPerWeek: Number(hoursPerWeek) },
+    req.user?.id
+  );
 
-  // If roadmap generation completely failed (fallback returned)
   if (!roadmapData || roadmapData.fallback || !roadmapData.phases?.length) {
     return res.status(503).json({
       error: {

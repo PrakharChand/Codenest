@@ -80,14 +80,27 @@ function isTransientError(err) {
 // ── Strengthened Response Validators & Sanitizers ─────────────────────────
 
 function validateAndSanitizeTags(data) {
-  if (!data || !Array.isArray(data.tags)) return null;
+  if (!data) return null;
+
+  let rawTags = [];
+  if (Array.isArray(data.tags)) {
+    rawTags = data.tags;
+  } else if (typeof data.tags === 'string') {
+    rawTags = data.tags.split(',');
+  } else if (Array.isArray(data.tag)) {
+    rawTags = data.tag;
+  } else if (typeof data.tag === 'string') {
+    rawTags = data.tag.split(',');
+  } else {
+    return null;
+  }
 
   // Trim, filter empty, and remove duplicates
   const cleaned = Array.from(
     new Set(
-      data.tags
-        .filter((t) => typeof t === 'string')
-        .map((t) => t.trim().toLowerCase())
+      rawTags
+        .filter((t) => typeof t === 'string' || typeof t === 'number')
+        .map((t) => String(t).trim().toLowerCase().replace(/^#/, ''))
         .filter((t) => t.length > 0)
     )
   );
