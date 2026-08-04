@@ -16,8 +16,8 @@ const {
 // ── POST /api/ai/suggest-tags ─────────────────────────────────────────────
 async function suggestTagsRoute(req, res) {
   const { content } = req.body;
-  if (!content || content.length < 100) {
-    throw ApiError.badRequest('Content must be at least 100 characters for tag suggestions.');
+  if (!content || content.trim().length < 10) {
+    throw ApiError.badRequest('Content must be at least 10 characters for tag suggestions.');
   }
 
   const result = await suggestTags(content, req.user?.id);
