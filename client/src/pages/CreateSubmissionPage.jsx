@@ -67,7 +67,7 @@ export default function CreateSubmissionPage() {
     // Pre-submit AI Anonymity Scan
     setRunningCheck(true);
     try {
-      const fullText = `${title}\n${question}\n${content}`;
+      const fullText = `${title}\n${question}\n${content}`.trim();
       const checkRes = await aiApi.anonymityCheck(fullText);
 
       if (checkRes && checkRes.safe === false && checkRes.findings?.length > 0) {
@@ -85,10 +85,14 @@ export default function CreateSubmissionPage() {
   };
 
   const handleManualCheck = async () => {
-    if (!content.trim()) return;
+    const fullText = `${title}\n${question}\n${content}`.trim();
+    if (fullText.length < 10) {
+      toast.error('Please enter a submission title, question, or code snippet (min 10 characters) to run anonymity check.');
+      return;
+    }
+
     setRunningCheck(true);
     try {
-      const fullText = `${title}\n${question}\n${content}`;
       const checkRes = await aiApi.anonymityCheck(fullText);
       if (checkRes && checkRes.safe === false && checkRes.findings?.length > 0) {
         setAnonymityWarnings(checkRes.findings);
@@ -112,17 +116,6 @@ export default function CreateSubmissionPage() {
             Request an anonymous, bias-free code review from fellow developers.
           </p>
         </div>
-
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={handleManualCheck}
-          isLoading={runningCheck}
-          disabled={!content.trim()}
-          title="Run pre-submit AI scan for accidental personal data leaks"
-        >
-          🛡️ Run Anonymity Check (AI)
-        </Button>
       </div>
 
       <Card className="p-6 md:p-8 space-y-6">
@@ -173,10 +166,28 @@ export default function CreateSubmissionPage() {
             required
           />
 
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-main">
-              Code Snippet / Implementation (Markdown supported) *
-            </label>
+          {/* Code Snippet Section Header with Prominent AI Anonymity Button & Info Note */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-main">
+                Code Snippet / Implementation (Markdown supported) *
+              </label>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={handleManualCheck}
+                isLoading={runningCheck}
+                title="Run pre-submit AI scan for accidental personal data leaks"
+              >
+                🛡️ Run Anonymity Check (AI)
+              </Button>
+            </div>
+
+            <p className="text-[11px] text-muted italic">
+              💡 <strong>Note:</strong> AI Anonymity Check requires at least <strong>10 characters</strong> of title, question, or code.
+            </p>
+
             <MarkdownEditor
               value={content}
               onChange={setContent}

@@ -23,13 +23,15 @@ export default function AIRoadmapGenerator() {
 
   const handleGenerate = async (e) => {
     e.preventDefault();
-    if (!isFormValid) return;
+    if (!isFormValid) {
+      toast.error('Please enter at least 20 characters in your learning goal.');
+      return;
+    }
 
     setGenerating(true);
     setError(null);
     setShareSuccess(false);
     try {
-      // Fix Issue 1: Send camelCase property names (knownTech, hoursPerWeek) matching backend schema
       const res = await aiApi.generateRoadmap({
         level,
         knownTech: knownTech.trim(),
@@ -133,16 +135,21 @@ export default function AIRoadmapGenerator() {
             />
           </div>
 
-          <TextArea
-            label="Learning Goal (min 20 characters) *"
-            value={goal}
-            onChange={(e) => setGoal(e.target.value)}
-            placeholder="e.g. Master distributed systems engineering and building microservices in Rust..."
-            rows={2}
-            required
-          />
+          <div className="space-y-1">
+            <TextArea
+              label="Learning Goal (min 20 characters) *"
+              value={goal}
+              onChange={(e) => setGoal(e.target.value)}
+              placeholder="e.g. Master distributed systems engineering and building microservices in Rust..."
+              rows={2}
+              required
+            />
+            <p className="text-[11px] text-muted italic">
+              💡 <strong>Note:</strong> AI Roadmap requires at least <strong>20 characters</strong> in your learning goal.
+            </p>
+          </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pt-1">
             <div className="space-y-1">
               <label className="block text-xs font-semibold text-main">Hours / Week Available</label>
               <input
@@ -160,7 +167,6 @@ export default function AIRoadmapGenerator() {
               variant="primary"
               size="sm"
               isLoading={generating}
-              disabled={!isFormValid}
             >
               Generate Roadmap ✨
             </Button>

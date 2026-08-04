@@ -22,22 +22,22 @@ export default function CreatePostPage() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
-  const isSuggestDisabled = content.trim().length < 100;
-
   const handleSuggestTags = async () => {
-    if (isSuggestDisabled) {
-      toast.error('Please write at least 100 characters in your post content to generate AI tags.');
+    const fullText = `${title} ${content}`.trim();
+
+    if (fullText.length < 10) {
+      toast.error('Please write a post title or content (at least 10 characters) to generate AI tags.');
       return;
     }
 
     setSuggestingTags(true);
     try {
-      const res = await aiApi.suggestTags(content);
+      const res = await aiApi.suggestTags(fullText);
       if (res && Array.isArray(res.tags) && res.tags.length > 0) {
         setSuggestedTags(res.tags);
         toast.success(`Generated ${res.tags.length} AI tag suggestions!`);
       } else {
-        toast.info('No specific tags generated. Try expanding your post text.');
+        toast.info('No specific tags generated. Try adding more technical keywords.');
       }
     } catch (err) {
       toast.error('AI Tag suggestion service unavailable.');
@@ -124,15 +124,6 @@ export default function CreatePostPage() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-main">Create New Post</h1>
-        <Button
-          variant="secondary"
-          size="sm"
-          isLoading={suggestingTags}
-          onClick={handleSuggestTags}
-          title="Generate AI Tags from your post content"
-        >
-          ✨ Suggest Tags (AI)
-        </Button>
       </div>
 
       <Card className="p-6 md:p-8 space-y-6">
@@ -152,14 +143,31 @@ export default function CreatePostPage() {
           required
         />
 
-        {/* Tags Input & AI Chips */}
+        {/* Tags Input Header & AI Suggest Button */}
         <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-medium text-main">Tags (comma separated)</label>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              isLoading={suggestingTags}
+              onClick={handleSuggestTags}
+              title="Generate AI Tags based on title and content"
+            >
+              ✨ Suggest Tags (AI)
+            </Button>
+          </div>
+
           <Input
-            label="Tags (comma separated)"
             value={tagsInput}
             onChange={(e) => setTagsInput(e.target.value)}
             placeholder="javascript, react, webdev"
           />
+
+          <p className="text-[11px] text-muted italic">
+            💡 <strong>Note:</strong> AI Tag Suggestion requires at least <strong>10 characters</strong> of post title or content.
+          </p>
 
           {suggestedTags.length > 0 && (
             <div className="space-y-1 pt-1">
@@ -204,7 +212,7 @@ export default function CreatePostPage() {
         {/* Markdown Content Editor */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-main">Content (Markdown supported) *</label>
-          <MarkdownEditor value={content} onChange={setContent} placeholder="Write your post content here (min 100 chars for AI tags)..." />
+          <MarkdownEditor value={content} onChange={setContent} placeholder="Write your post content here..." />
           {fieldErrors.content && <p className="text-xs text-danger font-medium">{fieldErrors.content}</p>}
         </div>
 
