@@ -180,7 +180,7 @@ async function callGeminiWithRetry(featureName, prompt, fallback, validatorFn, m
           model: modelName,
           generationConfig: {
             responseMimeType: 'application/json',
-            maxOutputTokens: 1024,
+            maxOutputTokens: 4096,
             temperature: 0.2,
           },
         });
@@ -194,7 +194,19 @@ async function callGeminiWithRetry(featureName, prompt, fallback, validatorFn, m
           .replace(/\n?```$/, '')
           .trim();
 
-        const parsed = JSON.parse(cleanedText);
+        let parsed = null;
+        try {
+          parsed = JSON.parse(cleanedText);
+        } catch (parseErr) {
+          try {
+            const patched = cleanedText
+              .replace(/,\s*([\]}])/g, '$1')
+              .replace(/}\s*[^}]*$/, '}');
+            parsed = JSON.parse(patched);
+          } catch (_) {
+            throw parseErr;
+          }
+        }
         const validated = validatorFn ? validatorFn(parsed) : parsed;
 
         if (!validated) {

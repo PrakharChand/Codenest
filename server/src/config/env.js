@@ -52,9 +52,9 @@ const env = Object.freeze({
   GOOGLE_CALLBACK_URL:   process.env.GOOGLE_CALLBACK_URL,
 
   // Google Gemini AI Configuration
-  // Note: Updated default from deprecated 'gemini-1.5-flash' → active 'gemini-2.5-flash'
+  // Active models: gemini-flash-latest and gemini-1.5-flash-8b
   GEMINI_API_KEY:        process.env.GEMINI_API_KEY,
-  GEMINI_MODEL:          process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+  GEMINI_MODEL:          process.env.GEMINI_MODEL || 'gemini-flash-latest',
   AI_TIMEOUT_MS:         parseInt(process.env.AI_TIMEOUT_MS, 10) || 15000,
   AI_MAX_RETRIES:        parseInt(process.env.AI_MAX_RETRIES, 10) || 2,
   AI_CACHE_TTL_MS:       parseInt(process.env.AI_CACHE_TTL_MS, 10) || 600000, // 10 minutes
