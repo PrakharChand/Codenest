@@ -32,6 +32,7 @@ const passport           = require('./config/passport'); // registers strategies
 const notificationRoutes = require('./routes/notificationRoutes');
 const uploadRoutes       = require('./routes/uploadRoutes');
 const aiRoutes           = require('./routes/aiRoutes');
+const statsRoutes        = require('./routes/statsRoutes');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -80,6 +81,7 @@ app.get('/health', (_req, res) => {
 
 // ── API routes ────────────────────────────────────────────────────────────
 
+app.use('/api/stats',         statsRoutes);           // Public stats
 app.use('/api/auth',          authRoutes);            // Phase 2 + Phase 5 OAuth
 app.use('/api/posts',         postRoutes);            // Phase 3
 app.use('/api/posts/:postId/comments', commentNestedRouter); // Phase 3: GET/POST /api/posts/:postId/comments

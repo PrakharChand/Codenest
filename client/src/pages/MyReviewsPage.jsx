@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import api from '../api/axios';
 import PaginatedList from '../components/organisms/PaginatedList';
@@ -79,6 +79,8 @@ function ReviewEntry({ item }) {
 }
 
 export default function MyReviewsPage() {
+  const navigate = useNavigate();
+
   const fetchMyReviews = async (params) => {
     const { data } = await api.get('/api/shadow/my-reviews', { params });
     return data;
@@ -100,7 +102,7 @@ export default function MyReviewsPage() {
         emptyTitle="No reviews given yet"
         emptyDescription="Start reviewing code submissions in the queue to build your reviewer history."
         emptyActionLabel="Go to Queue"
-        onEmptyAction={() => window.location.href = '/shadow/queue'}
+        onEmptyAction={() => navigate('/shadow/queue')}
       />
     </div>
   );

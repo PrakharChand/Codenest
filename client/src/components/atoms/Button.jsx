@@ -22,8 +22,8 @@ export default function Button({
   const base =
     'inline-flex items-center justify-center gap-1.5 font-semibold rounded-xl select-none ' +
     'transition-all duration-150 ease-out ' +
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--border-focus)] ' +
-    'disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none';
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-base)] focus-visible:ring-[var(--border-focus)] ' +
+    'disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none disabled:hover:scale-100';
 
   const variants = {
     primary:
@@ -61,7 +61,7 @@ export default function Button({
       {isLoading ? (
         <>
           <Spinner size="sm" />
-          <span>Loading…</span>
+          <span>{children || 'Loading…'}</span>
         </>
       ) : (
         <>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { shadowApi } from '../api/shadowApi';
 import { aiApi } from '../api/aiApi';
 import Input from '../components/atoms/Input';
@@ -34,6 +35,7 @@ export default function CreateSubmissionPage() {
         language_tag: languageTag.trim(),
         question: question.trim(),
       });
+      toast.success('Code submitted for review!');
       navigate('/shadow/mine');
     } catch (err) {
       if (err.field) {
@@ -41,6 +43,7 @@ export default function CreateSubmissionPage() {
       } else {
         setFieldErrors({ general: err.message || 'Failed to submit code for review.' });
       }
+      toast.error(err.message || 'Failed to submit code for review.');
     } finally {
       setSubmitting(false);
     }
@@ -91,10 +94,10 @@ export default function CreateSubmissionPage() {
         setAnonymityWarnings(checkRes.findings);
         setShowWarningModal(true);
       } else {
-        alert('✓ Anonymity check passed! No personal identity leaks detected.');
+        toast.success('✓ Anonymity check passed! No personal identity leaks detected.');
       }
     } catch (err) {
-      alert('Anonymity check service unavailable, proceed with standard submission.');
+      toast.error('Anonymity check service unavailable, proceed with standard submission.');
     } finally {
       setRunningCheck(false);
     }

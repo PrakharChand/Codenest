@@ -25,7 +25,7 @@ const asyncHandler  = require('../utils/asyncHandler');
 const validate      = require('../middleware/validate');
 
 const {
-  createSubmission, getQueue, getMySubmissions, getSubmission,
+  createSubmission, getQueue, getQueueLanguages, getMySubmissions, getSubmission,
 } = require('../controllers/shadowSubmissionController');
 
 const { createReview, getMyReviews } = require('../controllers/shadowReviewController');
@@ -60,9 +60,10 @@ const communityPostValidation = [
 
 // ── Submissions ───────────────────────────────────────────────────────────
 router.post('/submissions',      submissionValidation, validate, asyncHandler(createSubmission));
-router.get('/queue',                                             asyncHandler(getQueue));
-router.get('/submissions/mine',                                  asyncHandler(getMySubmissions));
-router.get('/submissions/:id',                                   asyncHandler(getSubmission));
+router.get('/queue/languages',                                         asyncHandler(getQueueLanguages));
+router.get('/queue',                                                   asyncHandler(getQueue));
+router.get('/submissions/mine',                                        asyncHandler(getMySubmissions));
+router.get('/submissions/:id',                                         asyncHandler(getSubmission));
 
 // ── Reviews ───────────────────────────────────────────────────────────────
 router.post('/submissions/:id/reviews', reviewValidation, validate, asyncHandler(createReview));

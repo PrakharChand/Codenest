@@ -102,7 +102,7 @@ export default function BottomNav() {
   }
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--border-main)] bg-[var(--bg-surface)] shadow-[var(--shadow-lg)]">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 glass border-t border-[var(--border-main)] shadow-[var(--shadow-lg)]">
       {/* Mode toggle pill above tabs */}
       <div className="flex justify-center pt-1.5 pb-0">
         <button

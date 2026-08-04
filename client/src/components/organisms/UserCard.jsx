@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import Avatar from '../atoms/Avatar';
 import Badge from '../atoms/Badge';
 import Button from '../atoms/Button';
@@ -36,13 +37,15 @@ export default function UserCard({ targetUser, onConnectToggle, compact = false 
         await usersApi.disconnect(targetUser.id);
         setIsFollowing(false);
         setIsMutual(false);
+        toast.success(`Unfollowed ${targetUser.name}`);
       } else {
         await usersApi.connect(targetUser.id);
         setIsFollowing(true);
+        toast.success(`Followed ${targetUser.name}`);
       }
       onConnectToggle?.(targetUser.id, !isFollowing);
-    } catch {
-      // silently fail — user sees no change
+    } catch (err) {
+      toast.error(err.message || 'Failed to update follow status');
     } finally {
       setLoadFollow(false);
     }
@@ -56,8 +59,9 @@ export default function UserCard({ targetUser, onConnectToggle, compact = false 
     try {
       await usersApi.sendRequest(targetUser.id);
       setReqSent(true);
-    } catch {
-      // silently fail
+      toast.success(`Connection request sent to ${targetUser.name}`);
+    } catch (err) {
+      toast.error(err.message || 'Failed to send request');
     } finally {
       setLoadReq(false);
     }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
+import toast from 'react-hot-toast';
 import { notificationsApi } from '../api/notificationsApi';
 import Card from '../components/atoms/Card';
 import Button from '../components/atoms/Button';
@@ -45,8 +46,9 @@ export default function NotificationsPage() {
     try {
       await notificationsApi.markAllRead('public');
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      toast.success('All notifications marked as read');
     } catch (err) {
-      alert(err.message || 'Could not mark all as read.');
+      toast.error(err.message || 'Could not mark all as read.');
     }
   };
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
+import toast from 'react-hot-toast';
 import { postsApi } from '../api/postsApi';
 import { useAuth } from '../context/AuthContext';
 import Avatar from '../components/atoms/Avatar';
@@ -8,6 +9,7 @@ import Badge from '../components/atoms/Badge';
 import Card from '../components/atoms/Card';
 import Button from '../components/atoms/Button';
 import Spinner from '../components/atoms/Spinner';
+import Modal from '../components/molecules/Modal';
 import MarkdownView from '../components/organisms/MarkdownView';
 import CommentThread from '../components/organisms/CommentThread';
 
@@ -22,6 +24,10 @@ export default function PostDetailPage() {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
 
+  // Delete modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   useEffect(() => {
     async function loadPost() {
       setLoading(true);
@@ -29,9 +35,10 @@ export default function PostDetailPage() {
       try {
         const data = await postsApi.get(id);
         setPost(data);
+        setLiked(data.isLiked || false);
         setLikeCount(data.like_count || 0);
       } catch (err) {
-        setError(err.message || 'Post not found.');
+        setError(err.message || 'Failed to load post.');
       } finally {
         setLoading(false);
       }
@@ -40,7 +47,10 @@ export default function PostDetailPage() {
   }, [id]);
 
   const handleLike = async () => {
-    if (!user) return navigate('/login');
+    if (!user) {
+      navigate('/login');
+      return;
+    }
     try {
       if (liked) {
         setLiked(false);
@@ -56,14 +66,17 @@ export default function PostDetailPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (confirm('Delete this post?')) {
-      try {
-        await postsApi.remove(id);
-        navigate('/feed');
-      } catch (err) {
-        alert(err.message || 'Could not delete post.');
-      }
+  const handleConfirmDelete = async () => {
+    setDeleting(true);
+    try {
+      await postsApi.remove(id);
+      toast.success('Post deleted');
+      setShowDeleteModal(false);
+      navigate('/feed');
+    } catch (err) {
+      toast.error(err.message || 'Could not delete post.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -117,7 +130,7 @@ export default function PostDetailPage() {
                   Edit
                 </Button>
               </Link>
-              <Button variant="danger" size="sm" onClick={handleDelete}>
+              <Button variant="danger" size="sm" onClick={() => setShowDeleteModal(true)}>
                 Delete
               </Button>
             </div>
@@ -157,14 +170,49 @@ export default function PostDetailPage() {
             variant="secondary"
             size="sm"
             onClick={async () => {
-              await postsApi.share(post.id);
-              alert('Post reshared!');
+              try {
+                await postsApi.share(post.id);
+                toast.success('Post reshared!');
+              } catch (err) {
+                toast.error(err.message || 'Could not reshare post.');
+              }
             }}
           >
             🔁 Share ({post.share_count || 0})
           </Button>
         </div>
       </Card>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        title="Delete Post"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowDeleteModal(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={handleConfirmDelete}
+              isLoading={deleting}
+            >
+              Delete Post
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted">
+          Are you sure you want to delete this post? This action cannot be undone.
+        </p>
+      </Modal>
 
       {/* Comments Thread Section */}
       <CommentThread postId={post.id} />

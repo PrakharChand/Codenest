@@ -1,11 +1,13 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { shadowApi } from '../api/shadowApi';
 import PaginatedList from '../components/organisms/PaginatedList';
 import SubmissionCard from '../components/organisms/SubmissionCard';
 import Button from '../components/atoms/Button';
 
 export default function MySubmissionsPage() {
+  const navigate = useNavigate();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -31,7 +33,7 @@ export default function MySubmissionsPage() {
         emptyTitle="You haven't submitted any code for review yet"
         emptyDescription="Submit a code snippet to get constructive, bias-free feedback from developers!"
         emptyActionLabel="Submit Code Now"
-        onEmptyAction={() => {}}
+        onEmptyAction={() => navigate('/feed')}
       />
     </div>
   );

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { shadowApi } from '../api/shadowApi';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/atoms/Card';
@@ -71,12 +72,13 @@ export default function ShadowSubmissionDetailPage() {
       setResources('');
       setRating(5);
       setReviewSuccess(true);
+      toast.success('Review submitted successfully!');
     } catch (err) {
-      if (err.status === 409 || err.code === 'CONFLICT') {
-        setReviewError('You have already submitted a review for this code submission.');
-      } else {
-        setReviewError(err.message || 'Failed to submit review.');
-      }
+      const errMsg = (err.status === 409 || err.code === 'CONFLICT') 
+        ? 'You have already submitted a review for this code submission.' 
+        : (err.message || 'Failed to submit review.');
+      setReviewError(errMsg);
+      toast.error(errMsg);
     } finally {
       setSubmittingReview(false);
     }

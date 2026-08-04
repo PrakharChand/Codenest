@@ -150,6 +150,146 @@ async function updateProfile(req, res) {
   return res.json(rows[0]);
 }
 
+// ── DELETE /api/users/:id or /api/users/me ─────────────────────────────────
 
-module.exports = { searchUsers, exploreUsers, getUserProfile, updateProfile };
+const { clearRefreshCookie } = require('../utils/tokens');
+
+async function deleteAccount(req, res) {
+  const targetParam = req.params.id;
+  const userId = req.user.id;
+
+  if (targetParam && targetParam !== 'me') {
+    const targetId = parseInt(targetParam, 10);
+    if (isNaN(targetId) || targetId !== userId) {
+      throw ApiError.forbidden('You can only delete your own account.');
+    }
+  }
+
+  const { rowCount } = await query('DELETE FROM users WHERE id = $1', [userId]);
+  if (!rowCount) throw ApiError.notFound('User not found.');
+
+  clearRefreshCookie(res);
+  return res.json({ message: 'Account deleted successfully.' });
+}
+
+// ── GET /api/users/me/activity ─────────────────────────────────────────────
+
+async function getUserActivity(req, res) {
+  const userId = req.user.id;
+
+  // 1. Fetch user's activity timestamps for the last 30 days
+  const { rows } = await query(
+    `SELECT DATE(created_at AT TIME ZONE 'UTC') AS act_date, 'post' AS type
+     FROM posts
+     WHERE user_id = $1 AND created_at >= NOW() - INTERVAL '30 days'
+     UNION ALL
+     SELECT DATE(created_at AT TIME ZONE 'UTC') AS act_date, 'comment' AS type
+     FROM comments
+     WHERE user_id = $1 AND created_at >= NOW() - INTERVAL '30 days'
+     UNION ALL
+     SELECT DATE(created_at AT TIME ZONE 'UTC') AS act_date, 'review' AS type
+     FROM shadow_reviews
+     WHERE reviewer_id = $1 AND created_at >= NOW() - INTERVAL '30 days'`,
+    [userId]
+  );
+
+  const activityByDate = {};
+  for (const row of rows) {
+    const dateStr = typeof row.act_date === 'string'
+      ? row.act_date.split('T')[0]
+      : new Date(row.act_date).toISOString().split('T')[0];
+
+    if (!activityByDate[dateStr]) {
+      activityByDate[dateStr] = { posts: 0, comments: 0, reviews: 0, total: 0 };
+    }
+    if (row.type === 'post') activityByDate[dateStr].posts += 1;
+    if (row.type === 'comment') activityByDate[dateStr].comments += 1;
+    if (row.type === 'review') activityByDate[dateStr].reviews += 1;
+    activityByDate[dateStr].total += 1;
+  }
+
+  // 2. Build 7-day daily breakdown ending today (UTC)
+  const daily = [];
+  const now = new Date();
+  let total7DayActivity = 0;
+  let totalPosts = 0;
+  let totalComments = 0;
+  let totalReviews = 0;
+
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setUTCDate(d.getUTCDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' });
+
+    const counts = activityByDate[dateStr] || { posts: 0, comments: 0, reviews: 0, total: 0 };
+    total7DayActivity += counts.total;
+    totalPosts += counts.posts;
+    totalComments += counts.comments;
+    totalReviews += counts.reviews;
+
+    daily.push({
+      day: dayLabel,
+      date: dateStr,
+      posts: counts.posts,
+      comments: counts.comments,
+      reviews: counts.reviews,
+      activity: counts.total,
+      likes: counts.total, // For backward compatibility with existing dataKey="likes"
+    });
+  }
+
+  // 3. Calculate streak (consecutive active days backwards from today)
+  let streak = 0;
+  let checkDate = new Date(now);
+  let todayStr = checkDate.toISOString().split('T')[0];
+  let todayHasActivity = (activityByDate[todayStr]?.total || 0) > 0;
+
+  if (!todayHasActivity) {
+    // Check if yesterday had activity to keep streak alive
+    checkDate.setUTCDate(checkDate.getUTCDate() - 1);
+    let yesterdayStr = checkDate.toISOString().split('T')[0];
+    if ((activityByDate[yesterdayStr]?.total || 0) > 0) {
+      while (true) {
+        let dateKey = checkDate.toISOString().split('T')[0];
+        if ((activityByDate[dateKey]?.total || 0) > 0) {
+          streak += 1;
+          checkDate.setUTCDate(checkDate.getUTCDate() - 1);
+        } else {
+          break;
+        }
+      }
+    }
+  } else {
+    while (true) {
+      let dateKey = checkDate.toISOString().split('T')[0];
+      if ((activityByDate[dateKey]?.total || 0) > 0) {
+        streak += 1;
+        checkDate.setUTCDate(checkDate.getUTCDate() - 1);
+      } else {
+        break;
+      }
+    }
+  }
+
+  return res.json({
+    daily,
+    streak,
+    activityCount: total7DayActivity,
+    totalPosts,
+    totalComments,
+    totalReviews,
+  });
+}
+
+module.exports = {
+  searchUsers,
+  exploreUsers,
+  getUserProfile,
+  updateProfile,
+  deleteAccount,
+  getUserActivity,
+};
+
+
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { aiApi } from '../../api/aiApi';
 import { postsApi } from '../../api/postsApi';
 import Card from '../atoms/Card';
@@ -35,8 +36,10 @@ export default function AIRoadmapGenerator() {
         hours_per_week: Number(hoursPerWeek),
       });
       setRoadmap(res.roadmap || res);
+      toast.success('Learning roadmap generated!');
     } catch (err) {
       setError(err.message || 'Could not generate roadmap. Please try again.');
+      toast.error(err.message || 'Could not generate roadmap. Please try again.');
     } finally {
       setGenerating(false);
     }
@@ -58,8 +61,9 @@ export default function AIRoadmapGenerator() {
         tags: ['learning', 'roadmap', 'growth'],
       });
       setShareSuccess(true);
+      toast.success('Roadmap shared to feed!');
     } catch (err) {
-      alert(err.message || 'Failed to share roadmap to feed.');
+      toast.error(err.message || 'Failed to share roadmap to feed.');
     } finally {
       setSharing(false);
     }

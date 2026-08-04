@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 /**
  * Avatar — user profile picture or initials fallback
@@ -6,6 +6,8 @@ import React from 'react';
  * ring prop: adds a violet ring on hover (for interactive avatars)
  */
 export default function Avatar({ src, name, size = 'md', className = '', ring = false }) {
+  const [imgError, setImgError] = useState(false);
+
   const sizeMap = {
     sm:  'w-8 h-8 text-xs',
     md:  'w-10 h-10 text-sm',
@@ -37,12 +39,12 @@ export default function Avatar({ src, name, size = 'md', className = '', ring = 
         className,
       ].join(' ')}
     >
-      {src ? (
+      {src && !imgError ? (
         <img
           src={src}
           alt={name || 'User avatar'}
           className="h-full w-full object-cover"
-          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+          onError={() => setImgError(true)}
         />
       ) : (
         <span>{getInitials(name)}</span>

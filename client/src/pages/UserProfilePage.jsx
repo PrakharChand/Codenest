@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
+import toast from 'react-hot-toast';
 import { usersApi } from '../api/usersApi';
 import { postsApi } from '../api/postsApi';
 import { useAuth } from '../context/AuthContext';
@@ -11,6 +12,7 @@ import Card from '../components/atoms/Card';
 import Spinner from '../components/atoms/Spinner';
 import PaginatedList from '../components/organisms/PaginatedList';
 import PostCard from '../components/organisms/PostCard';
+import SEO from '../components/atoms/SEO';
 
 export default function UserProfilePage() {
   const { id } = useParams();
@@ -48,12 +50,14 @@ export default function UserProfilePage() {
       if (isFollowing) {
         await usersApi.disconnect(id);
         setIsFollowing(false);
+        toast.success(`Unfollowed ${profile?.name || 'user'}`);
       } else {
         await usersApi.connect(id);
         setIsFollowing(true);
+        toast.success(`Followed ${profile?.name || 'user'}`);
       }
     } catch (err) {
-      alert(err.message || 'Action failed.');
+      toast.error(err.message || 'Action failed.');
     } finally {
       setFollowLoading(false);
     }
@@ -78,6 +82,10 @@ export default function UserProfilePage() {
 
   return (
     <div className="space-y-8">
+      <SEO
+        title={profile?.name ? `${profile.name} (@${profile.name.toLowerCase().replace(/\s+/g, '')})` : 'Developer Profile'}
+        description={profile?.bio ? profile.bio : `View ${profile?.name || 'this developer'}'s profile, posts, code contributions, and connections on CodeNest.`}
+      />
       {/* Profile Header Card */}
       <Card className="p-6 md:p-8 space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

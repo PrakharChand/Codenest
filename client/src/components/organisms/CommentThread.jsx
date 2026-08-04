@@ -1,17 +1,12 @@
-/**
- * client/src/components/organisms/CommentThread.jsx
- *
- * Comment thread with date group labels.
- * Comments are grouped by day: "Today", "Yesterday", or "Month Day, Year".
- */
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { format, isToday, isYesterday, formatDistanceToNow } from 'date-fns';
+import toast from 'react-hot-toast';
 import Avatar from '../atoms/Avatar';
 import Button from '../atoms/Button';
 import TextArea from '../atoms/TextArea';
 import Spinner from '../atoms/Spinner';
+import Modal from '../molecules/Modal';
 import { commentsApi } from '../../api/commentsApi';
 import { useAuth } from '../../context/AuthContext';
 
@@ -111,6 +106,10 @@ export default function CommentThread({ postId }) {
   const [submitting, setSubmitting] = useState(false);
   const [error,    setError]    = useState(null);
 
+  // Delete modal state
+  const [commentToDelete, setCommentToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
   useEffect(() => {
     async function loadComments() {
       try {
@@ -140,23 +139,30 @@ export default function CommentThread({ postId }) {
       // Append at end (chronological order)
       setComments((prev) => [...prev, newComment]);
       setContent('');
+      toast.success('Comment posted!');
     } catch (err) {
       setError(err.message || 'Failed to post comment.');
+      toast.error(err.message || 'Failed to post comment.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDeleteComment = async (commentId) => {
-    if (confirm('Delete this comment?')) {
-      const original = [...comments];
-      setComments((prev) => prev.filter((c) => c.id !== commentId));
-      try {
-        await commentsApi.remove(commentId);
-      } catch (err) {
-        setComments(original);
-        alert(err.message || 'Could not delete comment.');
-      }
+  const handleConfirmDeleteComment = async () => {
+    if (!commentToDelete) return;
+    const commentId = commentToDelete;
+    setDeleting(true);
+    const original = [...comments];
+    setComments((prev) => prev.filter((c) => c.id !== commentId));
+    try {
+      await commentsApi.remove(commentId);
+      toast.success('Comment deleted');
+      setCommentToDelete(null);
+    } catch (err) {
+      setComments(original);
+      toast.error(err.message || 'Could not delete comment.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -213,13 +219,44 @@ export default function CommentThread({ postId }) {
                   key={comment.id}
                   comment={comment}
                   currentUser={user}
-                  onDelete={handleDeleteComment}
+                  onDelete={(id) => setCommentToDelete(id)}
                 />
               ))}
             </div>
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={!!commentToDelete}
+        onClose={() => setCommentToDelete(null)}
+        title="Delete Comment"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setCommentToDelete(null)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={handleConfirmDeleteComment}
+              isLoading={deleting}
+            >
+              Delete Comment
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted">
+          Are you sure you want to delete this comment? This action cannot be undone.
+        </p>
+      </Modal>
     </div>
   );
 }

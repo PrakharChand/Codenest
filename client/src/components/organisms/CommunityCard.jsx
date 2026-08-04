@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import Card from '../atoms/Card';
 import Badge from '../atoms/Badge';
 import Button from '../atoms/Button';
@@ -23,14 +24,17 @@ export default function CommunityCard({ community, onJoinToggle }) {
         setJoined(false);
         setMemberCount((prev) => Math.max(prev - 1, 0));
         await communitiesApi.leave(community.id);
+        toast.success(`Left ${community.name}`);
       } else {
         setJoined(true);
         setMemberCount((prev) => prev + 1);
         await communitiesApi.join(community.id);
+        toast.success(`Joined ${community.name}`);
       }
       if (onJoinToggle) onJoinToggle(community.id, !joined);
     } catch (err) {
       setJoined(!joined);
+      toast.error(err.message || 'Failed to update community membership');
     } finally {
       setLoading(false);
     }

@@ -22,7 +22,7 @@ export default function Dropdown({ trigger, items, align = 'right', className = 
 
       {isOpen && (
         <div
-          className={`absolute ${alignStyles} mt-2 w-48 rounded-md border border-main bg-surface p-1 shadow-lg z-50`}
+          className={`absolute ${alignStyles} mt-2 w-48 rounded-lg glass p-1 shadow-xl z-50`}
           role="menu"
         >
           {items.map((item, index) => (

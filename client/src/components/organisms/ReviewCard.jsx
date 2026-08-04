@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
+import toast from 'react-hot-toast';
 import Avatar from '../atoms/Avatar';
 import Badge from '../atoms/Badge';
 import Button from '../atoms/Button';
@@ -22,9 +23,10 @@ export default function ReviewCard({ review, isOwnerView = false, onVoteSuccess 
       await shadowApi.voteHelpful(review.id);
       setHelpfulVotes((prev) => prev + 1);
       setHasVoted(true);
+      toast.success('Voted review as helpful!');
       if (onVoteSuccess) onVoteSuccess(review.id);
     } catch (err) {
-      alert(err.message || 'Could not register vote.');
+      toast.error(err.message || 'Could not register vote.');
     } finally {
       setVoting(false);
     }
@@ -46,13 +48,18 @@ export default function ReviewCard({ review, isOwnerView = false, onVoteSuccess 
       <div className="flex items-center justify-between border-b border-main pb-3">
         <div className="flex items-center gap-3">
           {isAi ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🤖</span>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-[var(--color-primary-light)] flex items-center justify-center text-sm border border-[var(--color-primary)]/20 shrink-0">
+                🤖
+              </div>
               <div>
-                <span className="text-sm font-bold text-main">Claude AI Assistant</span>
-                <Badge variant="primary" size="sm" className="ml-2">
-                  AI Review
-                </Badge>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-bold text-main">AI Assistant</span>
+                  <Badge variant="primary" size="sm" className="border border-[var(--color-primary)]/20">
+                    ✨ AI Generated Review
+                  </Badge>
+                </div>
+                <span className="text-xs text-subtle block">{formattedDate}</span>
               </div>
             </div>
           ) : (

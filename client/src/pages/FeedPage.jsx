@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { postsApi } from '../api/postsApi';
 import { usersApi } from '../api/usersApi';
@@ -8,22 +7,16 @@ import PaginatedList from '../components/organisms/PaginatedList';
 import PostCard from '../components/organisms/PostCard';
 import AIRoadmapGenerator from '../components/organisms/AIRoadmapGenerator';
 import AIConnectionSuggestions from '../components/organisms/AIConnectionSuggestions';
+import WeeklyActivityChart from '../components/organisms/WeeklyActivityChart';
 import Button from '../components/atoms/Button';
 import Card from '../components/atoms/Card';
+import Avatar from '../components/atoms/Avatar';
+import SEO from '../components/atoms/SEO';
 
 export default function FeedPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [profileStats, setProfileStats] = useState(null);
-
-  const activityData = [
-    { day: 'Mon', posts: 1, likes: 4 },
-    { day: 'Tue', posts: 2, likes: 7 },
-    { day: 'Wed', posts: 0, likes: 2 },
-    { day: 'Thu', posts: 3, likes: 9 },
-    { day: 'Fri', posts: 1, likes: 5 },
-    { day: 'Sat', posts: 4, likes: 12 },
-    { day: 'Sun', posts: 2, likes: 8 },
-  ];
 
   useEffect(() => {
     async function loadStats() {
@@ -40,6 +33,10 @@ export default function FeedPage() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <SEO
+        title="Public Developer Feed"
+        description="Browse the latest developer posts, code snippets, engineering discussions, and technology insights on CodeNest."
+      />
       {/* Main Feed Column */}
       <div className="lg:col-span-2 space-y-6">
         <div className="flex items-center justify-between">
@@ -60,19 +57,19 @@ export default function FeedPage() {
           emptyTitle="Your feed is empty"
           emptyDescription="Connect with other developers or explore public posts to see content here."
           emptyActionLabel="Explore Communities"
-          onEmptyAction={() => {}}
+          onEmptyAction={() => navigate('/communities')}
         />
       </div>
 
-      {/* Sidebar Column: Stats, AI Connection Suggestions, & Activity Chart */}
+      {/* Sidebar Column: Stats, AI Connection Suggestions, & Real Weekly Activity Chart */}
       <div className="space-y-6">
         {/* User Card Summary */}
         <Card className="space-y-4">
           <div className="flex items-center gap-3">
-            <img
-              src={user?.avatar_url || 'https://via.placeholder.com/40'}
-              alt={user?.name}
-              className="w-12 h-12 rounded-full object-cover border border-main"
+            <Avatar
+              src={user?.avatar_url}
+              name={user?.name}
+              className="w-12 h-12"
             />
             <div>
               <h3 className="font-bold text-main">{user?.name}</h3>
@@ -105,27 +102,8 @@ export default function FeedPage() {
         {/* AI Smart Developer Connection Suggestions (Public Identity Only) */}
         <AIConnectionSuggestions />
 
-        {/* Weekly Activity Chart (Recharts) */}
-        <Card className="space-y-3">
-          <h4 className="text-sm font-semibold text-main">Weekly Activity</h4>
-          <div className="h-40 w-full pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={activityData}>
-                <XAxis dataKey="day" stroke="var(--text-subtle)" fontSize={10} />
-                <YAxis stroke="var(--text-subtle)" fontSize={10} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'var(--bg-surface)',
-                    borderColor: 'var(--border-main)',
-                    color: 'var(--text-main)',
-                    fontSize: '12px',
-                  }}
-                />
-                <Area type="monotone" dataKey="likes" stroke="var(--color-primary)" fill="var(--color-primary-light)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
+        {/* Real-time Weekly Activity Chart (Recharts) */}
+        <WeeklyActivityChart />
       </div>
     </div>
   );

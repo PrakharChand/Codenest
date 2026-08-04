@@ -7,6 +7,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { usersApi } from '../api/usersApi';
 import Input from '../components/atoms/Input';
@@ -66,6 +67,7 @@ export default function EditProfilePage() {
       const updatedUser = await usersApi.updateProfile(user.id, formData);
       setUser(updatedUser);
       setSuccessMessage('Profile updated successfully!');
+      toast.success('Settings saved!');
       setTimeout(() => navigate(`/users/${user.id}`), 1200);
     } catch (err) {
       if (err.field) {
@@ -73,6 +75,7 @@ export default function EditProfilePage() {
       } else {
         setFieldErrors({ general: err.message || 'Failed to update profile.' });
       }
+      toast.error(err.message || 'Failed to update profile.');
     } finally {
       setSubmitting(false);
     }

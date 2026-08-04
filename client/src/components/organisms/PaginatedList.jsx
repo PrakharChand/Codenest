@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Skeleton from '../atoms/Skeleton';
 import Button from '../atoms/Button';
 import EmptyState from '../molecules/EmptyState';
+import { feedCache } from '../../utils/feedCache';
 
 export default function PaginatedList({
   fetchData,
@@ -21,14 +22,22 @@ export default function PaginatedList({
 
   const loadData = useCallback(
     async (pageToLoad = 1) => {
-      setLoading(true);
+      // Check if cache already has data for this query so we don't show full loading skeleton
+      const cached = feedCache.get({ page: pageToLoad, limit });
+      if (!cached) {
+        setLoading(true);
+      }
       setError(null);
+
       try {
         const response = await fetchData({ page: pageToLoad, limit });
         setData(response.data || []);
         setPagination(response.pagination || { page: pageToLoad, limit, total: 0, totalPages: 1, hasNext: false });
       } catch (err) {
-        setError(err.message || 'Failed to load items.');
+        // If we already had cached data displayed, don't break UI on background fetch failure
+        if (!cached) {
+          setError(err.message || 'Failed to load items.');
+        }
       } finally {
         setLoading(false);
       }
@@ -39,6 +48,20 @@ export default function PaginatedList({
   useEffect(() => {
     loadData(1);
   }, [loadData, refreshTrigger]);
+
+  // Subscribe to feedCache mutations for instant UI synchronization (optimistic likes/deletes)
+  useEffect(() => {
+    const unsubscribe = feedCache.subscribe(() => {
+      const cached = feedCache.get({ page: pagination.page || 1, limit });
+      if (cached) {
+        setData(cached.data || []);
+        if (cached.pagination) {
+          setPagination(cached.pagination);
+        }
+      }
+    });
+    return unsubscribe;
+  }, [pagination.page, limit]);
 
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {

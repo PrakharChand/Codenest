@@ -26,6 +26,12 @@ export const usersApi = {
     return data;
   },
 
+  /** User 7-day activity analytics & streak */
+  getActivity: async () => {
+    const { data } = await api.get('/api/users/me/activity');
+    return data;
+  },
+
   // ── Follow (one-tap, no approval) ─────────────────────────────────────
   connect: async (id) => {
     const { data } = await api.post(`/api/users/${id}/connect`);
@@ -37,8 +43,27 @@ export const usersApi = {
     return data;
   },
 
+  /** People userId follows (paginated) */
   listConnections: async (id, params = {}) => {
     const { data } = await api.get(`/api/users/${id}/connections`, { params });
+    return data;
+  },
+
+  /** Alias for listConnections — semantically clearer name */
+  listFollowing: async (id, params = {}) => {
+    const { data } = await api.get(`/api/users/${id}/connections`, { params });
+    return data;
+  },
+
+  /** People who follow userId (paginated) */
+  listFollowers: async (id, params = {}) => {
+    const { data } = await api.get(`/api/users/${id}/followers`, { params });
+    return data;
+  },
+
+  /** Mutual connections — both userId follows them AND they follow userId (paginated) */
+  listMutual: async (id, params = {}) => {
+    const { data } = await api.get(`/api/users/${id}/mutual`, { params });
     return data;
   },
 
@@ -71,6 +96,12 @@ export const usersApi = {
   /** List pending requests I sent */
   listOutgoingRequests: async () => {
     const { data } = await api.get('/api/users/me/requests/outgoing');
+    return data;
+  },
+
+  // ── Account Deletion ──────────────────────────────────────────────────
+  deleteAccount: async (id) => {
+    const { data } = await api.delete(`/api/users/${id}`);
     return data;
   },
 

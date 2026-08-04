@@ -36,6 +36,7 @@ export default function TextArea({
           'text-[var(--text-main)] placeholder:text-[var(--text-subtle)]',
           'transition-all duration-150 resize-y min-h-[80px]',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/30 focus-visible:border-[var(--color-primary)]',
+          'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[var(--bg-surface-subtle)]',
           error
             ? 'border-[var(--color-danger)] focus-visible:ring-[var(--color-danger)]/30'
             : 'border-[var(--border-main)]',

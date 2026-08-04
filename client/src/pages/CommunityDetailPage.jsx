@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { communitiesApi } from '../api/communitiesApi';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/atoms/Card';
@@ -53,13 +54,16 @@ export default function CommunityDetailPage() {
         setIsMember(false);
         setMemberCount((prev) => Math.max(prev - 1, 0));
         await communitiesApi.leave(id);
+        toast.success('Left community');
       } else {
         setIsMember(true);
         setMemberCount((prev) => prev + 1);
         await communitiesApi.join(id);
+        toast.success('Joined community');
       }
     } catch (err) {
       setIsMember(!isMember);
+      toast.error(err.message || 'Failed to update membership');
     }
   };
 
@@ -77,8 +81,10 @@ export default function CommunityDetailPage() {
       setPostTitle('');
       setPostContent('');
       setRefreshTrigger((prev) => prev + 1);
+      toast.success('Post published to community!');
     } catch (err) {
       setPostError(err.message || 'Failed to publish post in community.');
+      toast.error(err.message || 'Failed to post in community.');
     } finally {
       setPosting(false);
     }

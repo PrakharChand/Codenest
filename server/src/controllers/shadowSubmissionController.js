@@ -18,6 +18,10 @@
  *   Submission content:  max 100,000 characters (code can be long)
  *   Submission question: max 2,000 characters
  *   Language tag:        max 50 characters
+ *
+ * Language filter (added):
+ *   GET /api/shadow/queue?language=javascript
+ *   GET /api/shadow/queue/languages  — distinct language tags used in the queue
  */
 
 const { query }                                    = require('../config/db');
@@ -49,33 +53,61 @@ async function createSubmission(req, res) {
 // Returns submissions the current user:
 //   1. Did NOT create (Rule 5 — user_id <> $currentUser)
 //   2. Has NOT already reviewed (NOT EXISTS check)
+//   3. (optional) Matches the ?language= query param (case-insensitive)
 // NO username of any kind — not even anonymous — is returned (per spec).
 
 async function getQueue(req, res) {
   const userId = req.user.id;
   const { page, limit, offset } = parsePagination(req.query);
 
-  const whereClause = `
+  // ── Language filter ──────────────────────────────────────────────────
+  // Accepted as a single lowercase string, e.g. "javascript".
+  // Stored values may have mixed case so we use LOWER() on both sides.
+  // Empty / missing → no filter applied.
+  const rawLang  = (req.query.language || '').trim().toLowerCase();
+  const hasLang  = rawLang.length > 0;
+
+  // Build parameterised WHERE clause.
+  // $1 = userId (always)
+  // $2 = limit, $3 = offset (data query)
+  // $4 = language (only when hasLang)
+  // COUNT query uses same WHERE without LIMIT/OFFSET.
+  const langCondition = hasLang ? `AND LOWER(ss.language_tag) = $4` : '';
+
+  const baseWhere = `
     WHERE ss.user_id <> $1
       AND NOT EXISTS (
         SELECT 1 FROM shadow_reviews sr
         WHERE sr.submission_id = ss.id AND sr.reviewer_id = $1
       )
+      ${langCondition}
   `;
+
+  // Params for COUNT (no limit/offset)
+  const countParams = hasLang ? [userId, rawLang] : [userId];
+  // Params for data query — positional order: userId, limit, offset, [language]
+  const dataParams  = hasLang
+    ? [userId, limit, offset, rawLang]
+    : [userId, limit, offset];
+
+  // Rewrite $4 in COUNT to $2 when filtering
+  const countWhere = hasLang
+    ? baseWhere.replace('$4', '$2')
+    : baseWhere;
 
   const [countResult, dataResult] = await Promise.all([
     query(
-      `SELECT COUNT(*) FROM shadow_submissions ss ${whereClause}`,
-      [userId]
+      `SELECT COUNT(*) FROM shadow_submissions ss ${countWhere}`,
+      countParams
     ),
     query(
       `SELECT ss.id, ss.title, ss.language_tag, ss.review_count, ss.created_at,
               LEFT(ss.content, ${QUEUE_CONTENT_PREVIEW_LENGTH}) AS content_preview
        FROM shadow_submissions ss
-       ${whereClause}
+       ${baseWhere}
        ORDER BY ss.created_at DESC
        LIMIT $2 OFFSET $3`,
-      [userId, limit, offset]
+      dataParams
     ),
   ]);
 
@@ -83,6 +115,35 @@ async function getQueue(req, res) {
   // The queue is anonymous even from the anonymous identity.
   const total = parseInt(countResult.rows[0].count, 10);
   return res.json(buildPaginatedResponse(dataResult.rows, total, page, limit));
+}
+
+// ── GET /api/shadow/queue/languages ──────────────────────────────────────
+// Returns all distinct language tags currently present in the reviewable
+// queue for this user (i.e. applies the same Rule 5 + already-reviewed
+// exclusions so the filter only surfaces languages that have results).
+//
+// Response: { languages: string[] }  — sorted alphabetically, lowercase.
+//
+// SECURITY: No submission IDs, no user data.
+
+async function getQueueLanguages(req, res) {
+  const userId = req.user.id;
+
+  const { rows } = await query(
+    `SELECT DISTINCT LOWER(ss.language_tag) AS language
+     FROM shadow_submissions ss
+     WHERE ss.user_id <> $1
+       AND NOT EXISTS (
+         SELECT 1 FROM shadow_reviews sr
+         WHERE sr.submission_id = ss.id AND sr.reviewer_id = $1
+       )
+       AND ss.language_tag IS NOT NULL
+       AND TRIM(ss.language_tag) <> ''
+     ORDER BY language ASC`,
+    [userId]
+  );
+
+  return res.json({ languages: rows.map((r) => r.language) });
 }
 
 // ── GET /api/shadow/submissions/mine ─────────────────────────────────────
@@ -187,4 +248,4 @@ async function getSubmission(req, res) {
   }
 }
 
-module.exports = { createSubmission, getQueue, getMySubmissions, getSubmission };
+module.exports = { createSubmission, getQueue, getQueueLanguages, getMySubmissions, getSubmission };

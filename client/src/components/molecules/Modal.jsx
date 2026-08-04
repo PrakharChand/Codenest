@@ -20,7 +20,7 @@ export default function Modal({ isOpen, onClose, title, children, footer }) {
       aria-labelledby="modal-title"
     >
       <div
-        className="w-full max-w-lg rounded-xl border border-main bg-surface p-6 shadow-xl text-main space-y-4"
+        className="w-full max-w-lg rounded-xl glass p-6 shadow-xl text-main space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-main pb-3">

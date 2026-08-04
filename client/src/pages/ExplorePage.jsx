@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { usersApi } from '../api/usersApi';
 import { useAuth } from '../context/AuthContext';
 import UserCard from '../components/organisms/UserCard';
@@ -9,6 +10,7 @@ import Avatar from '../components/atoms/Avatar';
 import Badge from '../components/atoms/Badge';
 import Card from '../components/atoms/Card';
 import { SkeletonCard } from '../components/atoms/Skeleton';
+import SEO from '../components/atoms/SEO';
 
 
 // ── Icons ─────────────────────────────────────────────────────────────────
@@ -68,12 +70,19 @@ function RequestItem({ req, type, onAccept, onDecline }) {
   const handle = async (action) => {
     setActioning(action);
     try {
-      if (action === 'accept')  await usersApi.acceptRequest(req.id);
-      if (action === 'decline') await usersApi.declineRequest(req.id);
+      if (action === 'accept') {
+        await usersApi.acceptRequest(req.id);
+        toast.success(`Connected with ${req.name}`);
+      }
+      if (action === 'decline') {
+        await usersApi.declineRequest(req.id);
+        toast.success('Request declined');
+      }
       setDone(true);
       if (action === 'accept')  onAccept?.(req.id);
       if (action === 'decline') onDecline?.(req.id);
-    } catch {
+    } catch (err) {
+      toast.error(err.message || 'Failed to update request');
       setActioning(null);
     }
   };
@@ -206,6 +215,10 @@ export default function ExplorePage() {
 
   return (
     <div className="space-y-8">
+      <SEO
+        title="Discover Developers & Connections"
+        description="Explore software engineers on CodeNest, search developers by name or tech stack, and send connection requests."
+      />
 
       {/* ── Page header ─────────────────────────────────────────────── */}
       <div>

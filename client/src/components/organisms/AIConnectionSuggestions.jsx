@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { aiApi } from '../../api/aiApi';
 import { usersApi } from '../../api/usersApi';
 import Card from '../atoms/Card';
@@ -31,8 +32,9 @@ export default function AIConnectionSuggestions() {
     try {
       await usersApi.connect(userId);
       setConnectedIds((prev) => new Set([...prev, userId]));
+      toast.success('Connected successfully!');
     } catch (err) {
-      alert(err.message || 'Failed to connect.');
+      toast.error(err.message || 'Failed to connect.');
     }
   };
 

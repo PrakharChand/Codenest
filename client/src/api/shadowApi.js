@@ -8,8 +8,19 @@ import api from './axios';
  * Shadow pages MUST ONLY import shadowApi and NEVER import postsApi, usersApi, or communitiesApi.
  */
 export const shadowApi = {
+  /** Paginated review queue. Pass { language: 'javascript' } to filter. */
   getQueue: async (params = {}) => {
     const { data } = await api.get('/api/shadow/queue', { params });
+    return data;
+  },
+
+  /**
+   * Returns { languages: string[] } — the distinct language tags present in
+   * the reviewable queue for the current user (Rule 5 + already-reviewed
+   * exclusions applied server-side so every option has results).
+   */
+  getQueueLanguages: async () => {
+    const { data } = await api.get('/api/shadow/queue/languages');
     return data;
   },
 
