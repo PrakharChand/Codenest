@@ -16,7 +16,11 @@ const FALLBACK_MODELS = [
   GEMINI_MODEL,
   'gemini-flash-latest',
   'gemini-2.0-flash',
-  'gemini-1.5-flash-8b',
-].filter((model, index, self) => self.indexOf(model) === index && model !== 'gemini-1.5-flash');
+].filter(
+  (model, index, self) =>
+    self.indexOf(model) === index &&
+    model !== 'gemini-1.5-flash' &&
+    model !== 'gemini-1.5-flash-8b'
+);
 
 module.exports = { genAI, GEMINI_MODEL, FALLBACK_MODELS };

@@ -391,8 +391,30 @@ async function suggestConnections(myPosts, candidates, userId = null) {
     .map((c) => `user_id:${c.user_id}, posts: ${c.titles}`)
     .join('\n');
 
+  const cacheKey = getCacheKey('suggestConnections', { userId, myTopics, candidatesText });
+  const cached = getCachedResponse(cacheKey);
+  if (cached) {
+    console.log(
+      JSON.stringify({
+        level: 'INFO',
+        service: 'aiService',
+        feature: 'suggestConnections',
+        model: GEMINI_MODEL,
+        cached: true,
+        userId,
+        event: 'CACHE_HIT',
+      })
+    );
+    return { ...cached, fallback: false };
+  }
+
   const prompt = aiPrompts.suggestConnections(myTopics, candidatesText);
-  return callGeminiWithRetry('suggestConnections', prompt, fallback, validateAndSanitizeConnections, { userId });
+  const result = await callGeminiWithRetry('suggestConnections', prompt, fallback, validateAndSanitizeConnections, { userId });
+
+  if (result && !result.fallback) {
+    setCachedResponse(cacheKey, result);
+  }
+  return result;
 }
 
 // ── 5. generateAIReview ───────────────────────────────────────────────────
