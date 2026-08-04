@@ -39,26 +39,44 @@ app.set('trust proxy', 1);
 
 // ── Core middleware ────────────────────────────────────────────────────────
 
-const allowedOrigins = [
-  'https://codenest-two-eta.vercel.app',   // Vercel production
-  'https://codenest-sg3f.onrender.com',    // Render (self-origin, for health checks)
-  'http://localhost:5173',                  // Vite dev
-  'http://localhost:5174',                  // Vite dev (alt port)
-  env.CLIENT_URL,                           // env override (trimmed below)
-].filter(Boolean).map((o) => o.replace(/\/$/, '')); // strip trailing slashes
+/**
+ * Pattern-based CORS — allows:
+ *   • Any *.vercel.app URL  (production + all preview deployments)
+ *   • https://codenest-sg3f.onrender.com  (Render self-origin / health checks)
+ *   • http://localhost:*  (local development on any port)
+ *   • Undefined / null origin  (curl, server-to-server, health checks)
+ *
+ * DO NOT use a wildcard (*) — that breaks credentials (httpOnly cookies).
+ */
+function isOriginAllowed(origin) {
+  if (!origin) return true; // no-origin requests always allowed
+
+  const clean = origin.replace(/\/$/, ''); // strip trailing slash
+
+  // Any Vercel deployment URL (production + all auto-generated preview URLs)
+  if (clean.endsWith('.vercel.app')) return true;
+
+  // Render backend self-origin
+  if (clean === 'https://codenest-sg3f.onrender.com') return true;
+
+  // Local development — any localhost port
+  if (clean.startsWith('http://localhost:') || clean === 'http://localhost') return true;
+  if (clean.startsWith('http://127.0.0.1:') || clean === 'http://127.0.0.1') return true;
+
+  // Optional CLIENT_URL env override
+  if (env.CLIENT_URL && clean === env.CLIENT_URL.replace(/\/$/, '')) return true;
+
+  return false;
+}
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow no-origin requests (curl, health checks, server-to-server)
-    if (!origin) return callback(null, true);
-    // Strip trailing slash from incoming origin before comparison
-    const clean = origin.replace(/\/$/, '');
-    if (allowedOrigins.includes(clean) || (!env.IS_PRODUCTION && clean.startsWith('http://localhost:'))) {
+    if (isOriginAllowed(origin)) {
       return callback(null, true);
     }
     return callback(new Error(`CORS: origin '${origin}' not allowed`));
   },
-  credentials: true,   // Required for httpOnly cookie cross-origin
+  credentials: true, // Required for httpOnly refresh-token cookie cross-origin
 }));
 
 
