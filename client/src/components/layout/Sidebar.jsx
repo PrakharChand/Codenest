@@ -305,13 +305,6 @@ export default function Sidebar() {
                 >
                   Settings
                 </Link>
-                <Link
-                  to="/settings/profile"
-                  className="flex items-center gap-2 px-3 py-2.5 text-sm text-[var(--text-main)] hover:bg-[var(--bg-surface-hover)]"
-                  onClick={() => setUserMenuOpen(false)}
-                >
-                  Edit Profile
-                </Link>
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-[var(--color-danger)] hover:bg-rose-50 text-left border-t border-[var(--border-main)]"
