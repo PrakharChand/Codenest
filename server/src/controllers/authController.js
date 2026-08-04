@@ -280,6 +280,23 @@ async function anonymousCreate(req, res) {
 }
 
 /**
+ * POST /api/users/me/onboarding/complete or /api/auth/onboarding/complete
+ * Protected. Stamps is_onboarded = TRUE and onboarding_completed_at = NOW()
+ */
+async function completeOnboarding(req, res) {
+  const { rows } = await query(
+    `UPDATE users
+     SET is_onboarded = TRUE,
+         onboarding_completed_at = COALESCE(onboarding_completed_at, NOW()),
+         updated_at = NOW()
+     WHERE id = $1
+     RETURNING id, is_onboarded, onboarding_completed_at`,
+    [req.user.id]
+  );
+  return res.json({ is_onboarded: true, onboarding_completed_at: rows[0]?.onboarding_completed_at });
+}
+
+/**
  * GET /api/auth/verify/:token
  * Public. Verifies user account using verification_token.
  */

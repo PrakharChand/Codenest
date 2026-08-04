@@ -9,6 +9,7 @@ import Button from '../components/atoms/Button';
 import Skeleton from '../components/atoms/Skeleton';
 import ThemeToggle from '../components/atoms/ThemeToggle';
 import SEO from '../components/atoms/SEO';
+import Footer from '../components/layout/Footer';
 
 // ── Feature data ──────────────────────────────────────────────────────────
 
@@ -266,6 +267,9 @@ const review = await shadow.submit({
           onEmptyAction={() => navigate(user ? '/posts/new' : '/register')}
         />
       </section>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }
