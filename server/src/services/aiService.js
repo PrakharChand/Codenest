@@ -3,19 +3,19 @@
  *
  * Senior-level Google Gemini AI Service layer for CodeNest.
  *
- * Refined Capabilities:
- *  1. Centralized GEMINI_MODEL selection from env.js.
- *  2. Selective response caching: Cache stable outputs (tags, roadmaps); avoid caching dynamic outputs (connections).
- *  3. Strengthened schema validation & sanitization (removing duplicates, enforcing bounds, trimming strings).
- *  4. Structured, non-null fallback objects for 100% frontend contract safety.
- *  5. Smart transient-only retry logic with exponential backoff (retries timeouts, 429, 50x; skips 401/403/400).
- *  6. Guaranteed AbortController & timer cleanup (zero memory leaks or dangling promises).
- *  7. Render-structured JSON diagnostics including userId, cache status, model, and timing.
+ * Production Features:
+ *  1. Configurable GEMINI_MODEL with dynamic 404 fallback chain (gemini-2.5-flash, gemini-2.0-flash, gemini-flash-latest).
+ *  2. Selective response caching for stable endpoints (tags, roadmaps).
+ *  3. Strengthened schema validation & sanitization.
+ *  4. Structured non-null fallback objects.
+ *  5. Transient-only retry logic with exponential backoff.
+ *  6. Guaranteed AbortController & timer cleanup.
+ *  7. Render-structured JSON diagnostics including API key prefix, model, and execution metrics.
  */
 
 const crypto = require('crypto');
 const env = require('../config/env');
-const { genAI, GEMINI_MODEL } = require('../config/gemini');
+const { genAI, GEMINI_MODEL, FALLBACK_MODELS } = require('../config/gemini');
 const aiPrompts = require('./aiPrompts');
 
 // ── In-Memory Selective Response Cache ─────────────────────────────────────
@@ -38,7 +38,6 @@ function getCachedResponse(cacheKey) {
 
 function setCachedResponse(cacheKey, data) {
   aiCache.set(cacheKey, { data, timestamp: Date.now() });
-  // Prune oldest entries if cache exceeds 500 items
   if (aiCache.size > 500) {
     const oldestKey = aiCache.keys().next().value;
     aiCache.delete(oldestKey);
@@ -47,21 +46,15 @@ function setCachedResponse(cacheKey, data) {
 
 // ── Transient Error Classifier ──────────────────────────────────────────────
 
-/**
- * Determines whether an error is transient (temporary network/quota issue)
- * and safe to retry, or permanent (e.g. invalid API key, bad prompt).
- */
 function isTransientError(err) {
   if (!err) return false;
-  if (err.name === 'AbortError') return true; // Timeout
+  if (err.name === 'AbortError') return true;
 
   const message = (err.message || '').toLowerCase();
   const status = err.status || err.statusCode;
 
-  // HTTP status codes safe to retry
   if (status === 429 || (status >= 500 && status <= 599)) return true;
 
-  // Known transient network error messages
   if (
     message.includes('fetch failed') ||
     message.includes('enotfound') ||
@@ -77,7 +70,7 @@ function isTransientError(err) {
   return false;
 }
 
-// ── Strengthened Response Validators & Sanitizers ─────────────────────────
+// ── Response Validators & Sanitizers ──────────────────────────────────────
 
 function validateAndSanitizeTags(data) {
   if (!data) return null;
@@ -95,7 +88,6 @@ function validateAndSanitizeTags(data) {
     return null;
   }
 
-  // Trim, filter empty, and remove duplicates
   const cleaned = Array.from(
     new Set(
       rawTags
@@ -105,7 +97,6 @@ function validateAndSanitizeTags(data) {
     )
   );
 
-  // Must have between 1 and 6 tags
   if (cleaned.length < 1) return null;
   return { tags: cleaned.slice(0, 6) };
 }
@@ -171,97 +162,121 @@ function validateAndSanitizeReview(data) {
 // ── Core Gemini Call Execution Engine ─────────────────────────────────────
 
 /**
- * Standardized Gemini API runner with transient retries, timeout management,
- * schema validation, and structured error logging.
+ * Standardized Gemini API runner with transient retries, 404 model fallback,
+ * timeout management, schema validation, and structured error logging.
  */
 async function callGeminiWithRetry(featureName, prompt, fallback, validatorFn, meta = {}) {
   const startTime = Date.now();
   let lastError = null;
+  const apiKeyPrefix = env.GEMINI_API_KEY ? `${env.GEMINI_API_KEY.slice(0, 8)}...` : 'MISSING';
 
-  for (let attempt = 1; attempt <= env.AI_MAX_RETRIES + 1; attempt++) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), env.AI_TIMEOUT_MS);
+  for (const modelName of FALLBACK_MODELS) {
+    for (let attempt = 1; attempt <= env.AI_MAX_RETRIES + 1; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), env.AI_TIMEOUT_MS);
 
-    try {
-      const model = genAI.getGenerativeModel({
-        model: GEMINI_MODEL,
-        generationConfig: {
-          responseMimeType: 'application/json',
-          maxOutputTokens: 1024,
-          temperature: 0.2,
-        },
-      });
+      try {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          generationConfig: {
+            responseMimeType: 'application/json',
+            maxOutputTokens: 1024,
+            temperature: 0.2,
+          },
+        });
 
-      const result = await model.generateContent(prompt, { signal: controller.signal });
-      clearTimeout(timer); // Clear timeout immediately upon response
+        const result = await model.generateContent(prompt, { signal: controller.signal });
+        clearTimeout(timer);
 
-      const responseText = result.response.text();
-      const cleanedText = responseText
-        .replace(/^```(?:json)?\n?/, '')
-        .replace(/\n?```$/, '')
-        .trim();
+        const responseText = result.response.text();
+        const cleanedText = responseText
+          .replace(/^```(?:json)?\n?/, '')
+          .replace(/\n?```$/, '')
+          .trim();
 
-      const parsed = JSON.parse(cleanedText);
+        const parsed = JSON.parse(cleanedText);
+        const validated = validatorFn ? validatorFn(parsed) : parsed;
 
-      // Validate & sanitize structure
-      const validated = validatorFn ? validatorFn(parsed) : parsed;
-      if (!validated) {
-        lastError = new Error('AI output failed schema validation');
+        if (!validated) {
+          lastError = new Error('AI output failed schema validation');
+          console.warn(
+            JSON.stringify({
+              level: 'WARN',
+              service: 'aiService',
+              feature: featureName,
+              model: modelName,
+              attempt,
+              userId: meta.userId || null,
+              apiKeyPrefix,
+              event: 'SCHEMA_VALIDATION_FAILED',
+            })
+          );
+        } else {
+          const duration_ms = Date.now() - startTime;
+          console.log(
+            JSON.stringify({
+              level: 'INFO',
+              service: 'aiService',
+              feature: featureName,
+              model: modelName,
+              duration_ms,
+              attempt,
+              cached: false,
+              userId: meta.userId || null,
+              apiKeyPrefix,
+              event: 'SUCCESS',
+            })
+          );
+          return validated;
+        }
+      } catch (err) {
+        clearTimeout(timer);
+        lastError = err;
+
+        const is404 =
+          err.status === 404 ||
+          (err.message && err.message.includes('404')) ||
+          (err.message && err.message.includes('not found')) ||
+          (err.message && err.message.includes('no longer available'));
+
+        if (is404) {
+          console.warn(
+            JSON.stringify({
+              level: 'WARN',
+              service: 'aiService',
+              feature: featureName,
+              model: modelName,
+              apiKeyPrefix,
+              error: err.message,
+              event: 'MODEL_404_SWITCHING_FALLBACK',
+            })
+          );
+          break; // Break attempt loop to switch to next fallback model immediately
+        }
+
+        const isTransient = isTransientError(err);
         console.warn(
           JSON.stringify({
             level: 'WARN',
             service: 'aiService',
             feature: featureName,
-            model: GEMINI_MODEL,
+            model: modelName,
             attempt,
+            maxAttempts: env.AI_MAX_RETRIES + 1,
+            transient: isTransient,
             userId: meta.userId || null,
-            event: 'SCHEMA_VALIDATION_FAILED',
+            apiKeyPrefix,
+            error: err.name === 'AbortError' ? 'Timeout' : err.message,
+            event: 'ATTEMPT_FAILED',
           })
         );
-      } else {
-        const duration_ms = Date.now() - startTime;
-        console.log(
-          JSON.stringify({
-            level: 'INFO',
-            service: 'aiService',
-            feature: featureName,
-            model: GEMINI_MODEL,
-            duration_ms,
-            attempt,
-            cached: false,
-            userId: meta.userId || null,
-            event: 'SUCCESS',
-          })
-        );
-        return validated;
+
+        if (!isTransient || attempt > env.AI_MAX_RETRIES) {
+          break;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, attempt * 300));
       }
-    } catch (err) {
-      clearTimeout(timer); // Always clear timer on error
-      lastError = err;
-
-      const isTransient = isTransientError(err);
-      console.warn(
-        JSON.stringify({
-          level: 'WARN',
-          service: 'aiService',
-          feature: featureName,
-          model: GEMINI_MODEL,
-          attempt,
-          maxAttempts: env.AI_MAX_RETRIES + 1,
-          transient: isTransient,
-          userId: meta.userId || null,
-          error: err.name === 'AbortError' ? 'Timeout' : err.message,
-          event: 'ATTEMPT_FAILED',
-        })
-      );
-
-      // Do NOT retry permanent errors (e.g. invalid API key, bad request)
-      if (!isTransient || attempt > env.AI_MAX_RETRIES) {
-        break;
-      }
-
-      // Exponential backoff delay (300ms, 600ms)
-      await new Promise((resolve) => setTimeout(resolve, attempt * 300));
     }
   }
 
@@ -271,10 +286,10 @@ async function callGeminiWithRetry(featureName, prompt, fallback, validatorFn, m
       level: 'ERROR',
       service: 'aiService',
       feature: featureName,
-      model: GEMINI_MODEL,
       duration_ms,
       userId: meta.userId || null,
-      error: lastError?.message || 'Unknown failure',
+      apiKeyPrefix,
+      error: lastError?.message || 'All models failed',
       event: 'FALLBACK_TRIGGERED',
     })
   );
@@ -354,7 +369,6 @@ async function generateRoadmap(profile, userId = null) {
 }
 
 // ── 4. suggestConnections ─────────────────────────────────────────────────
-// NOT cached — candidates & connection state change dynamically
 async function suggestConnections(myPosts, candidates, userId = null) {
   const fallback = { suggestions: [], fallback: true };
   if (!candidates || !candidates.length) return fallback;
@@ -370,7 +384,6 @@ async function suggestConnections(myPosts, candidates, userId = null) {
 }
 
 // ── 5. generateAIReview ───────────────────────────────────────────────────
-// Used by hourly cron job
 async function generateAIReview(submission) {
   const fallback = {
     what_good: '',
