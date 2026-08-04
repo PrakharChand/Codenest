@@ -24,7 +24,7 @@ export default function HelpMenu() {
         trigger={
           <button
             type="button"
-            className="flex items-center gap-1.5 text-xs font-medium text-muted hover:text-main px-2.5 py-1.5 rounded-md border border-main bg-base hover:bg-surface transition-colors focus-visible:outline-none"
+            className="flex items-center gap-1.5 text-xs font-medium text-muted hover:text-main px-2.5 py-1.5 rounded-md border border-main bg-[var(--bg-base)] hover:bg-surface transition-colors focus-visible:outline-none"
             aria-label="CodeNest Navigation Help Menu"
           >
             <span>❓ Help</span>

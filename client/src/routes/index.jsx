@@ -42,7 +42,7 @@ const ShadowProfilePage = lazy(() => import('../pages/ShadowProfilePage'));
 const ShadowCommunityPage = lazy(() => import('../pages/ShadowCommunityPage'));
 
 const PageLoader = () => (
-  <div className="flex min-h-[60vh] items-center justify-center bg-base text-main">
+  <div className="flex min-h-[60vh] items-center justify-center bg-[var(--bg-base)] text-main">
     <Spinner size="lg" />
   </div>
 );

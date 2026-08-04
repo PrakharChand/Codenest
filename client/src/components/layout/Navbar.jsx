@@ -71,7 +71,7 @@ export default function Navbar() {
           {/* Mode Switch Tabs (Threshold Crossing Component) */}
           {user && (
             <div
-              className="hidden sm:flex items-center rounded-lg border border-main bg-base p-1"
+              className="hidden sm:flex items-center rounded-lg border border-main bg-[var(--bg-base)] p-1"
               role="group"
               aria-label={`Currently in ${mode === 'feed' ? 'public feed' : 'anonymous shadow'} mode. Select to switch.`}
             >

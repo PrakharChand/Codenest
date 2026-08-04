@@ -8,7 +8,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        base: 'var(--bg-base)',
+        appbase: 'var(--bg-base)',
         surface: {
           DEFAULT: 'var(--bg-surface)',
           hover: 'var(--bg-surface-hover)',

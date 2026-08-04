@@ -37,7 +37,7 @@ export default function OAuthCallbackPage() {
   }, [searchParams, navigate, login]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-base text-main">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--bg-base)] text-main">
       <div className="text-center space-y-4">
         <Spinner size="lg" />
         <p className="text-muted">Authenticating with OAuth...</p>
