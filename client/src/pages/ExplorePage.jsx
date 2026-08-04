@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import toast from 'react-hot-toast';
 import { usersApi } from '../api/usersApi';
 import { useAuth } from '../context/AuthContext';
+import { useConnection } from '../context/ConnectionContext';
 import UserCard from '../components/organisms/UserCard';
 import Button from '../components/atoms/Button';
 import Spinner from '../components/atoms/Spinner';
@@ -11,7 +11,6 @@ import Badge from '../components/atoms/Badge';
 import Card from '../components/atoms/Card';
 import { SkeletonCard } from '../components/atoms/Skeleton';
 import SEO from '../components/atoms/SEO';
-
 
 // ── Icons ─────────────────────────────────────────────────────────────────
 
@@ -64,26 +63,20 @@ const TABS = [
 // ── RequestItem ───────────────────────────────────────────────────────────
 
 function RequestItem({ req, type, onAccept, onDecline }) {
-  const [actioning, setActioning] = useState(null); // 'accept' | 'decline'
+  const { acceptConnectionRequest, declineConnectionRequest, isActionLoading } = useConnection();
   const [done, setDone] = useState(false);
+  const actioning = isActionLoading(req.id);
 
   const handle = async (action) => {
-    setActioning(action);
-    try {
-      if (action === 'accept') {
-        await usersApi.acceptRequest(req.id);
-        toast.success(`Connected with ${req.name}`);
-      }
-      if (action === 'decline') {
-        await usersApi.declineRequest(req.id);
-        toast.success('Request declined');
-      }
+    if (action === 'accept') {
+      await acceptConnectionRequest(req.id, req.name);
       setDone(true);
-      if (action === 'accept')  onAccept?.(req.id);
-      if (action === 'decline') onDecline?.(req.id);
-    } catch (err) {
-      toast.error(err.message || 'Failed to update request');
-      setActioning(null);
+      onAccept?.(req.id);
+    }
+    if (action === 'decline') {
+      await declineConnectionRequest(req.id);
+      setDone(true);
+      onDecline?.(req.id);
     }
   };
 

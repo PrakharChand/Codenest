@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import toast from 'react-hot-toast';
 import { aiApi } from '../../api/aiApi';
-import { usersApi } from '../../api/usersApi';
+import { useConnection } from '../../context/ConnectionContext';
 import Card from '../atoms/Card';
 import Avatar from '../atoms/Avatar';
 import Button from '../atoms/Button';
@@ -10,7 +9,7 @@ import Badge from '../atoms/Badge';
 export default function AIConnectionSuggestions() {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [connectedIds, setConnectedIds] = useState(new Set());
+  const { isFollowing, isActionLoading, toggleFollow } = useConnection();
 
   const loadSuggestions = async () => {
     setLoading(true);
@@ -28,14 +27,8 @@ export default function AIConnectionSuggestions() {
     loadSuggestions();
   }, []);
 
-  const handleConnect = async (userId) => {
-    try {
-      await usersApi.connect(userId);
-      setConnectedIds((prev) => new Set([...prev, userId]));
-      toast.success('Connected successfully!');
-    } catch (err) {
-      toast.error(err.message || 'Failed to connect.');
-    }
+  const handleConnect = async (item) => {
+    await toggleFollow({ id: item.user_id, name: item.name });
   };
 
   const handleDismiss = (userId) => {
@@ -68,7 +61,8 @@ export default function AIConnectionSuggestions() {
 
       <div className="space-y-3">
         {suggestions.map((item) => {
-          const isConnected = connectedIds.has(item.user_id);
+          const isConnected = isFollowing(item.user_id);
+          const isBusy = isActionLoading(item.user_id);
           return (
             <div
               key={item.user_id}
@@ -89,7 +83,8 @@ export default function AIConnectionSuggestions() {
                   <Button
                     size="sm"
                     variant="primary"
-                    onClick={() => handleConnect(item.user_id)}
+                    isLoading={isBusy}
+                    onClick={() => handleConnect(item)}
                   >
                     Connect
                   </Button>

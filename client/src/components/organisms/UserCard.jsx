@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import toast from 'react-hot-toast';
 import Avatar from '../atoms/Avatar';
 import Badge from '../atoms/Badge';
 import Button from '../atoms/Button';
 import Card from '../atoms/Card';
-import { usersApi } from '../../api/usersApi';
 import { useAuth } from '../../context/AuthContext';
+import { useConnection } from '../../context/ConnectionContext';
 
 /**
  * UserCard — premium developer discovery card.
@@ -18,53 +17,42 @@ import { useAuth } from '../../context/AuthContext';
  */
 export default function UserCard({ targetUser, onConnectToggle, compact = false }) {
   const { user: currentUser } = useAuth();
+  const {
+    isFollowing,
+    isMutual: getIsMutual,
+    getRequestStatus,
+    isActionLoading,
+    toggleFollow,
+    sendConnectionRequest,
+    registerUserStatus,
+  } = useConnection();
 
-  const [isFollowing, setIsFollowing] = useState(targetUser.isFollowing || targetUser.isConnected || false);
-  const [isMutual,    setIsMutual]    = useState(targetUser.isMutual || false);
-  const [reqSent,     setReqSent]     = useState(false);
-  const [loadFollow,  setLoadFollow]  = useState(false);
-  const [loadReq,     setLoadReq]     = useState(false);
+  // Register target user's initial state with ConnectionContext
+  useEffect(() => {
+    registerUserStatus(targetUser);
+  }, [targetUser, registerUserStatus]);
+
+  const following = isFollowing(targetUser.id, targetUser.isFollowing || targetUser.isConnected || false);
+  const mutual = getIsMutual(targetUser.id, targetUser.isMutual || false);
+  const reqStatus = getRequestStatus(targetUser.id);
+  const reqSent = reqStatus === 'outgoing';
+  const loadAction = isActionLoading(targetUser.id);
 
   const isSelf = currentUser && currentUser.id === targetUser.id;
 
   // ── Follow / Unfollow ──────────────────────────────────────────────────
   const handleFollow = async (e) => {
     e.preventDefault();
-    if (isSelf || loadFollow) return;
-    setLoadFollow(true);
-    try {
-      if (isFollowing) {
-        await usersApi.disconnect(targetUser.id);
-        setIsFollowing(false);
-        setIsMutual(false);
-        toast.success(`Unfollowed ${targetUser.name}`);
-      } else {
-        await usersApi.connect(targetUser.id);
-        setIsFollowing(true);
-        toast.success(`Followed ${targetUser.name}`);
-      }
-      onConnectToggle?.(targetUser.id, !isFollowing);
-    } catch (err) {
-      toast.error(err.message || 'Failed to update follow status');
-    } finally {
-      setLoadFollow(false);
-    }
+    if (isSelf || loadAction) return;
+    await toggleFollow(targetUser);
+    onConnectToggle?.(targetUser.id, !following);
   };
 
   // ── Connection Request ─────────────────────────────────────────────────
   const handleRequest = async (e) => {
     e.preventDefault();
-    if (isSelf || loadReq || reqSent) return;
-    setLoadReq(true);
-    try {
-      await usersApi.sendRequest(targetUser.id);
-      setReqSent(true);
-      toast.success(`Connection request sent to ${targetUser.name}`);
-    } catch (err) {
-      toast.error(err.message || 'Failed to send request');
-    } finally {
-      setLoadReq(false);
-    }
+    if (isSelf || loadAction || reqSent) return;
+    await sendConnectionRequest(targetUser);
   };
 
   const followerCount  = targetUser.followerCount  ?? targetUser.follower_count  ?? null;
@@ -91,11 +79,11 @@ export default function UserCard({ targetUser, onConnectToggle, compact = false 
         {!isSelf && currentUser && (
           <Button
             size="sm"
-            variant={isFollowing ? 'ghost' : 'primary'}
+            variant={following ? 'ghost' : 'primary'}
             onClick={handleFollow}
-            isLoading={loadFollow}
+            isLoading={loadAction}
           >
-            {isFollowing ? 'Following' : 'Follow'}
+            {following ? 'Following' : 'Follow'}
           </Button>
         )}
       </Card>
@@ -121,7 +109,7 @@ export default function UserCard({ targetUser, onConnectToggle, compact = false 
             <h3 className="font-bold text-[var(--text-main)] group-hover:text-[var(--color-primary)] transition-colors truncate">
               {targetUser.name}
             </h3>
-            {isMutual && <Badge variant="primary" size="sm">Mutual</Badge>}
+            {mutual && <Badge variant="primary" size="sm">Mutual</Badge>}
             {reqSent   && <Badge variant="warning" size="sm">Request sent</Badge>}
           </div>
           {targetUser.bio ? (
@@ -162,20 +150,20 @@ export default function UserCard({ targetUser, onConnectToggle, compact = false 
       {!isSelf && currentUser && (
         <div className="flex items-center gap-2 pt-1">
           <Button
-            variant={isFollowing ? 'secondary' : 'primary'}
+            variant={following ? 'secondary' : 'primary'}
             size="sm"
             onClick={handleFollow}
-            isLoading={loadFollow}
+            isLoading={loadAction}
             className="flex-1"
           >
-            {isFollowing ? '✓ Following' : 'Follow'}
+            {following ? '✓ Following' : 'Follow'}
           </Button>
           {!reqSent ? (
             <Button
               variant="ghost"
               size="sm"
               onClick={handleRequest}
-              isLoading={loadReq}
+              isLoading={loadAction}
               className="flex-1"
               title="Send a connection request for mutual follow"
             >

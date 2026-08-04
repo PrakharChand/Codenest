@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
-import toast from 'react-hot-toast';
 import { usersApi } from '../api/usersApi';
 import { postsApi } from '../api/postsApi';
 import { useAuth } from '../context/AuthContext';
+import { useConnection } from '../context/ConnectionContext';
 import Avatar from '../components/atoms/Avatar';
 import Badge from '../components/atoms/Badge';
 import Button from '../components/atoms/Button';
@@ -17,14 +17,20 @@ import SEO from '../components/atoms/SEO';
 export default function UserProfilePage() {
   const { id } = useParams();
   const { user: currentUser } = useAuth();
+  const {
+    isFollowing,
+    isMutual: getIsMutual,
+    isActionLoading,
+    toggleFollow,
+    registerUserStatus,
+  } = useConnection();
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followLoading, setFollowLoading] = useState(false);
 
-  const isSelf = currentUser && currentUser.id === parseInt(id, 10);
+  const numericId = parseInt(id, 10);
+  const isSelf = currentUser && currentUser.id === numericId;
 
   useEffect(() => {
     async function loadProfile() {
@@ -33,7 +39,7 @@ export default function UserProfilePage() {
       try {
         const data = await usersApi.getProfile(id);
         setProfile(data);
-        setIsFollowing(data.isFollowing || false);
+        registerUserStatus(data);
       } catch (err) {
         setError(err.message || 'Failed to load user profile.');
       } finally {
@@ -41,26 +47,16 @@ export default function UserProfilePage() {
       }
     }
     loadProfile();
-  }, [id]);
+  }, [id, registerUserStatus]);
+
+  const targetId = profile?.id || numericId;
+  const following = isFollowing(targetId, profile?.isFollowing || false);
+  const mutual = getIsMutual(targetId, profile?.isMutual || false);
+  const followLoading = isActionLoading(targetId);
 
   const handleToggleFollow = async () => {
-    if (isSelf) return;
-    setFollowLoading(true);
-    try {
-      if (isFollowing) {
-        await usersApi.disconnect(id);
-        setIsFollowing(false);
-        toast.success(`Unfollowed ${profile?.name || 'user'}`);
-      } else {
-        await usersApi.connect(id);
-        setIsFollowing(true);
-        toast.success(`Followed ${profile?.name || 'user'}`);
-      }
-    } catch (err) {
-      toast.error(err.message || 'Action failed.');
-    } finally {
-      setFollowLoading(false);
-    }
+    if (isSelf || followLoading) return;
+    await toggleFollow(profile || { id: targetId, name: profile?.name || 'user' });
   };
 
   if (loading) {
@@ -94,7 +90,7 @@ export default function UserProfilePage() {
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold text-main">{profile.name}</h1>
-                {profile.isMutual && <Badge variant="primary" size="sm">Mutual Connection</Badge>}
+                {mutual && <Badge variant="primary" size="sm">Mutual Connection</Badge>}
 
               </div>
               <p className="text-xs text-subtle">
@@ -132,12 +128,12 @@ export default function UserProfilePage() {
             ) : (
               currentUser && (
                 <Button
-                  variant={isFollowing ? 'secondary' : 'primary'}
+                  variant={following ? 'secondary' : 'primary'}
                   size="sm"
                   onClick={handleToggleFollow}
                   isLoading={followLoading}
                 >
-                  {isFollowing ? 'Following' : 'Follow'}
+                  {following ? '✓ Following' : 'Follow'}
                 </Button>
               )
             )}

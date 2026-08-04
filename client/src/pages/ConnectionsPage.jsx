@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import toast from 'react-hot-toast';
 import { useAuth }   from '../context/AuthContext';
+import { useConnection } from '../context/ConnectionContext';
 import { usersApi }  from '../api/usersApi';
 import Avatar        from '../components/atoms/Avatar';
 import Badge         from '../components/atoms/Badge';
@@ -96,35 +96,23 @@ const TABS = [
 
 function ConnectionUserCard({ targetUser, onFollowToggle }) {
   const { user: me } = useAuth();
-  const isSelf = me && me.id === targetUser.id;
+  const { isFollowing, isMutual: getIsMutual, isActionLoading, toggleFollow, registerUserStatus } = useConnection();
 
-  const [isFollowing, setIsFollowing] = useState(
-    targetUser.isFollowing ?? targetUser.isConnected ?? false
-  );
-  const [isMutual, setIsMutual] = useState(targetUser.isMutual ?? false);
-  const [loading, setLoading]   = useState(false);
+  useEffect(() => {
+    registerUserStatus(targetUser);
+  }, [targetUser, registerUserStatus]);
+
+  const following = isFollowing(targetUser.id, targetUser.isFollowing ?? targetUser.isConnected ?? false);
+  const mutual = getIsMutual(targetUser.id, targetUser.isMutual ?? false);
+  const loading = isActionLoading(targetUser.id);
+
+  const isSelf = me && me.id === targetUser.id;
 
   const handleFollow = async (e) => {
     e.preventDefault();
     if (isSelf || loading) return;
-    setLoading(true);
-    try {
-      if (isFollowing) {
-        await usersApi.disconnect(targetUser.id);
-        setIsFollowing(false);
-        setIsMutual(false);
-        toast.success(`Unfollowed ${targetUser.name}`);
-      } else {
-        await usersApi.connect(targetUser.id);
-        setIsFollowing(true);
-        toast.success(`Followed ${targetUser.name}`);
-      }
-      onFollowToggle?.(targetUser.id, !isFollowing);
-    } catch (err) {
-      toast.error(err.message || 'Failed to update follow status');
-    } finally {
-      setLoading(false);
-    }
+    await toggleFollow(targetUser);
+    onFollowToggle?.(targetUser.id, !following);
   };
 
   return (
@@ -150,7 +138,7 @@ function ConnectionUserCard({ targetUser, onFollowToggle }) {
             <span className="text-sm font-semibold text-[var(--text-main)] group-hover:text-[var(--color-primary)] transition-colors truncate">
               {targetUser.name}
             </span>
-            {isMutual && (
+            {mutual && (
               <Badge variant="primary" size="sm">Mutual</Badge>
             )}
           </div>
@@ -168,13 +156,13 @@ function ConnectionUserCard({ targetUser, onFollowToggle }) {
       {!isSelf && me && (
         <Button
           size="sm"
-          variant={isFollowing ? 'secondary' : 'primary'}
+          variant={following ? 'secondary' : 'primary'}
           onClick={handleFollow}
           isLoading={loading}
           className="shrink-0"
-          aria-label={isFollowing ? `Unfollow ${targetUser.name}` : `Follow ${targetUser.name}`}
+          aria-label={following ? `Unfollow ${targetUser.name}` : `Follow ${targetUser.name}`}
         >
-          {isFollowing ? '✓ Following' : 'Follow'}
+          {following ? '✓ Following' : 'Follow'}
         </Button>
       )}
     </Card>
