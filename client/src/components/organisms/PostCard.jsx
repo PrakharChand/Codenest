@@ -101,7 +101,7 @@ export default function PostCard({ post, onPostDeleted }) {
 
   return (
     <>
-      <Card hoverable className="space-y-4">
+      <Card hoverable className="p-5 md:p-6 space-y-4">
         {/* Author Header */}
         <div className="flex items-center justify-between">
           <Link
@@ -111,8 +111,8 @@ export default function PostCard({ post, onPostDeleted }) {
           >
             <Avatar src={post.author_avatar_url} name={post.author_name} size="md" />
             <div>
-              <h4 className="text-sm font-semibold text-main">{post.author_name}</h4>
-              <span className="text-xs text-subtle">{formattedDate}</span>
+              <h4 className="text-sm font-semibold text-[var(--text-main)]">{post.author_name}</h4>
+              <span className="text-xs text-[var(--text-subtle)]">{formattedDate}</span>
             </div>
           </Link>
 
@@ -121,14 +121,14 @@ export default function PostCard({ post, onPostDeleted }) {
               <Link
                 to={`/posts/${post.id}/edit`}
                 onClick={(e) => e.stopPropagation()}
-                className="text-xs text-muted hover:text-main"
+                className="text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors px-2 py-1 rounded hover:bg-[var(--bg-surface-hover)]"
               >
                 Edit
               </Link>
               <button
                 type="button"
                 onClick={handleOpenDeleteModal}
-                className="text-xs text-danger hover:underline"
+                className="text-xs font-medium text-[var(--color-danger)] hover:underline px-2 py-1 rounded hover:bg-rose-500/10 transition-colors"
               >
                 Delete
               </button>
@@ -137,12 +137,12 @@ export default function PostCard({ post, onPostDeleted }) {
         </div>
 
         {/* Content Body */}
-        <Link to={`/posts/${post.id}`} className="block space-y-2">
-          <h3 className="text-lg font-bold text-main hover:text-primary transition-colors">
+        <Link to={`/posts/${post.id}`} className="block space-y-2 py-0.5">
+          <h3 className="text-base sm:text-lg font-bold text-[var(--text-main)] hover:text-[var(--color-primary)] transition-colors leading-snug">
             {post.title}
           </h3>
           {post.content && (
-            <p className="text-sm text-muted line-clamp-3">
+            <p className="text-sm text-[var(--text-muted)] line-clamp-3 leading-relaxed">
               {stripMarkdown(post.content, 220)}
             </p>
           )}
@@ -150,7 +150,7 @@ export default function PostCard({ post, onPostDeleted }) {
 
         {/* Tags */}
         {post.tags && post.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
+          <div className="flex flex-wrap gap-2 pt-1 pb-1">
             {post.tags.map((tag, idx) => (
               <Badge key={idx} variant="primary" size="sm">
                 #{tag}
@@ -159,36 +159,43 @@ export default function PostCard({ post, onPostDeleted }) {
           </div>
         )}
 
-        {/* Footer Actions */}
-        <div className="flex items-center justify-between border-t border-main pt-3 text-xs text-muted">
-          <div className="flex items-center gap-4">
+        {/* Footer Actions Bar */}
+        <div className="flex items-center justify-between border-t border-[var(--border-main)] pt-3.5 mt-4 text-xs text-[var(--text-muted)]">
+          <div className="flex items-center gap-1 sm:gap-2">
             <button
               type="button"
               onClick={handleLikeToggle}
-              className={`flex items-center gap-1.5 font-medium transition-colors ${
-                liked ? 'text-primary font-bold' : 'hover:text-main'
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 ${
+                liked
+                  ? 'bg-[var(--color-primary-dim)] text-[var(--color-primary)] font-bold'
+                  : 'hover:bg-[var(--bg-surface-hover)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
               }`}
+              aria-label={liked ? 'Unlike post' : 'Like post'}
             >
-              <span>{liked ? '❤️' : '🤍'}</span>
+              <span className="text-sm select-none">{liked ? '❤️' : '🤍'}</span>
               <span>{likeCount}</span>
             </button>
 
             <Link
               to={`/posts/${post.id}`}
-              className="flex items-center gap-1.5 font-medium hover:text-main"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-[var(--bg-surface-hover)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all duration-150"
+              aria-label="View comments"
             >
-              <span>💬</span>
+              <span className="text-sm select-none">💬</span>
               <span>{post.comment_count || 0}</span>
             </Link>
 
             <button
               type="button"
               onClick={handleShare}
-              className={`flex items-center gap-1.5 font-medium transition-colors ${
-                shared ? 'text-success' : 'hover:text-main'
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 ${
+                shared
+                  ? 'bg-emerald-500/10 text-emerald-500 font-bold'
+                  : 'hover:bg-[var(--bg-surface-hover)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
               }`}
+              aria-label="Share post"
             >
-              <span>{shared ? '✅' : '🔁'}</span>
+              <span className="text-sm select-none">{shared ? '✅' : '🔁'}</span>
               <span>{shareCount}</span>
             </button>
           </div>
