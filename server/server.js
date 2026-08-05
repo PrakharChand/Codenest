@@ -35,6 +35,8 @@ async function boot() {
   if (env.NODE_ENV !== 'test') {
     const { startAIReviewCron } = require('./src/jobs/aiReviewJob');
     startAIReviewCron();
+    const { initIndexer } = require('./src/services/knowledgeIndexer');
+    initIndexer();
   }
 }
 

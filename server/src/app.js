@@ -112,6 +112,10 @@ app.use('/api/communities',   communityRoutes);       // Phase 3
 // not per-route. Structurally impossible to add a shadow route that forgets the guard.
 app.use('/api/shadow',        requireAuth, requireAnonymousIdentity, shadowRoutes);
 
+// Flagship AI Assistant (CodeNest Guide & Shadow Mentor)
+const assistantRoutes = require('./routes/assistantRoutes');
+app.use('/api/assistant', assistantRoutes);
+
 // Phase 5
 app.use('/api/notifications', notificationRoutes);   // notification bell
 app.use('/api/upload',        uploadRoutes);        // /api/upload/users/:id/avatar, /api/upload/posts/upload-image
