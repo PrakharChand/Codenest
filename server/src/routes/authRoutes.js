@@ -32,6 +32,7 @@ const {
   anonymousCreate,
   completeOnboarding,
   verifyEmail,
+  verifyMe,
 } = require('../controllers/authController');
 
 const passport = require('../config/passport');
@@ -81,6 +82,7 @@ router.get('/verify/:token',                                           asyncHand
 
 // Protected
 router.get('/me', requireAuth, asyncHandler(me));
+router.post('/verify-me', requireAuth, asyncHandler(verifyMe));
 router.post('/onboarding/complete', requireAuth, asyncHandler(completeOnboarding));
 
 // Anonymous identity (protected)

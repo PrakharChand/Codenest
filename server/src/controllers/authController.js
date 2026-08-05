@@ -63,8 +63,8 @@ async function register(req, res) {
   const verificationToken = crypto.randomBytes(32).toString('hex');
 
   const { rows } = await query(
-    `INSERT INTO users (name, email, password_hash, verification_token)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO users (name, email, password_hash, verification_token, verified)
+     VALUES ($1, $2, $3, $4, TRUE)
      RETURNING ${PUBLIC_USER_FIELDS}`,
     [name, email, passwordHash, verificationToken]
   );
@@ -324,6 +324,27 @@ async function verifyEmail(req, res) {
   });
 }
 
+/**
+ * POST /api/auth/verify-me
+ * Protected. Allows logged in users to self-verify their email in one click.
+ */
+async function verifyMe(req, res) {
+  const { rows } = await query(
+    `UPDATE users
+     SET verified = TRUE,
+         verification_token = NULL,
+         updated_at = NOW()
+     WHERE id = $1
+     RETURNING ${PUBLIC_USER_FIELDS}`,
+    [req.user.id]
+  );
+
+  return res.json({
+    message: 'Email verified successfully!',
+    user: rows[0],
+  });
+}
+
 module.exports = {
   register,
   login,
@@ -334,4 +355,5 @@ module.exports = {
   anonymousCreate,
   completeOnboarding,
   verifyEmail,
+  verifyMe,
 };
