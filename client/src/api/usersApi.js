@@ -99,6 +99,12 @@ export const usersApi = {
     return data;
   },
 
+  // ── Onboarding ────────────────────────────────────────────────────────
+  completeOnboarding: async () => {
+    const { data } = await api.post('/api/auth/onboarding/complete');
+    return data;
+  },
+
   // ── Account Deletion ──────────────────────────────────────────────────
   deleteAccount: async (id) => {
     const { data } = await api.delete(`/api/users/${id}`);

@@ -46,10 +46,16 @@ export default function OnboardingModal() {
 
   // Automatically trigger modal for new users who have not completed onboarding
   useEffect(() => {
-    if (user && !user.is_onboarded && !user.onboarding_completed_at) {
-      setIsOpen(true);
-    } else {
+    if (!user) {
       setIsOpen(false);
+      return;
+    }
+
+    const isLocalDone = localStorage.getItem(`codenest_onboarded_${user.id}`) === 'true';
+    if (isLocalDone || user.is_onboarded || user.onboarding_completed_at) {
+      setIsOpen(false);
+    } else {
+      setIsOpen(true);
     }
   }, [user]);
 
@@ -93,6 +99,9 @@ export default function OnboardingModal() {
   };
 
   const markOnboardingComplete = async () => {
+    if (user?.id) {
+      localStorage.setItem(`codenest_onboarded_${user.id}`, 'true');
+    }
     try {
       await usersApi.completeOnboarding();
     } catch (err) {
@@ -134,7 +143,7 @@ export default function OnboardingModal() {
   return (
     <Modal
       isOpen={isOpen}
-      onClose={() => {}} // Non-dismissable by clicking backdrop to ensure clean completion
+      onClose={handleSkipOrFinish}
       title={`🚀 Welcome to CodeNest! (Step ${step} of 3)`}
       footer={
         <div className="flex items-center justify-between w-full">
