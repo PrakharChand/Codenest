@@ -121,7 +121,7 @@ export default function FeedPage() {
       {/* Sidebar Column: Stats, AI Connection Suggestions, & Real Weekly Activity Chart */}
       <div className="space-y-6">
         {/* User Card Summary */}
-        <Card className="space-y-4">
+        <Card className="p-5 md:p-6 space-y-4">
           <div className="flex items-center gap-3">
             <Avatar
               src={user?.avatar_url}
