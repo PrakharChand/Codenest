@@ -17,6 +17,7 @@ const {
   anonymityCheckRoute,
   generateRoadmapRoute,
   suggestConnectionsRoute,
+  dismissConnectionSuggestionRoute,
 } = require('../controllers/aiController');
 
 const suggestTagsValidation = [
@@ -47,9 +48,11 @@ const roadmapValidation = [
     .withMessage('hoursPerWeek must be a number.'),
 ];
 
-router.post('/suggest-tags',        requireAuth, aiLimiter, suggestTagsValidation,   validate, asyncHandler(suggestTagsRoute));
-router.post('/anonymity-check',     requireAuth, aiLimiter, anonymityCheckValidation, validate, asyncHandler(anonymityCheckRoute));
-router.post('/generate-roadmap',    requireAuth, aiLimiter, roadmapValidation,        validate, asyncHandler(generateRoadmapRoute));
-router.post('/suggest-connections', requireAuth, aiLimiter,                                     asyncHandler(suggestConnectionsRoute));
+router.post('/suggest-tags',                requireAuth, aiLimiter, suggestTagsValidation,   validate, asyncHandler(suggestTagsRoute));
+router.post('/anonymity-check',             requireAuth, aiLimiter, anonymityCheckValidation, validate, asyncHandler(anonymityCheckRoute));
+router.post('/generate-roadmap',            requireAuth, aiLimiter, roadmapValidation,        validate, asyncHandler(generateRoadmapRoute));
+router.get('/suggest-connections',             requireAuth,                                               asyncHandler(suggestConnectionsRoute));
+router.post('/suggest-connections',            requireAuth,                                               asyncHandler(suggestConnectionsRoute));
+router.post('/suggest-connections/dismiss',    requireAuth,                                               asyncHandler(dismissConnectionSuggestionRoute));
 
 module.exports = router;

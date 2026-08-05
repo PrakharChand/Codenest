@@ -10,8 +10,12 @@ const {
   suggestTags,
   anonymityCheck,
   generateRoadmap,
-  suggestConnections,
 } = require('../services/aiService');
+const {
+  getSmartRecommendations,
+  markCandidatesShown,
+  dismissRecommendation,
+} = require('../services/recommendationService');
 
 // ── POST /api/ai/suggest-tags ─────────────────────────────────────────────
 async function suggestTagsRoute(req, res) {
@@ -79,32 +83,33 @@ async function generateRoadmapRoute(req, res) {
   return res.json({ roadmap: roadmapData });
 }
 
-// ── POST /api/ai/suggest-connections ─────────────────────────────────────
+// ── GET & POST /api/ai/suggest-connections ────────────────────────────────
 async function suggestConnectionsRoute(req, res) {
   const userId = req.user.id;
+  const forceRefresh = req.body?.refresh || req.query?.refresh === 'true';
 
-  const { rows: myPosts } = await query(
-    `SELECT id, title FROM posts WHERE user_id = $1 ORDER BY created_at DESC LIMIT 10`,
-    [userId]
-  );
+  const recommendations = await getSmartRecommendations(userId, { limit: 5, forceRefresh });
 
-  const { rows: candidates } = await query(
-    `SELECT u.id AS user_id, STRING_AGG(p.title, ', ' ORDER BY p.created_at DESC) AS titles
-     FROM users u
-     JOIN posts p ON p.user_id = u.id AND p.visibility = 'public'
-     WHERE u.id <> $1
-       AND NOT EXISTS (
-         SELECT 1 FROM connections c
-         WHERE c.follower_id = $1 AND c.following_id = u.id
-       )
-     GROUP BY u.id
-     ORDER BY MAX(p.created_at) DESC
-     LIMIT 30`,
-    [userId]
-  );
+  // Record shown candidates for 24h cooldown tracking
+  const shownIds = recommendations.map((r) => r.user_id);
+  markCandidatesShown(userId, shownIds).catch(() => {});
 
-  const result = await suggestConnections(myPosts, candidates, userId);
-  return res.json(result);
+  return res.json({ suggestions: recommendations });
+}
+
+// ── POST /api/ai/suggest-connections/dismiss ──────────────────────────────
+async function dismissConnectionSuggestionRoute(req, res) {
+  const userId = req.user.id;
+  const candidateId = Number(req.body.candidateId || req.body.candidate_id);
+  if (!candidateId || isNaN(candidateId)) {
+    throw ApiError.badRequest('candidateId is required.');
+  }
+
+  await dismissRecommendation(userId, candidateId);
+
+  // Return updated fresh recommendations immediately
+  const recommendations = await getSmartRecommendations(userId, { limit: 5, forceRefresh: true });
+  return res.json({ suggestions: recommendations });
 }
 
 module.exports = {
@@ -112,4 +117,5 @@ module.exports = {
   anonymityCheckRoute,
   generateRoadmapRoute,
   suggestConnectionsRoute,
+  dismissConnectionSuggestionRoute,
 };

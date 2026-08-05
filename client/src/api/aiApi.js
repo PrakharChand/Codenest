@@ -59,10 +59,23 @@ export const aiApi = {
    * POST /api/ai/suggest-connections
    * @returns {Promise<{ suggestions: Array, fallback?: boolean }>}
    */
-  suggestConnections: async () => {
+  suggestConnections: async (params = {}) => {
     try {
-      // Backend route is POST /api/ai/suggest-connections
-      const { data } = await api.post('/api/ai/suggest-connections');
+      const { data } = await api.post('/api/ai/suggest-connections', params);
+      return data;
+    } catch (err) {
+      return { suggestions: [], fallback: true, error: err.message };
+    }
+  },
+
+  /**
+   * POST /api/ai/suggest-connections/dismiss
+   * @param {number} candidateId
+   * @returns {Promise<{ suggestions: Array }>}
+   */
+  dismissSuggestion: async (candidateId) => {
+    try {
+      const { data } = await api.post('/api/ai/suggest-connections/dismiss', { candidateId });
       return data;
     } catch (err) {
       return { suggestions: [], fallback: true, error: err.message };

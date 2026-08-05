@@ -11,10 +11,10 @@ export default function AIConnectionSuggestions() {
   const [loading, setLoading] = useState(true);
   const { isFollowing, isActionLoading, toggleFollow } = useConnection();
 
-  const loadSuggestions = async () => {
+  const loadSuggestions = async (refresh = false) => {
     setLoading(true);
     try {
-      const res = await aiApi.suggestConnections();
+      const res = await aiApi.suggestConnections({ refresh });
       setSuggestions(res.suggestions || []);
     } catch (err) {
       setSuggestions([]);
@@ -31,8 +31,17 @@ export default function AIConnectionSuggestions() {
     await toggleFollow({ id: item.user_id, name: item.name });
   };
 
-  const handleDismiss = (userId) => {
+  const handleDismiss = async (userId) => {
+    // Optimistically remove from current list
     setSuggestions((prev) => prev.filter((s) => s.user_id !== userId));
+    try {
+      const res = await aiApi.dismissSuggestion(userId);
+      if (res.suggestions && res.suggestions.length > 0) {
+        setSuggestions(res.suggestions);
+      }
+    } catch (_) {
+      // Fallback already filtered out locally
+    }
   };
 
   if (loading) {
@@ -44,17 +53,22 @@ export default function AIConnectionSuggestions() {
   }
 
   if (!suggestions || suggestions.length === 0) {
-    return null; // Fail-open: hide section entirely if no suggestions
+    return null; // Fail-open: hide section entirely if no suggestions available
   }
 
   return (
     <Card className="p-5 space-y-4">
-      <div className="flex items-center justify-between border-b border-main pb-2">
+      <div className="flex items-center justify-between border-b border-[var(--border-main)] pb-2">
         <div className="flex items-center gap-1.5">
           <span className="text-base">🤝</span>
-          <h4 className="text-xs font-bold text-main">Developers You Should Meet</h4>
+          <h4 className="text-xs font-bold text-[var(--text-main)]">Developers You Should Meet</h4>
         </div>
-        <Button variant="ghost" size="sm" onClick={loadSuggestions} title="Refresh AI Suggestions">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => loadSuggestions(true)}
+          title="Refresh AI Suggestions"
+        >
           🔄
         </Button>
       </div>
@@ -66,17 +80,22 @@ export default function AIConnectionSuggestions() {
           return (
             <div
               key={item.user_id}
-              className="flex items-center justify-between gap-3 p-2.5 rounded-lg border border-main bg-surface-subtle"
+              className="flex items-center justify-between gap-3 p-2.5 rounded-lg border border-[var(--border-main)] bg-[var(--bg-surface-subtle)]"
             >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <Avatar src={item.avatar_url} name={item.name} size="sm" />
-                <div className="min-w-0">
-                  <div className="text-xs font-bold text-main truncate">{item.name}</div>
-                  <p className="text-[11px] text-primary truncate italic">{item.reason}</p>
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <Avatar src={item.avatar_url} name={item.name} size="sm" className="shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-bold text-[var(--text-main)] truncate">{item.name}</div>
+                  <p
+                    className="text-[11px] text-[var(--color-primary)] truncate italic mt-0.5"
+                    title={item.reason}
+                  >
+                    {item.reason}
+                  </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 shrink-0">
                 {isConnected ? (
                   <Badge variant="success" size="sm">✓ Connected</Badge>
                 ) : (
@@ -91,8 +110,9 @@ export default function AIConnectionSuggestions() {
                 )}
                 <button
                   onClick={() => handleDismiss(item.user_id)}
-                  className="text-xs text-subtle hover:text-main px-1"
-                  title="Dismiss"
+                  className="text-xs text-[var(--text-subtle)] hover:text-[var(--text-main)] p-1 rounded transition-colors"
+                  title="Dismiss recommendation"
+                  aria-label={`Dismiss suggestion for ${item.name}`}
                 >
                   ✕
                 </button>
