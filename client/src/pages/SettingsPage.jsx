@@ -22,6 +22,7 @@ import SEO from '../components/atoms/SEO';
 const TABS = [
   { id: 'account',    label: '👤 Account' },
   { id: 'appearance', label: '🎨 Appearance' },
+  { id: 'ai',         label: '⚙️ AI Settings' },
 ];
 
 export default function SettingsPage() {
@@ -185,6 +186,25 @@ export default function SettingsPage() {
               <div className="flex items-center gap-3">
                 <ThemeToggle showLabel />
               </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* ── AI Settings Tab ─────────────────────────────────────────────── */}
+      {activeTab === 'ai' && (
+        <div className="space-y-5">
+          <Card className="p-6 space-y-4">
+            <div>
+              <p className="text-sm font-semibold text-main mb-1">CodeNest Dual AI Assistants</p>
+              <p className="text-xs text-muted mb-4">
+                Configure intelligence models, RAG vector context sizes, and download chat backups for CodeNest Guide and Shadow Mentor.
+              </p>
+              <Link to="/settings/ai">
+                <Button variant="primary" size="sm">
+                  ⚙️ Open Full AI Configuration Panel →
+                </Button>
+              </Link>
             </div>
           </Card>
         </div>
