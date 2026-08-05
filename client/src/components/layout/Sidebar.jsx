@@ -238,6 +238,7 @@ export default function Sidebar() {
             <NavItem to="/explore" icon={<ExploreIcon />} label="Explore" active={is('/explore')} />
             <NavItem to="/communities" icon={<CommunitiesIcon />} label="Communities" active={is('/communities')} />
             <NavItem to="/connections" icon={<ConnectionsIcon />} label="Connections" active={is('/connections')} />
+            <NavItem to="/ai-assistant" icon={<span className="text-base select-none">🤖</span>} label="AI Assistant" active={is('/ai-assistant')} />
             <NavItem
               to="/notifications"
               icon={<BellIcon count={publicUnread} />}
@@ -254,6 +255,7 @@ export default function Sidebar() {
             <NavItem to="/shadow/mine" icon={<MineIcon />} label="My Submissions" active={is('/shadow/mine')} />
             <NavItem to="/shadow/my-reviews" icon={<AnonIcon />} label="My Reviews" active={is('/shadow/my-reviews')} />
             <NavItem to="/shadow/community" icon={<AnonIcon />} label="Anon Community" active={is('/shadow/community')} />
+            <NavItem to="/shadow/ai-mentor" icon={<span className="text-base select-none">🥷</span>} label="AI Mentor" active={is('/shadow/ai-mentor')} />
             <NavItem
               to="/notifications?context=shadow"
               icon={<BellIcon count={shadowUnread} />}

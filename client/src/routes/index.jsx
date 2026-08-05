@@ -28,6 +28,8 @@ const NotificationsPage = lazy(() => import('../pages/NotificationsPage'));
 const ConnectionsPage = lazy(() => import('../pages/ConnectionsPage'));
 const ExplorePage = lazy(() => import('../pages/ExplorePage'));
 const SettingsPage = lazy(() => import('../pages/SettingsPage'));
+const AIAssistantPage = lazy(() => import('../pages/AIAssistantPage'));
+const AISettingsPage = lazy(() => import('../pages/AISettingsPage'));
 
 // Anonymous Setup
 const AnonymousCreatePage = lazy(() => import('../pages/AnonymousCreatePage'));
@@ -65,6 +67,8 @@ export default function AppRoutes() {
         <Route path="/users/:id" element={<ProtectedRoute><AppShell><UserProfilePage /></AppShell></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><AppShell><SettingsPage /></AppShell></ProtectedRoute>} />
         <Route path="/settings/profile" element={<ProtectedRoute><AppShell><EditProfilePage /></AppShell></ProtectedRoute>} />
+        <Route path="/settings/ai" element={<ProtectedRoute><AppShell><AISettingsPage /></AppShell></ProtectedRoute>} />
+        <Route path="/ai-assistant" element={<ProtectedRoute><AppShell><AIAssistantPage /></AppShell></ProtectedRoute>} />
         <Route path="/communities" element={<ProtectedRoute><AppShell><CommunitiesPage /></AppShell></ProtectedRoute>} />
         <Route path="/communities/:id" element={<ProtectedRoute><AppShell><CommunityDetailPage /></AppShell></ProtectedRoute>} />
         <Route path="/connections" element={<ProtectedRoute><AppShell><ConnectionsPage /></AppShell></ProtectedRoute>} />
@@ -83,6 +87,7 @@ export default function AppRoutes() {
         <Route path="/shadow/my-reviews" element={<ShadowRoute><AppShell><MyReviewsPage /></AppShell></ShadowRoute>} />
         <Route path="/shadow/me" element={<ShadowRoute><AppShell><ShadowProfilePage /></AppShell></ShadowRoute>} />
         <Route path="/shadow/community" element={<ShadowRoute><AppShell><ShadowCommunityPage /></AppShell></ShadowRoute>} />
+        <Route path="/shadow/ai-mentor" element={<ShadowRoute><AppShell><AIAssistantPage /></AppShell></ShadowRoute>} />
 
         {/* ─── Fallback Catch-All Route ──────────────────────────────────────── */}
         <Route path="*" element={<AppShell><div className="p-8 text-center"><h1 className="text-xl font-bold text-main">404 - Page Not Found</h1></div></AppShell>} />
