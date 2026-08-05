@@ -41,8 +41,15 @@ export default function MarkdownView({ content = '', className = '' }) {
           // Code blocks (fenced)
           pre: ({ node, ...props }) => (
             <pre
-              className="rounded-lg overflow-x-auto text-xs my-4 border border-main"
-              style={{ backgroundColor: '#0d1117' }}
+              className="rounded-lg overflow-x-auto text-xs my-4 border border-[var(--border-main)]"
+              style={{
+                backgroundColor: '#0d1117',
+                whiteSpace: 'pre',
+                overflowX: 'auto',
+                wordBreak: 'normal',
+                wordWrap: 'normal',
+                tabSize: 4,
+              }}
               {...props}
             />
           ),
@@ -50,7 +57,7 @@ export default function MarkdownView({ content = '', className = '' }) {
             if (inline) {
               return (
                 <code
-                  className="rounded px-1 py-0.5 text-xs font-mono"
+                  className="rounded px-1.5 py-0.5 text-xs font-mono"
                   style={{
                     backgroundColor: 'var(--bg-surface-hover)',
                     color: 'var(--color-primary)',
@@ -63,7 +70,16 @@ export default function MarkdownView({ content = '', className = '' }) {
               );
             }
             return (
-              <code className={`${langClass || ''} block p-4 text-xs font-mono leading-relaxed`} {...props}>
+              <code
+                className={`${langClass || ''} block p-4 text-xs font-mono leading-relaxed`}
+                style={{
+                  whiteSpace: 'pre',
+                  overflowX: 'auto',
+                  wordBreak: 'normal',
+                  wordWrap: 'normal',
+                }}
+                {...props}
+              >
                 {children}
               </code>
             );

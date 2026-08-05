@@ -9,6 +9,7 @@ import Button from '../components/atoms/Button';
 import Spinner from '../components/atoms/Spinner';
 import TextArea from '../components/atoms/TextArea';
 import MarkdownView from '../components/organisms/MarkdownView';
+import CodeBlock from '../components/atoms/CodeBlock';
 import ReviewCard from '../components/organisms/ReviewCard';
 
 export default function ShadowSubmissionDetailPage() {
@@ -138,10 +139,13 @@ export default function ShadowSubmissionDetailPage() {
           </div>
         )}
 
-        {/* Code Content in MarkdownView */}
+        {/* Code Content in CodeBlock */}
         <div className="space-y-2">
-          <h4 className="text-xs font-semibold text-subtle uppercase">Code Content</h4>
-          <MarkdownView source={submission.content} />
+          <h4 className="text-xs font-semibold text-subtle uppercase tracking-wider">Code Content</h4>
+          <CodeBlock
+            code={submission.content}
+            language={submission.language_tag || 'cpp'}
+          />
         </div>
       </Card>
 
