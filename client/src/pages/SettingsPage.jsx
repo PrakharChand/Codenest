@@ -100,25 +100,42 @@ export default function SettingsPage() {
       {/* ── Account Tab ─────────────────────────────────────────────────── */}
       {activeTab === 'account' && (
         <div className="space-y-5">
-          {/* Profile card */}
-          <Card className="p-6 space-y-4">
-            <div className="flex items-center gap-4">
-              <Avatar src={user.avatar_url} name={user.name} size="lg" />
-              <div className="min-w-0">
-                <p className="text-base font-bold text-main truncate">{user.name}</p>
-                <p className="text-sm text-muted truncate">{user.email}</p>
-                <p className="text-xs text-subtle mt-0.5">
-                  Member since{' '}
-                  {user.created_at
-                    ? new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
-                    : '—'}
-                </p>
+          {/* Profile summary card */}
+          <Card className="p-6 space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <Avatar src={user.avatar_url} name={user.name} size="lg" />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-[var(--text-main)] truncate">{user.name}</h3>
+                    <span className="px-2 py-0.5 rounded-full bg-[var(--color-primary-dim)] text-[var(--color-primary)] text-[10px] font-bold uppercase tracking-wider border border-[var(--color-primary)]/20">
+                      Developer
+                    </span>
+                  </div>
+                  <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">{user.email}</p>
+                  <p className="text-[11px] text-[var(--text-subtle)] mt-1">
+                    Member since{' '}
+                    {user.created_at
+                      ? new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
+                      : '—'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-center">
+                <Link to={`/users/${user.id}`}>
+                  <Button variant="ghost" size="sm">
+                    View Profile →
+                  </Button>
+                </Link>
+
+                <Link to="/settings/profile">
+                  <Button variant="secondary" size="sm">
+                    ✏️ Edit Profile
+                  </Button>
+                </Link>
               </div>
             </div>
-
-            <Link to="/settings/profile">
-              <Button variant="secondary" size="sm">✏️ Edit Public Profile</Button>
-            </Link>
           </Card>
 
           {/* Shadow identity card */}
