@@ -82,8 +82,18 @@ export function NotificationProvider({ children }) {
       }
     };
 
-    const handleNewChatMessage = () => {
+    const handleNewChatMessage = (msg) => {
       setChatUnread((prev) => prev + 1);
+      if (msg && msg.sender_name) {
+        toast(`💬 Message from ${msg.sender_name}: "${msg.content?.slice(0, 45) || 'New message'}"`, {
+          duration: 4000,
+          style: {
+            background: '#0F172A',
+            color: '#F8FAFC',
+            border: '1px solid #334155',
+          },
+        });
+      }
     };
 
     const handleConnect = () => {

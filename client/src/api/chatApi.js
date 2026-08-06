@@ -16,6 +16,11 @@ export const chatApi = {
     return data;
   },
 
+  deleteConversation: async (id) => {
+    const { data } = await api.delete(`/api/chat/conversations/${id}`);
+    return data;
+  },
+
   getMessages: async (conversationId, params = {}) => {
     const { data } = await api.get(`/api/chat/conversations/${conversationId}/messages`, { params });
     return data;
@@ -23,6 +28,16 @@ export const chatApi = {
 
   sendMessage: async (conversationId, content) => {
     const { data } = await api.post(`/api/chat/conversations/${conversationId}/messages`, { content });
+    return data;
+  },
+
+  editMessage: async (messageId, content) => {
+    const { data } = await api.put(`/api/chat/messages/${messageId}`, { content });
+    return data;
+  },
+
+  deleteMessage: async (messageId) => {
+    const { data } = await api.delete(`/api/chat/messages/${messageId}`);
     return data;
   },
 

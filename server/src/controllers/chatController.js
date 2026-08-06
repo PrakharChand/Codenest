@@ -94,7 +94,6 @@ async function getOrCreateConversation(req, res) {
 
   const conv = convRows[0];
 
-  // Fetch target user's public info (NO email or password_hash)
   const { rows: targetUserRows } = await query(
     `SELECT id AS other_user_id, name AS other_user_name, avatar_url AS other_user_avatar_url
      FROM users WHERE id = $1`,
@@ -107,12 +106,48 @@ async function getOrCreateConversation(req, res) {
   });
 }
 
+// ── DELETE /api/chat/conversations/:id ────────────────────────────────────
+async function deleteConversation(req, res) {
+  const userId = req.user.id;
+  const conversationId = parseInt(req.params.id, 10);
+
+  const { rows: convRows } = await query(
+    `SELECT id, participant_one_id, participant_two_id FROM conversations WHERE id = $1`,
+    [conversationId]
+  );
+
+  if (!convRows.length) {
+    throw ApiError.notFound('Conversation not found.');
+  }
+
+  const conv = convRows[0];
+  if (conv.participant_one_id !== userId && conv.participant_two_id !== userId) {
+    return res.status(403).json({ message: 'You are not a participant in this conversation.' });
+  }
+
+  await query('DELETE FROM conversations WHERE id = $1', [conversationId]);
+
+  const recipientId = conv.participant_one_id === userId ? conv.participant_two_id : conv.participant_one_id;
+  try {
+    const io = getIO();
+    if (io) {
+      io.to(`user_${recipientId}`).to(`user:${recipientId}`).emit('conversation_deleted', {
+        conversation_id: conversationId,
+        deleted_by: userId,
+      });
+    }
+  } catch (err) {
+    // Quiet degradation
+  }
+
+  return res.json({ message: 'Conversation deleted successfully.', conversation_id: conversationId });
+}
+
 // ── GET /api/chat/conversations/:id/messages ─────────────────────────────
 async function getMessages(req, res) {
   const userId = req.user.id;
   const conversationId = parseInt(req.params.id, 10);
 
-  // 1. Verify participant
   const { rows: convRows } = await query(
     `SELECT id, participant_one_id, participant_two_id FROM conversations WHERE id = $1`,
     [conversationId]
@@ -132,7 +167,7 @@ async function getMessages(req, res) {
   const [countRes, messagesRes] = await Promise.all([
     query(`SELECT COUNT(*) FROM messages WHERE conversation_id = $1`, [conversationId]),
     query(
-      `SELECT m.id, m.conversation_id, m.sender_id, m.content, m.is_read, m.created_at,
+      `SELECT m.id, m.conversation_id, m.sender_id, m.content, m.is_read, m.is_edited, m.created_at,
               u.name AS sender_name, u.avatar_url AS sender_avatar_url
        FROM messages m
        JOIN users u ON u.id = m.sender_id
@@ -161,7 +196,6 @@ async function sendMessage(req, res) {
     throw ApiError.badRequest('Message content must not exceed 2000 characters.');
   }
 
-  // 1. Verify participant
   const { rows: convRows } = await query(
     `SELECT id, participant_one_id, participant_two_id FROM conversations WHERE id = $1`,
     [conversationId]
@@ -176,11 +210,10 @@ async function sendMessage(req, res) {
     return res.status(403).json({ message: 'You are not a participant in this conversation.' });
   }
 
-  // 2. Insert message & update last_message_at
   const { rows: msgRows } = await query(
     `INSERT INTO messages (conversation_id, sender_id, content)
      VALUES ($1, $2, $3)
-     RETURNING id, conversation_id, sender_id, content, is_read, created_at`,
+     RETURNING id, conversation_id, sender_id, content, is_read, is_edited, created_at`,
     [conversationId, userId, content.trim()]
   );
 
@@ -189,7 +222,6 @@ async function sendMessage(req, res) {
     [conversationId]
   );
 
-  // Fetch sender details
   const { rows: senderRows } = await query(
     `SELECT name AS sender_name, avatar_url AS sender_avatar_url FROM users WHERE id = $1`,
     [userId]
@@ -201,7 +233,6 @@ async function sendMessage(req, res) {
     sender_avatar_url: senderRows[0]?.sender_avatar_url || null,
   };
 
-  // 3. Socket.io real-time emit to recipient's private rooms
   const recipientId = conv.participant_one_id === userId ? conv.participant_two_id : conv.participant_one_id;
   try {
     const io = getIO();
@@ -215,12 +246,101 @@ async function sendMessage(req, res) {
   return res.status(201).json(fullMessage);
 }
 
+// ── PUT /api/chat/messages/:id ────────────────────────────────────────────
+async function editMessage(req, res) {
+  const userId = req.user.id;
+  const messageId = parseInt(req.params.id, 10);
+  const { content } = req.body;
+
+  if (!content || !content.trim()) {
+    throw ApiError.badRequest('Message content cannot be empty.');
+  }
+
+  if (content.trim().length > 2000) {
+    throw ApiError.badRequest('Message content must not exceed 2000 characters.');
+  }
+
+  const { rows: msgRows } = await query(
+    `SELECT m.id, m.conversation_id, m.sender_id, c.participant_one_id, c.participant_two_id
+     FROM messages m
+     JOIN conversations c ON c.id = m.conversation_id
+     WHERE m.id = $1`,
+    [messageId]
+  );
+
+  if (!msgRows.length) throw ApiError.notFound('Message not found.');
+
+  const msg = msgRows[0];
+  if (msg.sender_id !== userId) {
+    throw ApiError.forbidden('You can only edit your own messages.');
+  }
+
+  const { rows: updatedRows } = await query(
+    `UPDATE messages
+     SET content = $1, is_edited = true
+     WHERE id = $2
+     RETURNING id, conversation_id, sender_id, content, is_read, is_edited, created_at`,
+    [content.trim(), messageId]
+  );
+
+  const updatedMsg = updatedRows[0];
+
+  const recipientId = msg.participant_one_id === userId ? msg.participant_two_id : msg.participant_one_id;
+  try {
+    const io = getIO();
+    if (io) {
+      io.to(`user_${recipientId}`).to(`user:${recipientId}`).emit('message_edited', updatedMsg);
+    }
+  } catch (err) {
+    // Non-blocking
+  }
+
+  return res.json(updatedMsg);
+}
+
+// ── DELETE /api/chat/messages/:id ─────────────────────────────────────────
+async function deleteMessage(req, res) {
+  const userId = req.user.id;
+  const messageId = parseInt(req.params.id, 10);
+
+  const { rows: msgRows } = await query(
+    `SELECT m.id, m.conversation_id, m.sender_id, c.participant_one_id, c.participant_two_id
+     FROM messages m
+     JOIN conversations c ON c.id = m.conversation_id
+     WHERE m.id = $1`,
+    [messageId]
+  );
+
+  if (!msgRows.length) throw ApiError.notFound('Message not found.');
+
+  const msg = msgRows[0];
+  if (msg.sender_id !== userId) {
+    throw ApiError.forbidden('You can only delete your own messages.');
+  }
+
+  await query('DELETE FROM messages WHERE id = $1', [messageId]);
+
+  const recipientId = msg.participant_one_id === userId ? msg.participant_two_id : msg.participant_one_id;
+  try {
+    const io = getIO();
+    if (io) {
+      io.to(`user_${recipientId}`).to(`user:${recipientId}`).emit('message_deleted', {
+        id: messageId,
+        conversation_id: msg.conversation_id,
+      });
+    }
+  } catch (err) {
+    // Non-blocking
+  }
+
+  return res.json({ message: 'Message deleted successfully.', id: messageId, conversation_id: msg.conversation_id });
+}
+
 // ── PUT /api/chat/conversations/:id/read ─────────────────────────
 async function markAsRead(req, res) {
   const userId = req.user.id;
   const conversationId = parseInt(req.params.id, 10);
 
-  // 1. Verify participant
   const { rows: convRows } = await query(
     `SELECT id, participant_one_id, participant_two_id FROM conversations WHERE id = $1`,
     [conversationId]
@@ -235,7 +355,6 @@ async function markAsRead(req, res) {
     return res.status(403).json({ message: 'You are not a participant in this conversation.' });
   }
 
-  // 2. Mark messages as read
   await query(
     `UPDATE messages
      SET is_read = true
@@ -243,7 +362,6 @@ async function markAsRead(req, res) {
     [conversationId, userId]
   );
 
-  // 3. Emit messages_read event to other participant
   const recipientId = conv.participant_one_id === userId ? conv.participant_two_id : conv.participant_one_id;
   try {
     const io = getIO();
@@ -280,8 +398,11 @@ async function getUnreadCount(req, res) {
 module.exports = {
   getConversations,
   getOrCreateConversation,
+  deleteConversation,
   getMessages,
   sendMessage,
+  editMessage,
+  deleteMessage,
   markAsRead,
   getUnreadCount,
 };

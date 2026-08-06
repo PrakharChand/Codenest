@@ -40,6 +40,12 @@ export default function ChatPage() {
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [messageInput, setMessageInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [deletingConv, setDeletingConv] = useState(false);
+
+  // Edit message state
+  const [editingMsgId, setEditingMsgId] = useState(null);
+  const [editContent, setEditContent] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   // New Chat Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -78,7 +84,6 @@ export default function ChatPage() {
     setLoadingMsgs(true);
     try {
       const res = await chatApi.getMessages(convId, { limit: 50 });
-      // API returns newest first (created_at DESC). Reverse for display (oldest first).
       const list = res.data || res.messages || [];
       setMessages([...list].reverse());
 
@@ -112,7 +117,6 @@ export default function ChatPage() {
     if (!socket) return;
 
     const handleNewMessage = (msg) => {
-      // If message belongs to currently open conversation
       if (selectedConvId && msg.conversation_id === selectedConvId) {
         setMessages((prev) => {
           if (prev.some((m) => m.id === msg.id)) return prev;
@@ -121,7 +125,6 @@ export default function ChatPage() {
         chatApi.markAsRead(selectedConvId);
       }
 
-      // Update conversation preview & unread count in conversations list
       setConversations((prev) => {
         const index = prev.findIndex((c) => c.id === msg.conversation_id);
         if (index !== -1) {
@@ -140,7 +143,6 @@ export default function ChatPage() {
           next.splice(index, 1);
           return [updated, ...next];
         } else {
-          // Re-fetch conversation list to pick up newly started conversation
           loadConversations();
           return prev;
         }
@@ -153,12 +155,41 @@ export default function ChatPage() {
       }
     };
 
+    const handleMessageEdited = (editedMsg) => {
+      if (selectedConvId && editedMsg.conversation_id === selectedConvId) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === editedMsg.id ? { ...m, ...editedMsg } : m))
+        );
+      }
+    };
+
+    const handleMessageDeleted = ({ id, conversation_id }) => {
+      if (selectedConvId && conversation_id === selectedConvId) {
+        setMessages((prev) => prev.filter((m) => m.id !== id));
+      }
+    };
+
+    const handleConversationDeleted = ({ conversation_id }) => {
+      setConversations((prev) => prev.filter((c) => c.id !== conversation_id));
+      if (selectedConvId === conversation_id) {
+        setSelectedConvId(null);
+        setMessages([]);
+        setMobileView('list');
+      }
+    };
+
     socket.on('new_message', handleNewMessage);
     socket.on('messages_read', handleMessagesRead);
+    socket.on('message_edited', handleMessageEdited);
+    socket.on('message_deleted', handleMessageDeleted);
+    socket.on('conversation_deleted', handleConversationDeleted);
 
     return () => {
       socket.off('new_message', handleNewMessage);
       socket.off('messages_read', handleMessagesRead);
+      socket.off('message_edited', handleMessageEdited);
+      socket.off('message_deleted', handleMessageDeleted);
+      socket.off('conversation_deleted', handleConversationDeleted);
     };
   }, [selectedConvId, loadConversations]);
 
@@ -193,7 +224,59 @@ export default function ChatPage() {
     }
   };
 
-  // 5. Handle Opening New Chat Modal & Loading Mutual Connections
+  // 5. Handle Editing Message
+  const handleStartEdit = (msg) => {
+    setEditingMsgId(msg.id);
+    setEditContent(msg.content);
+  };
+
+  const handleSaveEdit = async (msgId) => {
+    if (!editContent.trim()) return;
+    setSavingEdit(true);
+    try {
+      const updated = await chatApi.editMessage(msgId, editContent.trim());
+      setMessages((prev) => prev.map((m) => (m.id === msgId ? { ...m, ...updated } : m)));
+      setEditingMsgId(null);
+      toast.success('Message updated.');
+    } catch (err) {
+      toast.error(err.message || 'Failed to edit message.');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  // 6. Handle Deleting Message
+  const handleDeleteMessage = async (msgId) => {
+    try {
+      await chatApi.deleteMessage(msgId);
+      setMessages((prev) => prev.filter((m) => m.id !== msgId));
+      toast.success('Message deleted.');
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete message.');
+    }
+  };
+
+  // 7. Handle Deleting Entire Conversation
+  const handleDeleteConversation = async () => {
+    if (!selectedConvId) return;
+    if (!window.confirm('Are you sure you want to delete this chat conversation?')) return;
+
+    setDeletingConv(true);
+    try {
+      await chatApi.deleteConversation(selectedConvId);
+      setConversations((prev) => prev.filter((c) => c.id !== selectedConvId));
+      setSelectedConvId(null);
+      setMessages([]);
+      setMobileView('list');
+      toast.success('Chat deleted.');
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete chat.');
+    } finally {
+      setDeletingConv(false);
+    }
+  };
+
+  // 8. Open New Chat Modal & Load Mutual Connections
   const handleOpenNewChatModal = async () => {
     setIsModalOpen(true);
     setLoadingMutual(true);
@@ -207,7 +290,7 @@ export default function ChatPage() {
     }
   };
 
-  // 6. Handle Creating or Opening Conversation from Modal
+  // 9. Select Mutual Connection from Modal
   const handleSelectMutualUser = async (targetUserId) => {
     setStartingConvId(targetUserId);
     try {
@@ -229,7 +312,12 @@ export default function ChatPage() {
     (c.other_user_name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredMutual = mutualConnections.filter((m) =>
+  // FEATURE 1: Exclude mutual connections who ALREADY have an active conversation from the New Chat modal list!
+  const availableMutualConnections = mutualConnections.filter(
+    (m) => !conversations.some((c) => c.other_user_id === m.id)
+  );
+
+  const filteredMutual = availableMutualConnections.filter((m) =>
     (m.name || '').toLowerCase().includes(modalSearch.toLowerCase())
   );
 
@@ -349,6 +437,18 @@ export default function ChatPage() {
                     <span className="text-[10px] text-success font-semibold">● Mutual Connection</span>
                   </div>
                 </div>
+
+                {/* Delete Conversation Button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDeleteConversation}
+                  isLoading={deletingConv}
+                  className="text-danger hover:bg-danger/10 text-xs font-semibold"
+                  title="Delete Chat"
+                >
+                  🗑️ Delete Chat
+                </Button>
               </div>
 
               {/* Message History Thread */}
@@ -363,10 +463,12 @@ export default function ChatPage() {
                 ) : (
                   messages.map((msg) => {
                     const isMe = msg.sender_id === user.id;
+                    const isEditing = editingMsgId === msg.id;
+
                     return (
                       <div
                         key={msg.id}
-                        className={`flex items-end gap-2.5 ${isMe ? 'justify-end' : 'justify-start'}`}
+                        className={`flex items-end gap-2.5 group ${isMe ? 'justify-end' : 'justify-start'}`}
                       >
                         {!isMe && (
                           <Avatar
@@ -375,21 +477,89 @@ export default function ChatPage() {
                             size="sm"
                           />
                         )}
-                        <div
-                          className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-xs shadow-sm space-y-1 ${
-                            isMe
-                              ? 'bg-primary text-white rounded-br-none'
-                              : 'bg-surface text-main border border-main rounded-bl-none'
-                          }`}
-                        >
-                          <p className="whitespace-pre-line leading-relaxed">{msg.content}</p>
+
+                        <div className="flex items-center gap-1 max-w-[80%]">
+                          {/* Message Edit & Delete Quick Actions for User's Own Messages */}
+                          {isMe && !isEditing && (
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 mr-1">
+                              <button
+                                onClick={() => handleStartEdit(msg)}
+                                className="text-[11px] text-subtle hover:text-main p-1 rounded hover:bg-surface-subtle"
+                                title="Edit Message"
+                              >
+                                ✏️
+                              </button>
+                              <button
+                                onClick={() => handleDeleteMessage(msg.id)}
+                                className="text-[11px] text-subtle hover:text-danger p-1 rounded hover:bg-surface-subtle"
+                                title="Delete Message"
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          )}
+
                           <div
-                            className={`text-[9px] flex items-center justify-end gap-1 ${
-                              isMe ? 'text-white/70' : 'text-subtle'
+                            className={`rounded-2xl px-4 py-2.5 text-xs shadow-sm space-y-1.5 w-full ${
+                              isMe
+                                ? 'bg-primary text-white rounded-br-none'
+                                : 'bg-surface text-main border border-main rounded-bl-none'
                             }`}
                           >
-                            <span>{format(new Date(msg.created_at), 'h:mm a')}</span>
-                            {isMe && <span>{msg.is_read ? '✓✓' : '✓'}</span>}
+                            {isEditing ? (
+                              <div className="space-y-2">
+                                <input
+                                  type="text"
+                                  value={editContent}
+                                  onChange={(e) => setEditContent(e.target.value)}
+                                  className="w-full bg-surface text-main border border-main rounded-lg px-2.5 py-1 text-xs focus:outline-none"
+                                  autoFocus
+                                />
+                                <div className="flex justify-end gap-1.5">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setEditingMsgId(null)}
+                                    className="h-6 text-[10px] text-white/80"
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={() => handleSaveEdit(msg.id)}
+                                    isLoading={savingEdit}
+                                    className="h-6 text-[10px]"
+                                  >
+                                    Save
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <p className="whitespace-pre-line leading-relaxed">{msg.content}</p>
+                                <div
+                                  className={`text-[9px] flex items-center justify-end gap-1.5 ${
+                                    isMe ? 'text-white/75' : 'text-subtle'
+                                  }`}
+                                >
+                                  {msg.is_edited && <span className="italic font-mono">(edited)</span>}
+                                  <span>{format(new Date(msg.created_at), 'h:mm a')}</span>
+
+                                  {/* Clear Read Status Checkmarks */}
+                                  {isMe && (
+                                    <span
+                                      className={`font-bold text-[11px] ${
+                                        msg.is_read ? 'text-cyan-300 font-extrabold' : 'text-white/50'
+                                      }`}
+                                      title={msg.is_read ? 'Seen / Read' : 'Delivered'}
+                                    >
+                                      {msg.is_read ? '✓✓' : '✓'}
+                                    </span>
+                                  )}
+                                </div>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -434,7 +604,7 @@ export default function ChatPage() {
         </div>
       </Card>
 
-      {/* ── NEW CHAT MODAL: List Mutual Connections ───────────────────── */}
+      {/* ── NEW CHAT MODAL: List Mutual Connections (Filter out existing chats) ──── */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -452,7 +622,11 @@ export default function ChatPage() {
               <div className="p-6 text-center"><Spinner size="md" /></div>
             ) : filteredMutual.length === 0 ? (
               <div className="p-6 text-center space-y-2">
-                <p className="text-xs text-muted">No mutual connections found.</p>
+                <p className="text-xs text-muted">
+                  {mutualConnections.length > 0
+                    ? 'All your mutual connections already have active chats!'
+                    : 'No mutual connections found.'}
+                </p>
                 <p className="text-[11px] text-subtle">
                   Connect with other developers who follow you back to chat!
                 </p>
