@@ -14,11 +14,6 @@ export const shadowApi = {
     return data;
   },
 
-  /**
-   * Returns { languages: string[] } — the distinct language tags present in
-   * the reviewable queue for the current user (Rule 5 + already-reviewed
-   * exclusions applied server-side so every option has results).
-   */
   getQueueLanguages: async () => {
     const { data } = await api.get('/api/shadow/queue/languages');
     return data;
@@ -51,6 +46,27 @@ export const shadowApi = {
 
   getShadowMe: async () => {
     const { data } = await api.get('/api/shadow/me');
+    return data;
+  },
+
+  // ── Anonymous Communities (Nest Shadow) ───────────────────────────────
+  listCommunities: async (params = {}) => {
+    const { data } = await api.get('/api/shadow/communities', { params });
+    return data;
+  },
+
+  createCommunity: async (communityData) => {
+    const { data } = await api.post('/api/shadow/communities', communityData);
+    return data;
+  },
+
+  joinCommunity: async (id) => {
+    const { data } = await api.post(`/api/shadow/communities/${id}/join`);
+    return data;
+  },
+
+  leaveCommunity: async (id) => {
+    const { data } = await api.delete(`/api/shadow/communities/${id}/join`);
     return data;
   },
 

@@ -2,27 +2,15 @@
  * server/src/routes/shadowRoutes.js
  *
  * ALL /api/shadow/ routes in one router.
- *
- * TASK 0 — Group Guard (Identity Rule 4):
- * This router is mounted in app.js behind BOTH requireAuth AND
- * requireAnonymousIdentity at the mount point, not per-route.
- * This makes it structurally impossible to add a Shadow route that
- * forgets the guard — the guard lives above all routes in this file.
- *
- * The middleware chain is:
- *   app.use('/api/shadow', requireAuth, requireAnonymousIdentity, shadowRoutes)
- *
- * That means every handler below is already authenticated AND has
- * a confirmed anonymous identity. No route in this file needs to
- * repeat requireAuth or requireAnonymousIdentity.
+ * Mounted behind requireAuth AND requireAnonymousIdentity.
  */
 
-const express       = require('express');
-const { body }      = require('express-validator');
-const router        = express.Router();
+const express = require('express');
+const { body } = require('express-validator');
+const router = express.Router();
 
-const asyncHandler  = require('../utils/asyncHandler');
-const validate      = require('../middleware/validate');
+const asyncHandler = require('../utils/asyncHandler');
+const validate = require('../middleware/validate');
 
 const {
   createSubmission, getQueue, getQueueLanguages, getMySubmissions, getSubmission,
@@ -30,7 +18,14 @@ const {
 
 const { createReview, getMyReviews } = require('../controllers/shadowReviewController');
 const { voteHelpful, getShadowProfile } = require('../controllers/shadowVoteController');
-const { listShadowCommunityPosts, createShadowCommunityPost } = require('../controllers/shadowCommunityController');
+const {
+  listShadowCommunities,
+  createShadowCommunity,
+  joinShadowCommunity,
+  leaveShadowCommunity,
+  listShadowCommunityPosts,
+  createShadowCommunityPost,
+} = require('../controllers/shadowCommunityController');
 
 // ── Validation chains ─────────────────────────────────────────────────────
 
@@ -40,7 +35,7 @@ const submissionValidation = [
   body('content').trim().notEmpty().withMessage('Content is required.')
                  .isLength({ max: 100000 }).withMessage('Content must be 100,000 characters or fewer.'),
   body('language_tag').trim().notEmpty().withMessage('Language tag is required.')
-                      .isLength({ max: 50 }).withMessage('Language tag must be 50 characters or fewer.'),
+                       .isLength({ max: 50 }).withMessage('Language tag must be 50 characters or fewer.'),
   body('question').trim().notEmpty().withMessage('Question is required.')
                   .isLength({ max: 2000 }).withMessage('Question must be 2,000 characters or fewer.'),
 ];
@@ -56,6 +51,13 @@ const reviewValidation = [
 const communityPostValidation = [
   body('content').trim().notEmpty().withMessage('Content is required.')
                  .isLength({ max: 50000 }).withMessage('Content must be 50,000 characters or fewer.'),
+];
+
+const shadowCommunityValidation = [
+  body('name').trim().notEmpty().withMessage('Community name is required.')
+              .isLength({ max: 100 }).withMessage('Name must be 100 characters or fewer.'),
+  body('description').optional().isLength({ max: 1000 }).withMessage('Description must be 1,000 characters or fewer.'),
+  body('type').optional().isIn(['public', 'private']).withMessage('Type must be public or private.'),
 ];
 
 // ── Submissions ───────────────────────────────────────────────────────────
@@ -75,7 +77,13 @@ router.post('/reviews/:id/helpful',                              asyncHandler(vo
 // ── Shadow profile ────────────────────────────────────────────────────────
 router.get('/me',                                                asyncHandler(getShadowProfile));
 
-// ── Anonymous community ───────────────────────────────────────────────────
+// ── Anonymous community groups ─────────────────────────────────────────────
+router.get('/communities',                                       asyncHandler(listShadowCommunities));
+router.post('/communities', shadowCommunityValidation, validate, asyncHandler(createShadowCommunity));
+router.post('/communities/:id/join',                             asyncHandler(joinShadowCommunity));
+router.delete('/communities/:id/join',                           asyncHandler(leaveShadowCommunity));
+
+// ── Anonymous community feed ──────────────────────────────────────────────
 router.get('/community',                                         asyncHandler(listShadowCommunityPosts));
 router.post('/community',    communityPostValidation, validate,  asyncHandler(createShadowCommunityPost));
 
