@@ -86,12 +86,12 @@ export default function AIRoadmapGenerator() {
   const phasesList = roadmap?.phases || roadmap?.weeks || [];
 
   return (
-    <Card className="p-6 space-y-5">
-      <div className="flex items-center justify-between border-b border-main pb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">🗺️</span>
+    <Card className="p-6 md:p-7 space-y-6">
+      <div className="flex items-center justify-between border-b border-main pb-3.5">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">🗺️</span>
           <div>
-            <h3 className="font-bold text-main">Personalized AI Learning Roadmap</h3>
+            <h3 className="font-bold text-main text-base">Personalized AI Learning Roadmap</h3>
             <p className="text-xs text-muted">Generate a custom study plan based on your tech stack and goals</p>
           </div>
         </div>
@@ -99,26 +99,27 @@ export default function AIRoadmapGenerator() {
       </div>
 
       {error && (
-        <div className="rounded-md border border-danger/30 bg-danger/10 p-3 text-xs text-danger font-medium">
+        <div className="rounded-lg border border-danger/30 bg-danger/10 p-3 text-xs text-danger font-medium">
           {error}
         </div>
       )}
 
       {shareSuccess && (
-        <div className="rounded-md border border-success/30 bg-success/10 p-3 text-xs text-success font-medium">
+        <div className="rounded-lg border border-success/30 bg-success/10 p-3 text-xs text-success font-medium">
           ✓ Roadmap shared successfully to Nest Feed!
         </div>
       )}
 
       {!roadmap ? (
-        <form onSubmit={handleGenerate} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1">
+        <form onSubmit={handleGenerate} className="space-y-5">
+          {/* Top Row: Experience Level & Known Tech — Spaced & Height-matched */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            <div className="space-y-1.5">
               <label className="block text-xs font-semibold text-main">Current Experience Level</label>
               <select
                 value={level}
                 onChange={(e) => setLevel(e.target.value)}
-                className="w-full rounded-md border border-main bg-surface px-3 py-2 text-xs text-main focus-visible:border-focus focus-visible:outline-none"
+                className="w-full h-10 rounded-lg border border-main bg-surface px-3.5 text-xs text-main focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all font-medium"
               >
                 <option value="Beginner">Beginner</option>
                 <option value="Intermediate">Intermediate</option>
@@ -126,22 +127,27 @@ export default function AIRoadmapGenerator() {
               </select>
             </div>
 
-            <Input
-              label="Known Technologies (comma separated) *"
-              value={knownTech}
-              onChange={(e) => setKnownTech(e.target.value)}
-              placeholder="e.g. JavaScript, React, Node"
-              required
-            />
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-main">Known Technologies (comma separated) *</label>
+              <input
+                type="text"
+                value={knownTech}
+                onChange={(e) => setKnownTech(e.target.value)}
+                placeholder="e.g. JavaScript, React, Node"
+                className="w-full h-10 rounded-lg border border-main bg-surface px-3.5 text-xs text-main focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all font-medium"
+                required
+              />
+            </div>
           </div>
 
-          <div className="space-y-1">
+          {/* Learning Goal Section */}
+          <div className="space-y-1.5 pt-1">
             <TextArea
               label="Learning Goal (min 20 characters) *"
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
               placeholder="e.g. Master distributed systems engineering and building microservices in Rust..."
-              rows={2}
+              rows={3}
               required
             />
             <p className="text-[11px] text-muted italic">
@@ -149,16 +155,17 @@ export default function AIRoadmapGenerator() {
             </p>
           </div>
 
-          <div className="flex items-center justify-between pt-1">
-            <div className="space-y-1">
-              <label className="block text-xs font-semibold text-main">Hours / Week Available</label>
+          {/* Bottom Bar: Hours Available & Action Button */}
+          <div className="flex items-center justify-between pt-2 border-t border-main">
+            <div className="flex items-center gap-3">
+              <label className="text-xs font-semibold text-main shrink-0">Hours / Week Available:</label>
               <input
                 type="number"
                 min="1"
                 max="40"
                 value={hoursPerWeek}
                 onChange={(e) => setHoursPerWeek(e.target.value)}
-                className="w-24 rounded-md border border-main bg-surface px-3 py-1.5 text-xs text-main"
+                className="w-20 h-9 rounded-lg border border-main bg-surface px-3 text-xs text-main text-center font-bold focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
 
@@ -167,6 +174,7 @@ export default function AIRoadmapGenerator() {
               variant="primary"
               size="sm"
               isLoading={generating}
+              className="px-5 py-2 font-bold shadow-md hover:shadow-lg transition-all"
             >
               Generate Roadmap ✨
             </Button>
@@ -174,7 +182,7 @@ export default function AIRoadmapGenerator() {
         </form>
       ) : (
         <div className="space-y-4">
-          <div className="space-y-1 bg-surface-subtle p-3.5 rounded-xl border border-main">
+          <div className="space-y-1 bg-surface-subtle p-4 rounded-xl border border-main">
             <div className="flex items-center justify-between">
               <h4 className="font-bold text-main text-sm">Target Growth Summary</h4>
               <Badge variant="primary" size="sm">{roadmap.total_weeks || 12} Weeks Plan</Badge>
