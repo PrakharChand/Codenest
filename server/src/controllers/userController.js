@@ -282,6 +282,11 @@ async function getUserActivity(req, res) {
     }
   }
 
+  // 4. Calculate estimated study/coding time in minutes
+  // 1 post = 15 mins, 1 review = 20 mins, 1 comment = 5 mins, base session = 15 mins per active day
+  let activeDays = daily.filter((d) => d.activity > 0).length;
+  const timeSpentMins = (totalPosts * 15) + (totalReviews * 20) + (totalComments * 5) + (activeDays * 15);
+
   return res.json({
     daily,
     streak,
@@ -289,6 +294,7 @@ async function getUserActivity(req, res) {
     totalPosts,
     totalComments,
     totalReviews,
+    timeSpentMins,
   });
 }
 

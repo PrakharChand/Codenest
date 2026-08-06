@@ -1,22 +1,21 @@
-/**
- * client/src/components/organisms/WeeklyActivityChart.jsx
- *
- * Real-time Weekly Activity Chart (Recharts) with:
- *  - Real API integration (usersApi.getActivity)
- *  - 7-day daily activity breakdown (posts, comments, reviews)
- *  - Consecutive daily streak & total activity count badges
- *  - Automatic refresh on window focus & activity events
- *  - Loading skeleton, error state with retry, & empty state handling
- *  - Duplication avoidance for in-flight requests
- *  - Exact preservation of existing chart design tokens & UI styling
- */
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 import { usersApi } from '../../api/usersApi';
 import Card from '../atoms/Card';
 import Button from '../atoms/Button';
 import Skeleton from '../atoms/Skeleton';
+
+// Format time spent: < 60 mins => "XX mins", >= 60 mins => "Xh Ym"
+function formatTimeSpent(totalMinutes) {
+  if (!totalMinutes || totalMinutes <= 0) return '0 mins';
+  if (totalMinutes < 60) {
+    return `${totalMinutes} min${totalMinutes !== 1 ? 's' : ''}`;
+  }
+  const hrs = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
+  if (mins === 0) return `${hrs} hr${hrs !== 1 ? 's' : ''}`;
+  return `${hrs}h ${mins}m`;
+}
 
 // Custom Tooltip component for Recharts showing detailed breakdown
 function CustomTooltip({ active, payload, label }) {
@@ -52,7 +51,6 @@ export default function WeeklyActivityChart({ className = '' }) {
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState(null);
 
-  // In-flight request ref to prevent duplicate concurrent API calls
   const isFetchingRef = useRef(false);
 
   const loadActivity = useCallback(async () => {
@@ -74,7 +72,6 @@ export default function WeeklyActivityChart({ className = '' }) {
   useEffect(() => {
     loadActivity();
 
-    // Auto-update chart when window regains focus or after user actions
     const handleRefetch = () => {
       loadActivity();
     };
@@ -90,7 +87,6 @@ export default function WeeklyActivityChart({ className = '' }) {
     };
   }, [loadActivity]);
 
-  // ── Loading state ──────────────────────────────────────────────────────────
   if (loading) {
     return (
       <Card className={`p-4 space-y-3 ${className}`}>
@@ -98,16 +94,15 @@ export default function WeeklyActivityChart({ className = '' }) {
           <Skeleton height="18px" width="120px" />
           <Skeleton height="18px" width="80px" rounded="rounded-full" />
         </div>
-        <Skeleton height="160px" className="w-full rounded-xl" />
+        <Skeleton height="140px" className="w-full rounded-xl" />
       </Card>
     );
   }
 
-  // ── Error state ────────────────────────────────────────────────────────────
   if (error) {
     return (
       <Card className={`p-4 space-y-3 ${className}`}>
-        <h4 className="text-sm font-semibold text-main">Weekly Activity</h4>
+        <h4 className="text-sm font-bold text-main font-mono">Weekly Activity</h4>
         <div className="rounded-xl border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 p-4 text-center space-y-2">
           <p className="text-xs text-[var(--color-danger)] font-medium">{error}</p>
           <Button size="sm" variant="secondary" onClick={loadActivity}>
@@ -121,33 +116,49 @@ export default function WeeklyActivityChart({ className = '' }) {
   const daily = activityData?.daily || [];
   const streak = activityData?.streak || 0;
   const totalActivity = activityData?.activityCount || 0;
+  const timeSpent = activityData?.timeSpentMins || 0;
   const isEmpty = totalActivity === 0;
 
   return (
-    <Card className={`space-y-3 ${className}`}>
-      {/* Header — Title, Streak badge & Total count */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h4 className="text-sm font-semibold text-main">Weekly Activity</h4>
-
-        <div className="flex items-center gap-2">
-          {streak > 0 && (
-            <span
-              className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20"
-              title={`${streak} consecutive active day${streak !== 1 ? 's' : ''}`}
-            >
-              🔥 {streak}d streak
-            </span>
-          )}
-          <span className="text-xs text-muted font-medium">
-            {totalActivity} act{totalActivity !== 1 ? 's' : ''}
+    <Card className={`p-4 md:p-5 space-y-4 shadow-sm border border-[var(--border-main)] ${className}`}>
+      {/* Top Header Row — Title & Streak Badge */}
+      <div className="flex items-center justify-between gap-2">
+        <h4 className="text-sm font-bold text-main font-mono">Weekly Activity</h4>
+        {streak > 0 && (
+          <span
+            className="inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 shadow-xs shrink-0"
+            title={`${streak} consecutive active day${streak !== 1 ? 's' : ''}`}
+          >
+            🔥 {streak}d streak
           </span>
+        )}
+      </div>
+
+      {/* Tidy Metric Summary Grid: Time Spent & Total Activity */}
+      <div className="grid grid-cols-2 gap-2.5">
+        <div className="rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface-subtle)] p-2.5 space-y-0.5">
+          <div className="text-[10px] text-subtle font-semibold flex items-center gap-1">
+            <span>⏱️</span> <span>Time Spent</span>
+          </div>
+          <p className="text-sm font-black text-primary font-mono truncate">
+            {formatTimeSpent(timeSpent)}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface-subtle)] p-2.5 space-y-0.5">
+          <div className="text-[10px] text-subtle font-semibold flex items-center gap-1">
+            <span>⚡</span> <span>Contributions</span>
+          </div>
+          <p className="text-sm font-black text-main font-mono truncate">
+            {totalActivity} act{totalActivity !== 1 ? 's' : ''}
+          </p>
         </div>
       </div>
 
-      {/* Recharts AreaChart UI */}
-      <div className="h-40 w-full pt-2">
+      {/* Recharts AreaChart (Clean Padding, no labels cut off) */}
+      <div className="h-36 w-full pt-1">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={daily} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+          <AreaChart data={daily} margin={{ top: 8, right: 8, left: -22, bottom: 0 }}>
             <XAxis
               dataKey="day"
               stroke="var(--text-subtle)"
@@ -165,7 +176,7 @@ export default function WeeklyActivityChart({ className = '' }) {
             <Tooltip content={<CustomTooltip />} />
             <Area
               type="monotone"
-              dataKey="likes" // Maintained for existing UI compatibility (mapped to activity count)
+              dataKey="likes"
               stroke="var(--color-primary)"
               fill="var(--color-primary-light)"
               strokeWidth={2}
@@ -177,9 +188,9 @@ export default function WeeklyActivityChart({ className = '' }) {
 
       {/* Empty State Banner */}
       {isEmpty && (
-        <div className="border-t border-[var(--border-main)] pt-2.5 text-center">
-          <p className="text-xs text-[var(--text-muted)] italic">
-            No activity recorded this week yet. Share a post or comment to start your streak! 🚀
+        <div className="border-t border-[var(--border-main)] pt-2 text-center">
+          <p className="text-[11px] text-muted italic">
+            No activity recorded this week yet. Start coding or reviewing to build your streak! 🚀
           </p>
         </div>
       )}
