@@ -14,6 +14,8 @@ CodeNest is a modern developer social platform designed to help software enginee
    - Features: Anonymous queue, Custom Anonymous Communities (`+ Create Anon Community`), Anonymous code review submissions with language filters (C++, Python, JS, Go, Rust, Java, etc.), Structured review forms (What Went Well, What Could Be Improved, Recommended Resources, Helpfulness Rating), Anonymous reputation score, and My Submissions / My Reviews tracking.
 
 ## Key Features & AI Integrations
+- **AI Content Moderation & 5-Strike Ban System**: Automated safety scanning of posts, comments, and messages for bullying, harassment, sexual content, hate speech, or threats with instant deletion. Enforces a 5-strike progressive penalty schedule (Strike 1-2: Warning modal; Strike 3: Warning modal + warning email; Strike 4: 24h account suspension; Strike 5+: Permanent ban blacklisting email, GitHub, and Google logins in `banned_identifiers`).
+- **Weekly Activity Time Spent Tracker**: Real-time study/coding time metric box formatting active learning in minutes (`45 mins`) or hours/minutes (`1h 45m`).
 - **Real-Time Live Messaging**: 1-to-1 live chat restricted to mutual connections with socket-driven real-time updates.
 - **Automatic System Theme Engine**: Auto-detects OS color scheme (`prefers-color-scheme: dark`) with instant pre-render script preventing screen flicker on startup.
 - **AI Personal Learning Roadmap Generator**: Generates customized study roadmaps based on experience level and tech stack.

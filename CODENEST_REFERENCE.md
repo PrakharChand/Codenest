@@ -340,6 +340,17 @@ Queue items show only the first 300 characters of submission content (truncated 
   - Automatic System Theme Detection & Persistence Engine (`ThemeContext.jsx`) with `prefers-color-scheme: dark` OS auto-switch, zero-flicker `<head>` pre-render script, and localStorage override protection.
   - Migrations 034–038 added (shadow communities, chat conversations, chat messages, chat message edits, notification check constraint expansion).
   - 100/100 verified across all surfaces.
+- **Phase 14** — AI Content Moderation & 5-Strike Ban System, Time Spent Tracker & Shadow Focus Mode complete:
+  - Automated AI Content Moderation Engine (`moderationService.js`, `aiService.js`, `postController.js`, `commentController.js`, `chatController.js`) scanning for bullying, harassment, sexual content, hate speech, or threats with instant deletion.
+  - 5-Strike Progressive Penalty System:
+    - Strike 1 & 2: Instant content removal + warning popup modal (`ViolationWarningModal.jsx`).
+    - Strike 3: Warning popup + automated pre-written warning email (`emailService.js`) sent to user's address detailing remaining consequences.
+    - Strike 4: 24-hour automatic account suspension (`suspended_until`) blocking all platform actions.
+    - Strike 5+: Permanent account ban (`is_banned`) blacklisting email, GitHub account ID, and Google account ID in `banned_identifiers` table.
+  - Recharts Weekly Activity redesign with Time Spent Metric Box (`WeeklyActivityChart.jsx`) formatting study/coding time in minutes (`45 mins`) or hours/minutes (`1h 45m`).
+  - Shadow Focus Mode Notifications & Zero-Leak Activity Routing (`NotificationsPage.jsx`) displaying only code review updates in Shadow Mode and routing directly to `/shadow/submissions/:id`.
+  - Migration 039 added (`039_content_moderation_and_bans.sql`).
+  - 100/100 verified across all security and functional boundaries.
 
 ---
 
