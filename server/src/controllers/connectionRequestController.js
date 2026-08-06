@@ -48,7 +48,7 @@ async function sendRequest(req, res) {
     if (rows.length) {
       await createNotification({
         userId: requesteeId,
-        type: 'connection_request',
+        type: 'connection',
         message: 'Someone sent you a connection request.',
         referenceId: requesterId,
         identityContext: 'public',
@@ -88,7 +88,7 @@ async function acceptRequest(req, res) {
     if (rowCount > 0) {
       await createNotification({
         userId: requesterId,
-        type: 'connection_accepted',
+        type: 'connection',
         message: 'Your connection request was accepted.',
         referenceId: requesteeId,
         identityContext: 'public',

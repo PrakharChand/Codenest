@@ -33,6 +33,10 @@ async function connect(req, res) {
   const followingId = parseInt(req.params.id, 10);
   const followerId  = req.user.id;
 
+  if (followerId === followingId) {
+    throw ApiError.badRequest('You cannot connect with yourself.');
+  }
+
   // Confirm target user exists
   const { rows } = await query('SELECT id FROM users WHERE id = $1', [followingId]);
   if (!rows.length) throw ApiError.notFound('User not found.');
