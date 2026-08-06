@@ -196,6 +196,19 @@ async function sendMessage(req, res) {
     throw ApiError.badRequest('Message content must not exceed 2000 characters.');
   }
 
+  const { moderateText } = require('../services/moderationService');
+  const modResult = await moderateText(content, 'chat', userId);
+  if (!modResult.safe) {
+    return res.status(400).json({
+      error: {
+        code: 'CONTENT_MODERATION_VIOLATION',
+        message: modResult.reason,
+        violationCount: modResult.violationCount,
+        action: modResult.action,
+      },
+    });
+  }
+
   const { rows: convRows } = await query(
     `SELECT id, participant_one_id, participant_two_id FROM conversations WHERE id = $1`,
     [conversationId]

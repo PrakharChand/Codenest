@@ -8,6 +8,7 @@ import axios from 'axios';
 const SS_KEY = 'cn_at'; // short, non-obvious key
 
 let onAuthFailureCallback = null;
+let onModerationViolationCallback = null;
 
 export const setAccessToken = (token) => {
   if (token) {
@@ -23,6 +24,10 @@ export const getAccessToken = () => {
 
 export const setOnAuthFailure = (callback) => {
   onAuthFailureCallback = callback;
+};
+
+export const setOnModerationViolation = (callback) => {
+  onModerationViolationCallback = callback;
 };
 
 const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -67,6 +72,18 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    // Handle Content Moderation Violation
+    if (error.response?.data?.error?.code === 'CONTENT_MODERATION_VIOLATION') {
+      const modData = error.response.data.error;
+      if (onModerationViolationCallback) {
+        onModerationViolationCallback({
+          reason: modData.message,
+          violationCount: modData.violationCount,
+          action: modData.action,
+        });
+      }
+    }
 
     // Handle 401 Unauthorized
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -126,11 +143,13 @@ api.interceptors.response.use(
  */
 export function normalizeApiError(error) {
   if (error.response && error.response.data && error.response.data.error) {
-    const { code, message, field } = error.response.data.error;
+    const { code, message, field, violationCount, action } = error.response.data.error;
     return {
       code: code || 'UNKNOWN_ERROR',
       message: message || 'An unexpected error occurred.',
       field: field || null,
+      violationCount: violationCount || null,
+      action: action || null,
       status: error.response.status,
       isApiError: true,
     };

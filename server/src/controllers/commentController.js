@@ -56,6 +56,19 @@ async function createComment(req, res) {
   const userId = req.user.id;
   const { content } = req.body;
 
+  const { moderateText } = require('../services/moderationService');
+  const modResult = await moderateText(content, 'comment', userId);
+  if (!modResult.safe) {
+    return res.status(400).json({
+      error: {
+        code: 'CONTENT_MODERATION_VIOLATION',
+        message: modResult.reason,
+        violationCount: modResult.violationCount,
+        action: modResult.action,
+      },
+    });
+  }
+
   const { rows: postRows } = await query('SELECT id, user_id FROM posts WHERE id = $1', [postId]);
   if (!postRows.length) throw ApiError.notFound('Post not found.');
 

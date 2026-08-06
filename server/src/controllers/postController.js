@@ -160,6 +160,19 @@ async function createPost(req, res) {
   const { title, content, visibility = 'public', image_url, tags = [] } = req.body;
   const userId = req.user.id;
 
+  const { moderateText } = require('../services/moderationService');
+  const modResult = await moderateText(`${title || ''} ${content || ''}`, 'post', userId);
+  if (!modResult.safe) {
+    return res.status(400).json({
+      error: {
+        code: 'CONTENT_MODERATION_VIOLATION',
+        message: modResult.reason,
+        violationCount: modResult.violationCount,
+        action: modResult.action,
+      },
+    });
+  }
+
   const post = await withTransaction(async (client) => {
     const { rows } = await client.query(
       `INSERT INTO posts (user_id, title, content, visibility, image_url)

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import api, { setAccessToken, getAccessToken, setOnAuthFailure } from '../api/axios';
+import api, { setAccessToken, getAccessToken, setOnAuthFailure, setOnModerationViolation } from '../api/axios';
 import { ThemeProvider } from './ThemeContext';
+import ViolationWarningModal from '../components/molecules/ViolationWarningModal';
 
 const AuthContext = createContext(null);
 
@@ -10,8 +11,9 @@ export function AuthProvider({ children }) {
   const [accessTokenState, setAccessTokenState] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [anonNotice, setAnonNotice] = useState(false);
+  const [modViolationData, setModViolationData] = useState(null);
 
-  // Set up axial failure handler
+  // Set up axial failure & moderation violation handlers
   useEffect(() => {
     setOnAuthFailure(() => {
       setUser(null);
@@ -19,27 +21,24 @@ export function AuthProvider({ children }) {
       setAccessToken(null);
       setMode('feed');
     });
+
+    setOnModerationViolation((data) => {
+      setModViolationData(data);
+    });
   }, []);
 
   // Rehydrate auth state on mount.
-  // Fast path: if sessionStorage has a token → call /auth/me directly.
-  // The response interceptor will auto-refresh via httpOnly cookie if it 401s.
-  // Slow path: no token → call /refresh first to get a new token from cookie.
   useEffect(() => {
     async function rehydrate() {
       try {
         const existing = getAccessToken();
         if (!existing) {
-          // No sessionStorage token — try refresh via httpOnly cookie
           const refreshRes = await api.post('/api/auth/refresh');
           setAccessToken(refreshRes.data.accessToken);
         }
-        // By this point either we had a valid token or just refreshed one.
-        // /auth/me will use it via the request interceptor.
         const { data } = await api.get('/api/auth/me');
         setUser(data.user);
       } catch (err) {
-        // Genuinely not logged in (refresh cookie expired/missing)
         setUser(null);
         setAccessToken(null);
       } finally {
@@ -97,7 +96,14 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={value}>
-      <ThemeProvider mode={mode}>{children}</ThemeProvider>
+      <ThemeProvider mode={mode}>
+        {children}
+        <ViolationWarningModal
+          isOpen={!!modViolationData}
+          onClose={() => setModViolationData(null)}
+          violationData={modViolationData}
+        />
+      </ThemeProvider>
     </AuthContext.Provider>
   );
 }

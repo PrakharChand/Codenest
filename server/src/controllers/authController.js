@@ -41,6 +41,17 @@ async function issueTokens(res, userId) {
   return accessToken;
 }
 
+async function checkBannedIdentifier(val) {
+  if (!val) return;
+  const { rows } = await query(
+    'SELECT id FROM banned_identifiers WHERE LOWER(identifier_value) = LOWER($1)',
+    [String(val)]
+  );
+  if (rows.length) {
+    throw ApiError.forbidden('This account, email address, or login method has been permanently banned due to severe policy violations.');
+  }
+}
+
 // ── Register ──────────────────────────────────────────────────────────────
 
 /**
@@ -49,6 +60,8 @@ async function issueTokens(res, userId) {
  */
 async function register(req, res) {
   const { name, email, password } = req.body;
+
+  await checkBannedIdentifier(email);
 
   // Duplicate email check — case-insensitive
   const existing = await query(
@@ -83,6 +96,8 @@ async function register(req, res) {
  */
 async function login(req, res) {
   const { email, password } = req.body;
+
+  await checkBannedIdentifier(email);
 
   const { rows } = await query(
     `SELECT id, password_hash, name, email, avatar_url, bio,

@@ -35,9 +35,9 @@ async function requireAuth(req, _res, next) {
     const payload = verifyAccessToken(token); // throws ApiError.unauthorized if invalid
     const userId  = parseInt(payload.sub, 10);
 
-    // Load minimal user fields — never SELECT *, never load password_hash
+    // Load minimal user fields — check for bans and suspensions
     const { rows } = await query(
-      'SELECT id, has_anonymous_identity FROM users WHERE id = $1',
+      'SELECT id, has_anonymous_identity, is_banned, suspended_until FROM users WHERE id = $1',
       [userId]
     );
 
@@ -46,6 +46,18 @@ async function requireAuth(req, _res, next) {
     }
 
     const user = rows[0];
+
+    // Enforce Permanent Ban
+    if (user.is_banned) {
+      throw ApiError.forbidden('Your account has been permanently banned due to repeated content violations.');
+    }
+
+    // Enforce 24-Hour Temporary Suspension
+    if (user.suspended_until && new Date(user.suspended_until) > new Date()) {
+      const untilFormatted = new Date(user.suspended_until).toLocaleString();
+      throw ApiError.forbidden(`Your account is currently suspended until ${untilFormatted} due to content policy violations.`);
+    }
+
     req.user = {
       id:                   user.id,
       hasAnonymousIdentity: user.has_anonymous_identity,
