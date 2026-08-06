@@ -18,6 +18,8 @@ const withTransaction    = require('../utils/withTransaction');
 const ApiError           = require('../utils/ApiError');
 const createNotification = require('../utils/createNotification');
 
+const { getUserRelationship } = require('../utils/relationshipHelper');
+
 // ── POST /api/users/:id/request ──────────────────────────────────────────
 
 async function sendRequest(req, res) {
@@ -31,15 +33,6 @@ async function sendRequest(req, res) {
   // Confirm target user exists
   const { rows: target } = await query('SELECT id FROM users WHERE id = $1', [requesteeId]);
   if (!target.length) throw ApiError.notFound('User not found.');
-
-  // Already following? Skip request, just inform.
-  const { rows: alreadyFollowing } = await query(
-    'SELECT 1 FROM connections WHERE follower_id = $1 AND following_id = $2',
-    [requesterId, requesteeId]
-  );
-  if (alreadyFollowing.length) {
-    return res.json({ message: 'You are already following this user.' });
-  }
 
   // Upsert request — reset to pending if previously declined
   await withTransaction(async (client) => {
@@ -64,7 +57,8 @@ async function sendRequest(req, res) {
     }
   });
 
-  return res.status(201).json({ message: 'Connection request sent.' });
+  const relationship = await getUserRelationship(requesterId, requesteeId);
+  return res.status(200).json({ message: 'Connection request sent.', relationship, ...relationship });
 }
 
 // ── POST /api/users/:id/request/accept ───────────────────────────────────
@@ -82,8 +76,6 @@ async function acceptRequest(req, res) {
       [requesterId, requesteeId]
     );
 
-    if (!rowCount) throw ApiError.notFound('No pending request found from this user.');
-
     // Create bidirectional follow
     await client.query(
       `INSERT INTO connections (follower_id, following_id)
@@ -93,17 +85,20 @@ async function acceptRequest(req, res) {
     );
 
     // Notify requester that their request was accepted
-    await createNotification({
-      userId: requesterId,
-      type: 'connection_accepted',
-      message: 'Your connection request was accepted.',
-      referenceId: requesteeId,
-      identityContext: 'public',
-      client,
-    });
+    if (rowCount > 0) {
+      await createNotification({
+        userId: requesterId,
+        type: 'connection_accepted',
+        message: 'Your connection request was accepted.',
+        referenceId: requesteeId,
+        identityContext: 'public',
+        client,
+      });
+    }
   });
 
-  return res.json({ message: 'Connection request accepted.' });
+  const relationship = await getUserRelationship(requesteeId, requesterId);
+  return res.json({ message: 'Connection request accepted.', relationship, ...relationship });
 }
 
 // ── POST /api/users/:id/request/decline ──────────────────────────────────
@@ -112,15 +107,15 @@ async function declineRequest(req, res) {
   const requesteeId = req.user.id;
   const requesterId = parseInt(req.params.id, 10);
 
-  const { rowCount } = await query(
+  await query(
     `UPDATE connection_requests
      SET status = 'declined', updated_at = NOW()
      WHERE requester_id = $1 AND requestee_id = $2 AND status = 'pending'`,
     [requesterId, requesteeId]
   );
 
-  if (!rowCount) throw ApiError.notFound('No pending request found from this user.');
-  return res.json({ message: 'Connection request declined.' });
+  const relationship = await getUserRelationship(requesteeId, requesterId);
+  return res.json({ message: 'Connection request declined.', relationship, ...relationship });
 }
 
 // ── GET /api/users/me/requests/incoming ──────────────────────────────────

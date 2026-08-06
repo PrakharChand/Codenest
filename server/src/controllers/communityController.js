@@ -27,6 +27,7 @@ const AUTHOR_CARD = `
 async function listCommunities(req, res) {
   const { page, limit, offset } = parsePagination(req.query);
   const { search } = req.query;
+  const viewerId   = req.user?.id ?? null;
 
   const params  = [];
   const where   = [];
@@ -37,18 +38,24 @@ async function listCommunities(req, res) {
   }
 
   const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  const viewerParamIdx = params.length + 1;
+  const limitParamIdx  = params.length + 2;
+  const offsetParamIdx = params.length + 3;
 
   const [countResult, dataResult] = await Promise.all([
     query(`SELECT COUNT(*) FROM communities c ${whereClause}`, params),
     query(
       `SELECT c.id, c.name, c.description, c.member_count, c.created_at,
-              ${AUTHOR_CARD}
+              ${AUTHOR_CARD},
+              CASE WHEN cm.user_id IS NOT NULL THEN TRUE ELSE FALSE END AS is_member,
+              CASE WHEN cm.user_id IS NOT NULL THEN TRUE ELSE FALSE END AS "isMember"
        FROM communities c
        LEFT JOIN users u ON u.id = c.created_by
+       LEFT JOIN community_members cm ON cm.community_id = c.id AND cm.user_id = $${viewerParamIdx}
        ${whereClause}
        ORDER BY c.member_count DESC, c.created_at DESC
-       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-      [...params, limit, offset]
+       LIMIT $${limitParamIdx} OFFSET $${offsetParamIdx}`,
+      [...params, viewerId, limit, offset]
     ),
   ]);
 
@@ -67,6 +74,7 @@ async function getCommunity(req, res) {
             c.created_by,
             ${AUTHOR_CARD},
             CASE WHEN cm.user_id IS NOT NULL THEN TRUE ELSE FALSE END AS is_member,
+            CASE WHEN cm.user_id IS NOT NULL THEN TRUE ELSE FALSE END AS "isMember",
             CASE WHEN c.created_by = $2 THEN TRUE ELSE FALSE END AS is_admin
      FROM communities c
      LEFT JOIN users u ON u.id = c.created_by
@@ -123,7 +131,7 @@ async function createCommunity(req, res) {
       'INSERT INTO community_members (community_id, user_id) VALUES ($1, $2)',
       [comm.id, userId]
     );
-    return comm;
+    return { ...comm, is_member: true, isMember: true };
   });
 
   return res.status(201).json(community);
@@ -138,6 +146,7 @@ async function joinCommunity(req, res) {
   const { rows } = await query('SELECT id FROM communities WHERE id = $1', [communityId]);
   if (!rows.length) throw ApiError.notFound('Community not found.');
 
+  let updatedCount = 0;
   await withTransaction(async (client) => {
     const { rowCount } = await client.query(
       `INSERT INTO community_members (community_id, user_id)
@@ -145,14 +154,18 @@ async function joinCommunity(req, res) {
       [communityId, userId]
     );
     if (rowCount > 0) {
-      await client.query(
-        'UPDATE communities SET member_count = member_count + 1 WHERE id = $1',
+      const resCount = await client.query(
+        'UPDATE communities SET member_count = member_count + 1 WHERE id = $1 RETURNING member_count',
         [communityId]
       );
+      updatedCount = resCount.rows[0]?.member_count || 0;
+    } else {
+      const resCount = await client.query('SELECT member_count FROM communities WHERE id = $1', [communityId]);
+      updatedCount = resCount.rows[0]?.member_count || 0;
     }
   });
 
-  return res.json({ message: 'Joined community.' });
+  return res.json({ message: 'Joined community.', is_member: true, isMember: true, member_count: updatedCount });
 }
 
 // ── DELETE /api/communities/:id/join — leave ─────────────────────────────
@@ -161,20 +174,25 @@ async function leaveCommunity(req, res) {
   const communityId = parseInt(req.params.id, 10);
   const userId      = req.user.id;
 
+  let updatedCount = 0;
   await withTransaction(async (client) => {
     const { rowCount } = await client.query(
       'DELETE FROM community_members WHERE community_id = $1 AND user_id = $2',
       [communityId, userId]
     );
     if (rowCount > 0) {
-      await client.query(
-        'UPDATE communities SET member_count = GREATEST(member_count - 1, 0) WHERE id = $1',
+      const resCount = await client.query(
+        'UPDATE communities SET member_count = GREATEST(member_count - 1, 0) WHERE id = $1 RETURNING member_count',
         [communityId]
       );
+      updatedCount = resCount.rows[0]?.member_count || 0;
+    } else {
+      const resCount = await client.query('SELECT member_count FROM communities WHERE id = $1', [communityId]);
+      updatedCount = resCount.rows[0]?.member_count || 0;
     }
   });
 
-  return res.json({ message: 'Left community.' });
+  return res.json({ message: 'Left community.', is_member: false, isMember: false, member_count: updatedCount });
 }
 
 // ── POST /api/communities/:id/posts — post (members only) ────────────────

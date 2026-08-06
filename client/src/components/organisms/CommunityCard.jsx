@@ -6,12 +6,21 @@ import Badge from '../atoms/Badge';
 import Button from '../atoms/Button';
 import { communitiesApi } from '../../api/communitiesApi';
 import { useAuth } from '../../context/AuthContext';
+import { useRelationship } from '../../context/RelationshipContext';
 
 export default function CommunityCard({ community, onJoinToggle }) {
   const { user } = useAuth();
-  const [joined, setJoined] = useState(community.is_member || false);
-  const [memberCount, setMemberCount] = useState(community.member_count || 0);
+  const { getCommunityMembershipState, updateCommunityMembership } = useRelationship();
   const [loading, setLoading] = useState(false);
+
+  const cachedMembership = getCommunityMembershipState(community.id);
+  const joined = cachedMembership
+    ? Boolean(cachedMembership.isMember)
+    : Boolean(community.is_member || community.isMember);
+
+  const memberCount = cachedMembership && typeof cachedMembership.memberCount === 'number'
+    ? cachedMembership.memberCount
+    : (community.member_count || 0);
 
   const handleToggleJoin = async (e) => {
     e.preventDefault();
@@ -19,21 +28,27 @@ export default function CommunityCard({ community, onJoinToggle }) {
     if (!user) return;
 
     setLoading(true);
+    const nextJoined = !joined;
+    const nextCount = nextJoined ? memberCount + 1 : Math.max(memberCount - 1, 0);
+
+    // Optimistic update
+    updateCommunityMembership(community.id, nextJoined, nextCount);
+
     try {
+      let res;
       if (joined) {
-        setJoined(false);
-        setMemberCount((prev) => Math.max(prev - 1, 0));
-        await communitiesApi.leave(community.id);
+        res = await communitiesApi.leave(community.id);
         toast.success(`Left ${community.name}`);
       } else {
-        setJoined(true);
-        setMemberCount((prev) => prev + 1);
-        await communitiesApi.join(community.id);
+        res = await communitiesApi.join(community.id);
         toast.success(`Joined ${community.name}`);
       }
-      if (onJoinToggle) onJoinToggle(community.id, !joined);
+      if (res && res.isMember !== undefined) {
+        updateCommunityMembership(community.id, res.isMember, res.member_count);
+      }
+      if (onJoinToggle) onJoinToggle(community.id, nextJoined);
     } catch (err) {
-      setJoined(!joined);
+      updateCommunityMembership(community.id, joined, memberCount);
       toast.error(err.message || 'Failed to update community membership');
     } finally {
       setLoading(false);

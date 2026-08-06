@@ -33,6 +33,8 @@ const PUBLIC_USER_COLUMNS = `
   u.created_at
 `;
 
+const { getUserRelationship } = require('../utils/relationshipHelper');
+
 // ── GET /api/users/search?q=... ───────────────────────────────────────────
 
 async function searchUsers(req, res) {
@@ -45,11 +47,8 @@ async function searchUsers(req, res) {
   const viewerId = req.user?.id ?? null;
 
   const { rows } = await query(
-    `SELECT ${PUBLIC_USER_COLUMNS},
-            CASE WHEN c.follower_id IS NOT NULL THEN TRUE ELSE FALSE END AS "isFollowing"
+    `SELECT ${PUBLIC_USER_COLUMNS}
      FROM users u
-     LEFT JOIN connections c
-       ON c.follower_id = $2 AND c.following_id = u.id
      WHERE (u.name ILIKE $1)
        AND u.id <> COALESCE($2, -1)
      ORDER BY u.name ASC
@@ -57,7 +56,14 @@ async function searchUsers(req, res) {
     [pattern, viewerId]
   );
 
-  return res.json({ results: rows });
+  const results = await Promise.all(
+    rows.map(async (u) => {
+      const rel = await getUserRelationship(viewerId, u.id);
+      return { ...u, ...rel };
+    })
+  );
+
+  return res.json({ results });
 }
 
 // ── GET /api/users/explore ─────────────────────────────────────────────────
@@ -74,20 +80,25 @@ async function exploreUsers(req, res) {
     query(
       `SELECT ${PUBLIC_USER_COLUMNS},
               (SELECT COUNT(*) FROM connections WHERE follower_id = u.id) AS "followingCount",
-              (SELECT COUNT(*) FROM connections WHERE following_id = u.id) AS "followerCount",
-              CASE WHEN c.follower_id IS NOT NULL THEN TRUE ELSE FALSE END AS "isFollowing"
+              (SELECT COUNT(*) FROM connections WHERE following_id = u.id) AS "followerCount"
        FROM users u
-       LEFT JOIN connections c
-         ON c.follower_id = $3 AND c.following_id = u.id
-       WHERE u.id <> COALESCE($3, -1)
+       WHERE u.id <> COALESCE($1, -1)
        ORDER BY u.created_at DESC
-       LIMIT $1 OFFSET $2`,
-      [limit, offset, viewerId]
+       LIMIT $2 OFFSET $3`,
+      [viewerId, limit, offset]
     ),
   ]);
 
   const total = parseInt(countResult.rows[0].count, 10);
-  return res.json(buildPaginatedResponse(dataResult.rows, total, page, limit));
+
+  const rowsWithRel = await Promise.all(
+    dataResult.rows.map(async (u) => {
+      const rel = await getUserRelationship(viewerId, u.id);
+      return { ...u, ...rel };
+    })
+  );
+
+  return res.json(buildPaginatedResponse(rowsWithRel, total, page, limit));
 }
 
 // ── GET /api/users/:id ─────────────────────────────────────────────────────
@@ -100,17 +111,16 @@ async function getUserProfile(req, res) {
     `SELECT ${PUBLIC_USER_COLUMNS},
             (SELECT COUNT(*) FROM connections WHERE follower_id = u.id) AS "followingCount",
             (SELECT COUNT(*) FROM connections WHERE following_id = u.id) AS "followerCount",
-            (SELECT COUNT(*) FROM posts WHERE user_id = u.id AND visibility = 'public') AS "postCount",
-            CASE WHEN c.follower_id IS NOT NULL THEN TRUE ELSE FALSE END AS "isFollowing"
+            (SELECT COUNT(*) FROM posts WHERE user_id = u.id AND visibility = 'public') AS "postCount"
      FROM users u
-     LEFT JOIN connections c
-       ON c.follower_id = $2 AND c.following_id = u.id
      WHERE u.id = $1`,
-    [targetId, viewerId]
+    [targetId]
   );
 
   if (!rows.length) throw ApiError.notFound('User not found.');
-  return res.json(rows[0]);
+
+  const rel = await getUserRelationship(viewerId, targetId);
+  return res.json({ ...rows[0], ...rel });
 }
 
 // ── PUT /api/users/:id ────────────────────────────────────────────────────

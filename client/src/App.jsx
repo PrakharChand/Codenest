@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { ConnectionProvider } from './context/ConnectionContext';
+import { RelationshipProvider } from './context/RelationshipContext';
 import { Toaster } from 'react-hot-toast';
 import AppRoutes from './routes';
 import ErrorBoundary from './components/layout/ErrorBoundary';
@@ -30,10 +31,12 @@ function App() {
     <ErrorBoundary>
       <AuthProvider>
         <ConnectionProvider>
-          <NotificationProvider>
-            <AppRoutes />
-            <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
-          </NotificationProvider>
+          <RelationshipProvider>
+            <NotificationProvider>
+              <AppRoutes />
+              <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
+            </NotificationProvider>
+          </RelationshipProvider>
         </ConnectionProvider>
       </AuthProvider>
     </ErrorBoundary>

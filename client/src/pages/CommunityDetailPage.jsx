@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { communitiesApi } from '../api/communitiesApi';
 import { useAuth } from '../context/AuthContext';
+import { useRelationship } from '../context/RelationshipContext';
 import Card from '../components/atoms/Card';
 import Badge from '../components/atoms/Badge';
 import Button from '../components/atoms/Button';
@@ -15,12 +16,11 @@ import PostCard from '../components/organisms/PostCard';
 export default function CommunityDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { getCommunityMembershipState, updateCommunityMembership } = useRelationship();
 
   const [community, setCommunity] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isMember, setIsMember] = useState(false);
-  const [memberCount, setMemberCount] = useState(0);
 
   // Community Composer State
   const [postTitle, setPostTitle] = useState('');
@@ -29,6 +29,17 @@ export default function CommunityDetailPage() {
   const [postError, setPostError] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  const numericId = parseInt(id, 10);
+  const cachedMembership = getCommunityMembershipState(numericId);
+
+  const isMember = cachedMembership
+    ? Boolean(cachedMembership.isMember)
+    : Boolean(community?.is_member || community?.isMember);
+
+  const memberCount = cachedMembership && typeof cachedMembership.memberCount === 'number'
+    ? cachedMembership.memberCount
+    : (community?.member_count || 0);
+
   useEffect(() => {
     async function loadCommunity() {
       setLoading(true);
@@ -36,8 +47,7 @@ export default function CommunityDetailPage() {
       try {
         const data = await communitiesApi.get(id);
         setCommunity(data);
-        setIsMember(data.is_member || false);
-        setMemberCount(data.member_count || 0);
+        updateCommunityMembership(data.id, data.is_member || data.isMember, data.member_count);
       } catch (err) {
         setError(err.message || 'Community not found.');
       } finally {
@@ -45,24 +55,29 @@ export default function CommunityDetailPage() {
       }
     }
     loadCommunity();
-  }, [id]);
+  }, [id, updateCommunityMembership]);
 
   const handleToggleJoin = async () => {
-    if (!user) return;
+    if (!user || !community) return;
+    const nextJoined = !isMember;
+    const nextCount = nextJoined ? memberCount + 1 : Math.max(memberCount - 1, 0);
+
+    updateCommunityMembership(community.id, nextJoined, nextCount);
+
     try {
+      let res;
       if (isMember) {
-        setIsMember(false);
-        setMemberCount((prev) => Math.max(prev - 1, 0));
-        await communitiesApi.leave(id);
+        res = await communitiesApi.leave(id);
         toast.success('Left community');
       } else {
-        setIsMember(true);
-        setMemberCount((prev) => prev + 1);
-        await communitiesApi.join(id);
+        res = await communitiesApi.join(id);
         toast.success('Joined community');
       }
+      if (res && res.isMember !== undefined) {
+        updateCommunityMembership(community.id, res.isMember, res.member_count);
+      }
     } catch (err) {
-      setIsMember(!isMember);
+      updateCommunityMembership(community.id, isMember, memberCount);
       toast.error(err.message || 'Failed to update membership');
     }
   };

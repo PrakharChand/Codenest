@@ -2,11 +2,13 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import toast from 'react-hot-toast';
 import { usersApi } from '../api/usersApi';
 import { useAuth } from './AuthContext';
+import { useRelationship } from './RelationshipContext';
 
 const ConnectionContext = createContext(null);
 
 export function ConnectionProvider({ children }) {
   const { user } = useAuth();
+  const { updateUserRelationship } = useRelationship();
 
   // Primary reactive relationship stores
   const [followingSet, setFollowingSet] = useState(new Set());
@@ -85,7 +87,16 @@ export function ConnectionProvider({ children }) {
         return next;
       });
     }
-  }, []);
+
+    if (userObj.connectionStatus) {
+      updateUserRelationship(targetId, {
+        isFollowing: Boolean(userObj.isFollowing),
+        followsMe: Boolean(userObj.followsMe),
+        isConnected: Boolean(userObj.isConnected),
+        connectionStatus: userObj.connectionStatus,
+      });
+    }
+  }, [updateUserRelationship]);
 
   // ── 3. Helper status queries ─────────────────────────────────────────────
   const isFollowing = useCallback((userId, fallback = false) => {
@@ -140,12 +151,22 @@ export function ConnectionProvider({ children }) {
     }
 
     try {
+      let res;
       if (currentlyFollowing) {
-        await usersApi.disconnect(targetId);
+        res = await usersApi.disconnect(targetId);
         toast.success(`Unfollowed ${targetName}`);
       } else {
-        await usersApi.connect(targetId);
+        res = await usersApi.connect(targetId);
         toast.success(`Followed ${targetName}`);
+      }
+
+      if (res?.relationship || res?.connectionStatus !== undefined) {
+        updateUserRelationship(targetId, res.relationship || res);
+      } else {
+        updateUserRelationship(targetId, {
+          isFollowing: nextFollowingState,
+          connectionStatus: nextFollowingState ? 'following' : 'none',
+        });
       }
     } catch (err) {
       // Revert optimistic update on error
@@ -163,7 +184,7 @@ export function ConnectionProvider({ children }) {
         return next;
       });
     }
-  }, [user, followingSet, inFlightIds]);
+  }, [user, followingSet, inFlightIds, updateUserRelationship]);
 
   // ── 5. Action: Connection Request ───────────────────────────────────────
   const sendConnectionRequest = useCallback(async (target) => {
@@ -179,8 +200,15 @@ export function ConnectionProvider({ children }) {
     setRequestMap((prev) => new Map(prev).set(targetId, 'outgoing'));
 
     try {
-      await usersApi.sendRequest(targetId);
+      const res = await usersApi.sendRequest(targetId);
       toast.success(`Connection request sent to ${targetName}`);
+      if (res?.relationship || res?.connectionStatus !== undefined) {
+        updateUserRelationship(targetId, res.relationship || res);
+      } else {
+        updateUserRelationship(targetId, {
+          connectionStatus: 'pending_outgoing',
+        });
+      }
     } catch (err) {
       // Rollback on failure
       setRequestMap((prev) => {
@@ -196,7 +224,7 @@ export function ConnectionProvider({ children }) {
         return next;
       });
     }
-  }, [user, inFlightIds]);
+  }, [user, inFlightIds, updateUserRelationship]);
 
   // ── 6. Action: Accept Request ────────────────────────────────────────────
   const acceptConnectionRequest = useCallback(async (targetId, targetName = 'user') => {
@@ -215,8 +243,18 @@ export function ConnectionProvider({ children }) {
     });
 
     try {
-      await usersApi.acceptRequest(targetId);
+      const res = await usersApi.acceptRequest(targetId);
       toast.success(`Connected with ${targetName}`);
+      if (res?.relationship || res?.connectionStatus !== undefined) {
+        updateUserRelationship(targetId, res.relationship || res);
+      } else {
+        updateUserRelationship(targetId, {
+          isFollowing: true,
+          followsMe: true,
+          isConnected: true,
+          connectionStatus: 'connected',
+        });
+      }
     } catch (err) {
       refreshConnections();
       toast.error(err.message || 'Failed to accept connection request');
@@ -227,7 +265,7 @@ export function ConnectionProvider({ children }) {
         return next;
       });
     }
-  }, [user, inFlightIds, refreshConnections]);
+  }, [user, inFlightIds, refreshConnections, updateUserRelationship]);
 
   // ── 7. Action: Decline Request ───────────────────────────────────────────
   const declineConnectionRequest = useCallback(async (targetId) => {
@@ -243,8 +281,15 @@ export function ConnectionProvider({ children }) {
     });
 
     try {
-      await usersApi.declineRequest(targetId);
+      const res = await usersApi.declineRequest(targetId);
       toast.success('Connection request declined');
+      if (res?.relationship || res?.connectionStatus !== undefined) {
+        updateUserRelationship(targetId, res.relationship || res);
+      } else {
+        updateUserRelationship(targetId, {
+          connectionStatus: 'none',
+        });
+      }
     } catch (err) {
       refreshConnections();
       toast.error(err.message || 'Failed to decline connection request');
@@ -255,7 +300,7 @@ export function ConnectionProvider({ children }) {
         return next;
       });
     }
-  }, [user, inFlightIds, refreshConnections]);
+  }, [user, inFlightIds, refreshConnections, updateUserRelationship]);
 
   const value = {
     followingSet,

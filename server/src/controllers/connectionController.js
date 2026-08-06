@@ -25,6 +25,8 @@ const ApiError                                     = require('../utils/ApiError'
 const { parsePagination, buildPaginatedResponse }  = require('../utils/paginate');
 const createNotification                           = require('../utils/createNotification');
 
+const { getUserRelationship } = require('../utils/relationshipHelper');
+
 // ── POST /api/users/:id/connect ──────────────────────────────────────────
 
 async function connect(req, res) {
@@ -56,7 +58,8 @@ async function connect(req, res) {
     }
   });
 
-  return res.json({ message: 'Connected.' });
+  const relationship = await getUserRelationship(followerId, followingId);
+  return res.json({ message: 'Connected.', relationship, ...relationship });
 }
 
 // ── DELETE /api/users/:id/connect ────────────────────────────────────────
@@ -71,7 +74,8 @@ async function disconnect(req, res) {
     [followerId, followingId]
   );
 
-  return res.json({ message: 'Disconnected.' });
+  const relationship = await getUserRelationship(followerId, followingId);
+  return res.json({ message: 'Disconnected.', relationship, ...relationship });
 }
 
 // ── GET /api/users/:id/connections  (people userId *follows*) ────────────

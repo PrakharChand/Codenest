@@ -5,6 +5,7 @@ import { usersApi } from '../api/usersApi';
 import { postsApi } from '../api/postsApi';
 import { useAuth } from '../context/AuthContext';
 import { useConnection } from '../context/ConnectionContext';
+import { useRelationship } from '../context/RelationshipContext';
 import Avatar from '../components/atoms/Avatar';
 import Badge from '../components/atoms/Badge';
 import Button from '../components/atoms/Button';
@@ -18,12 +19,15 @@ export default function UserProfilePage() {
   const { id } = useParams();
   const { user: currentUser } = useAuth();
   const {
-    isFollowing,
+    isFollowing: getIsFollowing,
     isMutual: getIsMutual,
     isActionLoading,
     toggleFollow,
+    sendConnectionRequest,
+    acceptConnectionRequest,
     registerUserStatus,
   } = useConnection();
+  const { getUserRelationshipState } = useRelationship();
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -50,13 +54,33 @@ export default function UserProfilePage() {
   }, [id, registerUserStatus]);
 
   const targetId = profile?.id || numericId;
-  const following = isFollowing(targetId, profile?.isFollowing || false);
-  const mutual = getIsMutual(targetId, profile?.isMutual || false);
+  const cachedRel = getUserRelationshipState(targetId);
+
+  const following = cachedRel?.isFollowing !== undefined
+    ? cachedRel.isFollowing
+    : getIsFollowing(targetId, profile?.isFollowing || false);
+
+  const isConnected = cachedRel?.isConnected !== undefined
+    ? cachedRel.isConnected
+    : Boolean(profile?.isConnected || (profile?.isFollowing && profile?.followsMe));
+
+  const connectionStatus = cachedRel?.connectionStatus || profile?.connectionStatus || (following ? 'following' : 'none');
+
+  const mutual = getIsMutual(targetId, profile?.isMutual || false) || isConnected;
   const followLoading = isActionLoading(targetId);
 
   const handleToggleFollow = async () => {
     if (isSelf || followLoading) return;
     await toggleFollow(profile || { id: targetId, name: profile?.name || 'user' });
+  };
+
+  const handleConnect = async () => {
+    if (isSelf || followLoading) return;
+    if (connectionStatus === 'pending_incoming') {
+      await acceptConnectionRequest(targetId, profile?.name);
+    } else if (connectionStatus === 'none' || connectionStatus === 'following') {
+      await sendConnectionRequest(profile || { id: targetId, name: profile?.name || 'user' });
+    }
   };
 
   if (loading) {
@@ -91,7 +115,6 @@ export default function UserProfilePage() {
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold text-main">{profile.name}</h1>
                 {mutual && <Badge variant="primary" size="sm">Mutual Connection</Badge>}
-
               </div>
               <p className="text-xs text-subtle">
                 Joined{' '}
@@ -118,7 +141,7 @@ export default function UserProfilePage() {
             </div>
           </div>
 
-          <div>
+          <div className="flex items-center gap-2">
             {isSelf ? (
               <Link to="/settings/profile">
                 <Button variant="secondary" size="sm">
@@ -127,14 +150,32 @@ export default function UserProfilePage() {
               </Link>
             ) : (
               currentUser && (
-                <Button
-                  variant={following ? 'secondary' : 'primary'}
-                  size="sm"
-                  onClick={handleToggleFollow}
-                  isLoading={followLoading}
-                >
-                  {following ? '✓ Following' : 'Follow'}
-                </Button>
+                <>
+                  <Button
+                    variant={following ? 'secondary' : 'primary'}
+                    size="sm"
+                    onClick={handleToggleFollow}
+                    isLoading={followLoading}
+                  >
+                    {following ? '✓ Following' : 'Follow'}
+                  </Button>
+
+                  {connectionStatus === 'connected' || isConnected ? (
+                    <Badge variant="primary" size="md">Connected ⚡</Badge>
+                  ) : connectionStatus === 'pending_outgoing' ? (
+                    <Button variant="ghost" size="sm" disabled>
+                      Request Sent ⏳
+                    </Button>
+                  ) : connectionStatus === 'pending_incoming' ? (
+                    <Button variant="primary" size="sm" onClick={handleConnect} isLoading={followLoading}>
+                      Accept Request 🎉
+                    </Button>
+                  ) : (
+                    <Button variant="ghost" size="sm" onClick={handleConnect} isLoading={followLoading}>
+                      Connect
+                    </Button>
+                  )}
+                </>
               )
             )}
           </div>

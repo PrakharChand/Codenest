@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { aiApi } from '../../api/aiApi';
 import { useConnection } from '../../context/ConnectionContext';
+import { useRelationship } from '../../context/RelationshipContext';
 import Card from '../atoms/Card';
 import Avatar from '../atoms/Avatar';
 import Button from '../atoms/Button';
@@ -10,6 +11,7 @@ export default function AIConnectionSuggestions() {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const { isFollowing, isActionLoading, toggleFollow } = useConnection();
+  const { userRelationships } = useRelationship();
 
   const loadSuggestions = async (refresh = false) => {
     setLoading(true);
@@ -27,7 +29,20 @@ export default function AIConnectionSuggestions() {
     loadSuggestions();
   }, []);
 
+  // Filter out any candidates that become followed or connected anywhere in app
+  useEffect(() => {
+    setSuggestions((prev) =>
+      prev.filter((item) => {
+        const rel = userRelationships[item.user_id];
+        if (!rel) return true;
+        return !(rel.isFollowing || rel.isConnected || rel.connectionStatus === 'following' || rel.connectionStatus === 'connected' || rel.connectionStatus === 'pending_outgoing');
+      })
+    );
+  }, [userRelationships]);
+
   const handleConnect = async (item) => {
+    // Immediately filter out candidate from UI
+    setSuggestions((prev) => prev.filter((s) => s.user_id !== item.user_id));
     await toggleFollow({ id: item.user_id, name: item.name });
   };
 

@@ -178,8 +178,8 @@ async function getSmartRecommendations(userId, options = {}) {
         -- Exclude pending connection requests
         AND NOT EXISTS (
           SELECT 1 FROM connection_requests cr
-          WHERE (cr.requester_id = $1 AND cr.requestee_id = u.id)
-             OR (cr.requester_id = u.id AND cr.requestee_id = $1)
+          WHERE ((cr.requester_id = $1 AND cr.requestee_id = u.id)
+              OR (cr.requester_id = u.id AND cr.requestee_id = $1))
              AND cr.status = 'pending'
         )
         ${cooldownClause}
