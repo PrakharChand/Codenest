@@ -24,6 +24,8 @@ const UserProfilePage = lazy(() => import('../pages/UserProfilePage'));
 const EditProfilePage = lazy(() => import('../pages/EditProfilePage'));
 const CommunitiesPage = lazy(() => import('../pages/CommunitiesPage'));
 const CommunityDetailPage = lazy(() => import('../pages/CommunityDetailPage'));
+const CommunityTopicPage = lazy(() => import('../pages/CommunityTopicPage'));
+const CommunityAdminPage = lazy(() => import('../pages/CommunityAdminPage'));
 const NotificationsPage = lazy(() => import('../pages/NotificationsPage'));
 const ConnectionsPage = lazy(() => import('../pages/ConnectionsPage'));
 const ExplorePage = lazy(() => import('../pages/ExplorePage'));
@@ -71,6 +73,8 @@ export default function AppRoutes() {
         <Route path="/ai-assistant" element={<ProtectedRoute><AppShell><AIAssistantPage /></AppShell></ProtectedRoute>} />
         <Route path="/communities" element={<ProtectedRoute><AppShell><CommunitiesPage /></AppShell></ProtectedRoute>} />
         <Route path="/communities/:id" element={<ProtectedRoute><AppShell><CommunityDetailPage /></AppShell></ProtectedRoute>} />
+        <Route path="/communities/:id/topics/:topicId" element={<ProtectedRoute><AppShell><CommunityTopicPage /></AppShell></ProtectedRoute>} />
+        <Route path="/communities/:id/admin" element={<ProtectedRoute><AppShell><CommunityAdminPage /></AppShell></ProtectedRoute>} />
         <Route path="/connections" element={<ProtectedRoute><AppShell><ConnectionsPage /></AppShell></ProtectedRoute>} />
         <Route path="/explore" element={<ProtectedRoute><AppShell><ExplorePage /></AppShell></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><AppShell><NotificationsPage /></AppShell></ProtectedRoute>} />
