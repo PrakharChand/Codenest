@@ -5,7 +5,7 @@
  * Provides:
  *  - Instant load from cache on repeat views
  *  - Stale-While-Revalidate (SWR) background refresh
- *  - Deduplication of concurrent in-flight requests
+ *  - Query-parameterized cache keys (isolated per author_id, tag, search query)
  *  - Cache invalidation after posting, updating, or deleting
  *  - Optimistic updates for post removal & like/unlike toggles
  *  - Subscriber listener pattern for seamless React UI syncing
@@ -21,10 +21,14 @@ class FeedCacheManager {
   }
 
   // Generate deterministic cache key for query params
+  // Crucial fix: include author_id, tag, search to prevent profile/feed cache collision!
   getKey(params = {}) {
     const page = params.page || 1;
     const limit = params.limit || 20;
-    return `feed_p${page}_l${limit}`;
+    const authorId = params.author_id ? `_auth${params.author_id}` : '';
+    const tag = params.tag ? `_tag${params.tag}` : '';
+    const search = params.search ? `_q${params.search}` : '';
+    return `feed_p${page}_l${limit}${authorId}${tag}${search}`;
   }
 
   // Get raw cached entry
@@ -99,7 +103,7 @@ class FeedCacheManager {
     this.notify();
   }
 
-  // Optimistically prepend a newly created post to Page 1 cache
+  // Optimistically prepend a newly created post to Page 1 main feed cache
   prependPost(newPost) {
     const page1Key = 'feed_p1_l20';
     const entry = this.cache.get(page1Key);

@@ -55,8 +55,28 @@ async function listPosts(req, res) {
   const where  = [`p.visibility = 'public'`];
 
   if (author_id) {
-    params.push(parseInt(author_id, 10));
-    where.push(`p.user_id = $${params.length}`);
+    const authId = parseInt(author_id, 10);
+    params.push(authId);
+    const authParamIdx = params.length;
+
+    // Fetch author name to also include posts where this user is tagged by name
+    const { rows: uRows } = await query('SELECT name FROM users WHERE id = $1', [authId]);
+    const uName = uRows[0]?.name ? uRows[0].name.toLowerCase().trim() : null;
+
+    if (uName) {
+      params.push(uName);
+      const nameParamIdx = params.length;
+      where.push(`(
+        p.user_id = $${authParamIdx}
+        OR EXISTS (
+          SELECT 1 FROM post_tags pt
+          JOIN tags t ON t.id = pt.tag_id
+          WHERE pt.post_id = p.id AND LOWER(t.name) = $${nameParamIdx}
+        )
+      )`);
+    } else {
+      where.push(`p.user_id = $${authParamIdx}`);
+    }
   }
 
   if (tag) {

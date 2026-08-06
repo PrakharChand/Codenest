@@ -15,6 +15,7 @@ export default function PaginatedList({
   limit = 20,
   className = '',
   refreshTrigger = 0,
+  queryParams = {},
 }) {
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit, total: 0, totalPages: 1, hasNext: false });
@@ -23,19 +24,29 @@ export default function PaginatedList({
 
   const loadData = useCallback(
     async (pageToLoad = 1) => {
-      // Check if cache already has data for this query so we don't show full loading skeleton
-      const cached = feedCache.get({ page: pageToLoad, limit });
+      const currentParams = { page: pageToLoad, limit, ...queryParams };
+      const cached = feedCache.get(currentParams);
       if (!cached) {
         setLoading(true);
+      } else {
+        setData(cached.data || []);
+        if (cached.pagination) {
+          setPagination(cached.pagination);
+        }
+        setLoading(false);
       }
       setError(null);
 
       try {
-        const response = await fetchData({ page: pageToLoad, limit });
-        setData(response.data || []);
-        setPagination(response.pagination || { page: pageToLoad, limit, total: 0, totalPages: 1, hasNext: false });
+        const response = await fetchData({ page: pageToLoad, limit, ...queryParams });
+        const resData = response.data || [];
+        const resPag = response.pagination || { page: pageToLoad, limit, total: resData.length, totalPages: 1, hasNext: false };
+        setData(resData);
+        setPagination(resPag);
+
+        // Store in feedCache with explicit query params
+        feedCache.set(currentParams, { data: resData, pagination: resPag });
       } catch (err) {
-        // If we already had cached data displayed, don't break UI on background fetch failure
         if (!cached) {
           setError(err.message || 'Failed to load items.');
         }
@@ -43,17 +54,18 @@ export default function PaginatedList({
         setLoading(false);
       }
     },
-    [fetchData, limit]
+    [fetchData, limit, JSON.stringify(queryParams)]
   );
 
   useEffect(() => {
     loadData(1);
   }, [loadData, refreshTrigger]);
 
-  // Subscribe to feedCache mutations for instant UI synchronization (optimistic likes/deletes)
+  // Subscribe to feedCache mutations for instant UI synchronization
   useEffect(() => {
+    const currentParams = { page: pagination.page || 1, limit, ...queryParams };
     const unsubscribe = feedCache.subscribe(() => {
-      const cached = feedCache.get({ page: pagination.page || 1, limit });
+      const cached = feedCache.get(currentParams);
       if (cached) {
         setData(cached.data || []);
         if (cached.pagination) {
@@ -62,7 +74,7 @@ export default function PaginatedList({
       }
     });
     return unsubscribe;
-  }, [pagination.page, limit]);
+  }, [pagination.page, limit, JSON.stringify(queryParams)]);
 
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {

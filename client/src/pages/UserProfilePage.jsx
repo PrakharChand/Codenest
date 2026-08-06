@@ -213,7 +213,9 @@ export default function UserProfilePage() {
       <div className="space-y-4">
         <h2 className="text-xl font-bold text-main">Posts by {profile.name}</h2>
         <PaginatedList
-          fetchData={(params) => postsApi.list({ ...params, author_id: id })}
+          key={`user-profile-posts-${targetId}`}
+          queryParams={{ author_id: targetId }}
+          fetchData={(params) => postsApi.list({ ...params, author_id: targetId })}
           renderItem={(post) => <PostCard key={post.id} post={post} />}
           emptyTitle="No posts yet"
           emptyDescription="This user hasn't published any public posts yet."
