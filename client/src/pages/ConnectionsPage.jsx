@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth }   from '../context/AuthContext';
 import { useConnection } from '../context/ConnectionContext';
+import { useRelationship } from '../context/RelationshipContext';
 import { usersApi }  from '../api/usersApi';
 import Avatar        from '../components/atoms/Avatar';
 import Badge         from '../components/atoms/Badge';
@@ -96,14 +97,15 @@ const TABS = [
 
 function ConnectionUserCard({ targetUser, onFollowToggle }) {
   const { user: me } = useAuth();
-  const { isFollowing, isMutual: getIsMutual, isActionLoading, toggleFollow, registerUserStatus } = useConnection();
+  const { isFollowing: getIsFollowing, isMutual: getIsMutual, isActionLoading, toggleFollow } = useConnection();
+  const { getUserRelationshipState } = useRelationship();
 
-  useEffect(() => {
-    registerUserStatus(targetUser);
-  }, [targetUser, registerUserStatus]);
+  const cachedRel = getUserRelationshipState(targetUser.id);
+  const following = cachedRel?.isFollowing !== undefined
+    ? cachedRel.isFollowing
+    : getIsFollowing(targetUser.id, Boolean(targetUser.isFollowing ?? targetUser.isConnected ?? false));
 
-  const following = isFollowing(targetUser.id, targetUser.isFollowing ?? targetUser.isConnected ?? false);
-  const mutual = getIsMutual(targetUser.id, targetUser.isMutual ?? false);
+  const mutual = getIsMutual(targetUser.id, Boolean(targetUser.isMutual ?? false)) || Boolean(targetUser.isMutual || targetUser.isConnected);
   const loading = isActionLoading(targetUser.id);
 
   const isSelf = me && me.id === targetUser.id;

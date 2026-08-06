@@ -31,7 +31,7 @@ const express         = require('express');
 const router          = express.Router();
 
 const asyncHandler    = require('../utils/asyncHandler');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, optionalAuth } = require('../middleware/auth');
 
 const { completeOnboarding } = require('../controllers/authController');
 const { connect, disconnect, listConnections, listFollowers, listMutual } = require('../controllers/connectionController');
@@ -46,26 +46,26 @@ const {
 
 // ── Static / me routes (must come before /:id to avoid param shadowing) ──
 
-router.get('/search',                              asyncHandler(searchUsers));
-router.get('/explore',                             asyncHandler(exploreUsers));
-router.post('/me/onboarding/complete', requireAuth, asyncHandler(completeOnboarding));
-router.get('/me/requests/incoming',    requireAuth, asyncHandler(incomingRequests));
-router.get('/me/requests/outgoing',    requireAuth, asyncHandler(outgoingRequests));
-router.get('/me/activity',             requireAuth, asyncHandler(getUserActivity));
-router.delete('/me',                   requireAuth, asyncHandler(deleteAccount));
+router.get('/search',                   optionalAuth, asyncHandler(searchUsers));
+router.get('/explore',                  optionalAuth, asyncHandler(exploreUsers));
+router.post('/me/onboarding/complete',  requireAuth,  asyncHandler(completeOnboarding));
+router.get('/me/requests/incoming',     requireAuth,  asyncHandler(incomingRequests));
+router.get('/me/requests/outgoing',     requireAuth,  asyncHandler(outgoingRequests));
+router.get('/me/activity',              requireAuth,  asyncHandler(getUserActivity));
+router.delete('/me',                    requireAuth,  asyncHandler(deleteAccount));
 
 // ── Parameterised user routes ─────────────────────────────────────────────
 
-router.get('/:id',             asyncHandler(getUserProfile));
-router.put('/:id', requireAuth, asyncHandler(updateProfile));
-router.delete('/:id', requireAuth, asyncHandler(deleteAccount));
+router.get('/:id',                      optionalAuth, asyncHandler(getUserProfile));
+router.put('/:id',                      requireAuth,  asyncHandler(updateProfile));
+router.delete('/:id',                   requireAuth,  asyncHandler(deleteAccount));
 
 // Follow / Unfollow
-router.post('/:id/connect',    requireAuth, asyncHandler(connect));
-router.delete('/:id/connect',  requireAuth, asyncHandler(disconnect));
-router.get('/:id/connections',             asyncHandler(listConnections));
-router.get('/:id/followers',               asyncHandler(listFollowers));
-router.get('/:id/mutual',                  asyncHandler(listMutual));
+router.post('/:id/connect',             requireAuth,  asyncHandler(connect));
+router.delete('/:id/connect',           requireAuth,  asyncHandler(disconnect));
+router.get('/:id/connections',          optionalAuth, asyncHandler(listConnections));
+router.get('/:id/followers',            optionalAuth, asyncHandler(listFollowers));
+router.get('/:id/mutual',               optionalAuth, asyncHandler(listMutual));
 
 // Connection Requests
 router.post('/:id/request',          requireAuth, asyncHandler(sendRequest));

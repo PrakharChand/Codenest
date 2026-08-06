@@ -32,7 +32,7 @@ const communityPostValidation = [
 ];
 
 // Public (optional auth for is_member computation)
-router.get('/',      asyncHandler(listCommunities));
+router.get('/',      optionalAuth, asyncHandler(listCommunities));
 router.get('/:id',   optionalAuth, asyncHandler(getCommunity));
 router.get('/:id/posts', asyncHandler(getPostsByCommunity));
 

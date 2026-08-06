@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import Avatar from '../atoms/Avatar';
 import Badge from '../atoms/Badge';
@@ -6,39 +6,41 @@ import Button from '../atoms/Button';
 import Card from '../atoms/Card';
 import { useAuth } from '../../context/AuthContext';
 import { useConnection } from '../../context/ConnectionContext';
+import { useRelationship } from '../../context/RelationshipContext';
 
 /**
  * UserCard — premium developer discovery card.
- *
- * Props:
- *   targetUser   — user object from /api/users/explore or /search
- *   onConnectToggle(id, newState) — optional callback after follow toggle
- *   compact      — narrower layout for sidebars/lists
  */
 export default function UserCard({ targetUser, onConnectToggle, compact = false }) {
   const { user: currentUser } = useAuth();
   const {
-    isFollowing,
+    isFollowing: getIsFollowing,
     isMutual: getIsMutual,
     getRequestStatus,
     isActionLoading,
     toggleFollow,
     sendConnectionRequest,
-    registerUserStatus,
   } = useConnection();
-
-  // Register target user's initial state with ConnectionContext
-  useEffect(() => {
-    registerUserStatus(targetUser);
-  }, [targetUser, registerUserStatus]);
-
-  const following = isFollowing(targetUser.id, targetUser.isFollowing || targetUser.isConnected || false);
-  const mutual = getIsMutual(targetUser.id, targetUser.isMutual || false);
-  const reqStatus = getRequestStatus(targetUser.id);
-  const reqSent = reqStatus === 'outgoing';
-  const loadAction = isActionLoading(targetUser.id);
+  const { getUserRelationshipState } = useRelationship();
 
   const isSelf = currentUser && currentUser.id === targetUser.id;
+  const cachedRel = getUserRelationshipState(targetUser.id);
+
+  const following = cachedRel?.isFollowing !== undefined
+    ? cachedRel.isFollowing
+    : getIsFollowing(targetUser.id, Boolean(targetUser.isFollowing || targetUser.isConnected || targetUser.isMutual));
+
+  const isConnected = cachedRel?.isConnected !== undefined
+    ? cachedRel.isConnected
+    : Boolean(targetUser.isConnected || (targetUser.isFollowing && targetUser.followsMe));
+
+  const mutual = getIsMutual(targetUser.id, Boolean(targetUser.isMutual)) || isConnected || (following && targetUser.followsMe);
+
+  const connectionStatus = cachedRel?.connectionStatus || targetUser.connectionStatus || (isConnected || mutual ? 'connected' : following ? 'following' : 'none');
+
+  const reqStatus = getRequestStatus(targetUser.id);
+  const reqSent = connectionStatus === 'pending_outgoing' || reqStatus === 'outgoing';
+  const loadAction = isActionLoading(targetUser.id);
 
   // ── Follow / Unfollow ──────────────────────────────────────────────────
   const handleFollow = async (e) => {
@@ -51,7 +53,7 @@ export default function UserCard({ targetUser, onConnectToggle, compact = false 
   // ── Connection Request ─────────────────────────────────────────────────
   const handleRequest = async (e) => {
     e.preventDefault();
-    if (isSelf || loadAction || reqSent) return;
+    if (isSelf || loadAction || reqSent || isConnected || mutual) return;
     await sendConnectionRequest(targetUser);
   };
 
@@ -68,7 +70,7 @@ export default function UserCard({ targetUser, onConnectToggle, compact = false 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <p className="text-sm font-semibold text-[var(--text-main)] truncate">{targetUser.name}</p>
-              {isMutual && <Badge variant="primary" size="sm">Mutual</Badge>}
+              {mutual && <Badge variant="primary" size="sm">Mutual</Badge>}
             </div>
             {targetUser.bio && (
               <p className="text-xs text-[var(--text-muted)] truncate">{targetUser.bio}</p>
@@ -79,11 +81,11 @@ export default function UserCard({ targetUser, onConnectToggle, compact = false 
         {!isSelf && currentUser && (
           <Button
             size="sm"
-            variant={following ? 'ghost' : 'primary'}
+            variant={following ? 'secondary' : 'primary'}
             onClick={handleFollow}
             isLoading={loadAction}
           >
-            {following ? 'Following' : 'Follow'}
+            {following ? '✓ Following' : 'Follow'}
           </Button>
         )}
       </Card>
@@ -109,8 +111,8 @@ export default function UserCard({ targetUser, onConnectToggle, compact = false 
             <h3 className="font-bold text-[var(--text-main)] group-hover:text-[var(--color-primary)] transition-colors truncate">
               {targetUser.name}
             </h3>
-            {mutual && <Badge variant="primary" size="sm">Mutual</Badge>}
-            {reqSent   && <Badge variant="warning" size="sm">Request sent</Badge>}
+            {mutual  && <Badge variant="primary" size="sm">Mutual</Badge>}
+            {reqSent && <Badge variant="warning" size="sm">Request sent</Badge>}
           </div>
           {targetUser.bio ? (
             <p className="text-xs text-[var(--text-muted)] mt-0.5 line-clamp-2 leading-relaxed">
@@ -158,7 +160,16 @@ export default function UserCard({ targetUser, onConnectToggle, compact = false 
           >
             {following ? '✓ Following' : 'Follow'}
           </Button>
-          {!reqSent ? (
+
+          {isConnected || mutual ? (
+            <Badge variant="primary" size="sm" className="flex-1 text-center py-1.5 justify-center">
+              ✓ Connected
+            </Badge>
+          ) : reqSent ? (
+            <span className="flex-1 text-center text-xs text-[var(--text-subtle)] font-medium py-1.5">
+              Request pending ⏳
+            </span>
+          ) : (
             <Button
               variant="ghost"
               size="sm"
@@ -169,10 +180,6 @@ export default function UserCard({ targetUser, onConnectToggle, compact = false 
             >
               Connect
             </Button>
-          ) : (
-            <span className="flex-1 text-center text-xs text-[var(--text-subtle)] font-medium">
-              Request pending
-            </span>
           )}
         </div>
       )}
