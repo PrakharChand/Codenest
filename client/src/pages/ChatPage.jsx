@@ -339,6 +339,16 @@ export default function ChatPage() {
               <h2 className="text-lg font-bold text-main font-mono">Messages</h2>
               <Badge variant="primary" size="sm">Real-time</Badge>
             </div>
+
+            <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20 text-[11px] text-muted space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-primary">
+                <span>🔒 Mutual Connections Only</span>
+              </div>
+              <p className="leading-normal">
+                Live chat is enabled exclusively between developers who follow each other.
+              </p>
+            </div>
+
             <input
               type="search"
               placeholder="Search conversations..."
@@ -611,6 +621,15 @@ export default function ChatPage() {
         title="Start New Chat"
       >
         <div className="space-y-4">
+          <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 text-xs text-muted space-y-1">
+            <div className="flex items-center gap-1.5 font-bold text-primary">
+              <span>🔒 Mutual Connections Only</span>
+            </div>
+            <p className="leading-relaxed">
+              Only developers who follow each other (mutual connections) can chat. Unconnected or one-way connections will not appear here.
+            </p>
+          </div>
+
           <Input
             placeholder="Search mutual connections..."
             value={modalSearch}
