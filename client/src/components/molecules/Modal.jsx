@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Button from '../atoms/Button';
 
 export default function Modal({ isOpen, onClose, title, children, footer }) {
@@ -6,21 +7,28 @@ export default function Modal({ isOpen, onClose, title, children, footer }) {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && isOpen) onClose();
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
-  return (
+  const modalContent = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm transition-opacity duration-200"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
+      onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-xl glass p-6 shadow-xl text-main space-y-4"
+        className="w-full max-w-lg rounded-xl glass p-6 shadow-2xl text-main space-y-4 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-main pb-3">
@@ -38,4 +46,6 @@ export default function Modal({ isOpen, onClose, title, children, footer }) {
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
