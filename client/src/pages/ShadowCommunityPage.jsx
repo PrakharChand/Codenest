@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { shadowApi } from '../api/shadowApi';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/atoms/Card';
@@ -32,9 +33,10 @@ function useDebounce(value, delay = 350) {
 
 export default function ShadowCommunityPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
   const [content, setContent] = useState('');
   const [selectedTopic, setSelectedTopic] = useState('General');
-  const [selectedCommunityId, setSelectedCommunityId] = useState(null);
   const [activeFilterTopic, setActiveFilterTopic] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 350);
@@ -70,7 +72,7 @@ export default function ShadowCommunityPage() {
 
     setCreatingComm(true);
     try {
-      await shadowApi.createCommunity({
+      const newComm = await shadowApi.createCommunity({
         name: commName.trim(),
         description: commDesc.trim(),
         type: commType,
@@ -81,6 +83,9 @@ export default function ShadowCommunityPage() {
       setCommDesc('');
       setCommType('public');
       setRefreshTrigger((prev) => prev + 1);
+      if (newComm?.id) {
+        navigate(`/shadow/communities/${newComm.id}`);
+      }
     } catch (err) {
       toast.error(err.message || 'Failed to create anonymous community.');
     } finally {
@@ -98,7 +103,6 @@ export default function ShadowCommunityPage() {
       await shadowApi.postToCommunity({
         content: content.trim(),
         topic: selectedTopic,
-        community_id: selectedCommunityId,
       });
       setContent('');
       setSelectedTopic('General');
@@ -111,7 +115,8 @@ export default function ShadowCommunityPage() {
     }
   };
 
-  const handleJoinCommunity = async (commId, commName) => {
+  const handleJoinCommunity = async (e, commId, commName) => {
+    e.stopPropagation();
     try {
       await shadowApi.joinCommunity(commId);
       toast.success(`Joined ${commName}!`);
@@ -121,28 +126,17 @@ export default function ShadowCommunityPage() {
     }
   };
 
-  const handleLeaveCommunity = async (commId, commName) => {
-    try {
-      await shadowApi.leaveCommunity(commId);
-      toast.success(`Left ${commName}`);
-      setRefreshTrigger((prev) => prev + 1);
-    } catch (err) {
-      toast.error(err.message || 'Failed to leave community.');
-    }
-  };
-
   const fetchParams = (params) => {
     const p = { ...params };
     if (debouncedSearch) p.search = debouncedSearch;
     if (activeFilterTopic !== 'all') p.topic = activeFilterTopic;
-    if (selectedCommunityId) p.community_id = selectedCommunityId;
     return shadowApi.getCommunity(p);
   };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <SEO
-        title="Anonymous Developer Community — Nest Shadow"
+        title="Anonymous Developer Communities — Nest Shadow"
         description="Create and join custom anonymous developer communities on Nest Shadow."
       />
 
@@ -167,72 +161,66 @@ export default function ShadowCommunityPage() {
         </div>
       </Card>
 
-      {/* ── Custom Anonymous Communities Carousel / Bar ──────────────────── */}
+      {/* ── Custom Anonymous Communities Grid List ───────────────────────── */}
       {shadowCommunities.length > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold text-main uppercase tracking-wider">
-              Anonymous Groups ({shadowCommunities.length})
-            </h3>
-            {selectedCommunityId && (
-              <button
-                onClick={() => setSelectedCommunityId(null)}
-                className="text-xs text-primary font-semibold hover:underline"
-              >
-                Clear Community Filter ✕
-              </button>
-            )}
-          </div>
+          <h3 className="text-xs font-bold text-main uppercase tracking-wider">
+            Anonymous Community Groups ({shadowCommunities.length})
+          </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {shadowCommunities.map((comm) => (
               <Card
                 key={comm.id}
                 hoverable
-                onClick={() => setSelectedCommunityId(selectedCommunityId === comm.id ? null : comm.id)}
-                className={`p-4 flex flex-col justify-between space-y-3 transition-all cursor-pointer ${
-                  selectedCommunityId === comm.id
-                    ? 'border-primary ring-2 ring-primary/20 bg-primary/5'
-                    : 'border-main'
-                }`}
+                className="p-5 flex flex-col justify-between space-y-4"
               >
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between gap-1">
-                    <h4 className="text-sm font-bold text-main truncate">{comm.name}</h4>
-                    <Badge variant={comm.type === 'private' ? 'warning' : 'secondary'} size="sm">
-                      {comm.type === 'private' ? '🔒 Private' : '🌐 Public'}
+                <Link to={`/shadow/communities/${comm.id}`} className="space-y-2 block">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap min-w-0">
+                      <h4 className="text-base font-bold text-main hover:text-primary transition-colors truncate">
+                        {comm.name}
+                      </h4>
+                      <Badge variant={comm.type === 'private' ? 'warning' : 'secondary'} size="sm">
+                        {comm.type === 'private' ? '🔒 Private' : '🌐 Public'}
+                      </Badge>
+                    </div>
+                    <Badge variant="default" size="sm" className="shrink-0">
+                      👥 {comm.member_count || 1} member{comm.member_count !== 1 ? 's' : ''}
                     </Badge>
                   </div>
-                  {comm.description && (
-                    <p className="text-xs text-muted line-clamp-2">{comm.description}</p>
-                  )}
-                </div>
 
-                <div className="flex items-center justify-between pt-2 border-t border-main text-xs">
-                  <span className="text-subtle">👥 {comm.member_count || 1} members</span>
-                  {comm.is_member ? (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleLeaveCommunity(comm.id, comm.name);
-                      }}
-                    >
-                      Joined ✓
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleJoinCommunity(comm.id, comm.name);
-                      }}
-                    >
-                      Join Group
-                    </Button>
+                  {comm.description && (
+                    <p className="text-sm text-muted line-clamp-2">{comm.description}</p>
                   )}
+                </Link>
+
+                <div className="flex items-center justify-between pt-3 border-t border-main">
+                  {comm.is_member ? (
+                    <Badge variant="success" size="sm">
+                      Joined ✓
+                    </Badge>
+                  ) : (
+                    <span className="text-xs text-subtle">Not joined</span>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    {comm.is_member ? (
+                      <Link to={`/shadow/communities/${comm.id}`}>
+                        <Button size="sm" variant="primary">
+                          Enter Community →
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={(e) => handleJoinCommunity(e, comm.id, comm.name)}
+                      >
+                        Join Group
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </Card>
             ))}
@@ -249,7 +237,7 @@ export default function ShadowCommunityPage() {
           </span>
           <input
             type="search"
-            placeholder="Search anonymous posts or technical insights..."
+            placeholder="Search global anonymous posts or technical insights..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-surface-subtle border border-main rounded-lg py-2 pl-9 pr-8 text-sm text-main placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -282,44 +270,24 @@ export default function ShadowCommunityPage() {
         </div>
       </div>
 
-      {/* ── Anonymous Post Composer ──────────────────────────────────────── */}
+      {/* ── Global Anonymous Post Composer ───────────────────────────────── */}
       {user && (
         <Card className="p-6 space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <h3 className="text-base font-bold text-main">Post Anonymously</h3>
-            <div className="flex items-center gap-3">
-              {shadowCommunities.length > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-subtle font-semibold">Group:</span>
-                  <select
-                    value={selectedCommunityId || ''}
-                    onChange={(e) => setSelectedCommunityId(e.target.value ? parseInt(e.target.value, 10) : null)}
-                    className="h-8 px-2 text-xs bg-surface-subtle border border-main rounded-lg text-main focus:outline-none focus:ring-2 focus:ring-primary/30 font-semibold"
-                  >
-                    <option value="">🌐 Global Feed</option>
-                    {shadowCommunities.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-subtle font-semibold">Topic:</span>
-                <select
-                  value={selectedTopic}
-                  onChange={(e) => setSelectedTopic(e.target.value)}
-                  className="h-8 px-2 text-xs bg-surface-subtle border border-main rounded-lg text-main focus:outline-none focus:ring-2 focus:ring-primary/30 font-semibold"
-                >
-                  <option value="General"># General</option>
-                  <option value="Architecture"># Architecture</option>
-                  <option value="System Design"># System Design</option>
-                  <option value="Code Quality"># Code Quality</option>
-                  <option value="Career"># Career & Salary</option>
-                </select>
-              </div>
+            <h3 className="text-base font-bold text-main">Post Anonymously to Global Lounge</h3>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-subtle font-semibold">Topic:</span>
+              <select
+                value={selectedTopic}
+                onChange={(e) => setSelectedTopic(e.target.value)}
+                className="h-8 px-2 text-xs bg-surface-subtle border border-main rounded-lg text-main focus:outline-none focus:ring-2 focus:ring-primary/30 font-semibold"
+              >
+                <option value="General"># General</option>
+                <option value="Architecture"># Architecture</option>
+                <option value="System Design"># System Design</option>
+                <option value="Code Quality"># Code Quality</option>
+                <option value="Career"># Career & Salary</option>
+              </select>
             </div>
           </div>
 
@@ -343,43 +311,46 @@ export default function ShadowCommunityPage() {
       )}
 
       {/* ── Anonymous Community Feed ─────────────────────────────────────── */}
-      <PaginatedList
-        key={`${debouncedSearch}-${activeFilterTopic}-${selectedCommunityId}-${refreshTrigger}`}
-        refreshTrigger={refreshTrigger}
-        fetchData={fetchParams}
-        renderItem={(post) => (
-          <Card key={post.id} className="p-5 space-y-3 hover:border-primary/30 transition-all">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <Avatar
-                  src={post.author_anonymous_avatar_url || post.anonymous_avatar_url}
-                  name={post.author_anonymous_username || post.anonymous_username || 'Anonymous'}
-                  size="sm"
-                />
-                <div>
-                  <span className="text-sm font-semibold font-mono text-main">
-                    {post.author_anonymous_username || post.anonymous_username || 'Anonymous'}
-                  </span>
-                  <span className="text-xs text-subtle block">
-                    {post.created_at
-                      ? formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
-                      : 'recently'}
-                  </span>
+      <div className="space-y-4">
+        <h3 className="text-lg font-bold text-main">Global Lounge Feed</h3>
+        <PaginatedList
+          key={`${debouncedSearch}-${activeFilterTopic}-${refreshTrigger}`}
+          refreshTrigger={refreshTrigger}
+          fetchData={fetchParams}
+          renderItem={(post) => (
+            <Card key={post.id} className="p-5 space-y-3 hover:border-primary/30 transition-all">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <Avatar
+                    src={post.author_anonymous_avatar_url || post.anonymous_avatar_url}
+                    name={post.author_anonymous_username || post.anonymous_username || 'Anonymous'}
+                    size="sm"
+                  />
+                  <div>
+                    <span className="text-sm font-semibold font-mono text-main">
+                      {post.author_anonymous_username || post.anonymous_username || 'Anonymous'}
+                    </span>
+                    <span className="text-xs text-subtle block">
+                      {post.created_at
+                        ? formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
+                        : 'recently'}
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              <Badge variant="secondary" size="sm">
-                🕵️ Shadow Post
-              </Badge>
-            </div>
-            <p className="text-sm text-muted whitespace-pre-line leading-relaxed">
-              {post.content}
-            </p>
-          </Card>
-        )}
-        emptyTitle={debouncedSearch ? `No anonymous posts match "${debouncedSearch}"` : "No posts in anonymous community yet"}
-        emptyDescription={debouncedSearch ? "Try a different search term or topic filter." : "Be the first developer to start a discussion!"}
-      />
+                <Badge variant="secondary" size="sm">
+                  🕵️ Shadow Post
+                </Badge>
+              </div>
+              <p className="text-sm text-muted whitespace-pre-line leading-relaxed">
+                {post.content}
+              </p>
+            </Card>
+          )}
+          emptyTitle={debouncedSearch ? `No anonymous posts match "${debouncedSearch}"` : "No posts in anonymous community yet"}
+          emptyDescription={debouncedSearch ? "Try a different search term or topic filter." : "Be the first developer to start a discussion!"}
+        />
+      </div>
 
       {/* ── Create Anonymous Community Modal ────────────────────────────── */}
       <Modal

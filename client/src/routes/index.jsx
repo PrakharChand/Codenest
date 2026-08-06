@@ -44,6 +44,7 @@ const MySubmissionsPage = lazy(() => import('../pages/MySubmissionsPage'));
 const MyReviewsPage = lazy(() => import('../pages/MyReviewsPage'));
 const ShadowProfilePage = lazy(() => import('../pages/ShadowProfilePage'));
 const ShadowCommunityPage = lazy(() => import('../pages/ShadowCommunityPage'));
+const ShadowCommunityDetailPage = lazy(() => import('../pages/ShadowCommunityDetailPage'));
 
 const PageLoader = () => (
   <div className="flex min-h-[60vh] items-center justify-center bg-[var(--bg-base)] text-main">
@@ -91,6 +92,7 @@ export default function AppRoutes() {
         <Route path="/shadow/my-reviews" element={<ShadowRoute><AppShell><MyReviewsPage /></AppShell></ShadowRoute>} />
         <Route path="/shadow/me" element={<ShadowRoute><AppShell><ShadowProfilePage /></AppShell></ShadowRoute>} />
         <Route path="/shadow/community" element={<ShadowRoute><AppShell><ShadowCommunityPage /></AppShell></ShadowRoute>} />
+        <Route path="/shadow/communities/:id" element={<ShadowRoute><AppShell><ShadowCommunityDetailPage /></AppShell></ShadowRoute>} />
         <Route path="/shadow/ai-mentor" element={<ShadowRoute><AppShell><AIAssistantPage /></AppShell></ShadowRoute>} />
 
         {/* ─── Fallback Catch-All Route ──────────────────────────────────────── */}
