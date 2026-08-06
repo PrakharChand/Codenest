@@ -1,35 +1,40 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
 import { notificationsApi } from '../api/notificationsApi';
+import { useTheme } from '../context/ThemeContext';
 import Card from '../components/atoms/Card';
 import Button from '../components/atoms/Button';
 import Badge from '../components/atoms/Badge';
 import Spinner from '../components/atoms/Spinner';
 import EmptyState from '../components/molecules/EmptyState';
+import SEO from '../components/atoms/SEO';
 
 export default function NotificationsPage() {
+  const { isShadow } = useTheme();
+  const contextMode = isShadow ? 'shadow' : 'public';
+
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await notificationsApi.list('public');
+      const res = await notificationsApi.list(contextMode);
       setNotifications(res.data || []);
     } catch (err) {
       setError(err.message || 'Failed to load notifications.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [contextMode]);
 
   useEffect(() => {
     loadNotifications();
-  }, []);
+  }, [loadNotifications]);
 
   const handleMarkRead = async (id) => {
     try {
@@ -38,13 +43,13 @@ export default function NotificationsPage() {
         prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
       );
     } catch (err) {
-      // Ignore
+      // Quiet fail
     }
   };
 
   const handleMarkAllRead = async () => {
     try {
-      await notificationsApi.markAllRead('public');
+      await notificationsApi.markAllRead(contextMode);
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
       toast.success('All notifications marked as read');
     } catch (err) {
@@ -52,16 +57,34 @@ export default function NotificationsPage() {
     }
   };
 
+  // ── Target URL Navigation (Strict Identity & Focus Mode Guard) ────────────
+  // Shadow Mode: Never link to user profiles! Always navigate directly to code submission / review activity.
+  // Feed Mode: Connection updates navigate to /connections dashboard instead of user profile.
   const getTargetUrl = (notif) => {
-    switch (notif.type) {
-      case 'like':
-      case 'comment':
-      case 'share':
-        return `/posts/${notif.reference_id}`;
-      case 'connection':
-        return `/users/${notif.reference_id}`;
-      default:
-        return '#';
+    if (isShadow) {
+      switch (notif.type) {
+        case 'review':
+        case 'comment':
+        case 'shadow_comment':
+        case 'shadow_reply':
+        case 'mention':
+          return notif.reference_id ? `/shadow/submissions/${notif.reference_id}` : '/shadow/my-submissions';
+        default:
+          return '/shadow/my-submissions';
+      }
+    } else {
+      switch (notif.type) {
+        case 'like':
+        case 'comment':
+        case 'share':
+          return notif.reference_id ? `/posts/${notif.reference_id}` : '/feed';
+        case 'connection':
+        case 'connection_request':
+        case 'connection_accepted':
+          return '/connections';
+        default:
+          return '/feed';
+      }
     }
   };
 
@@ -75,10 +98,22 @@ export default function NotificationsPage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
+      <SEO
+        title={isShadow ? 'Shadow Notifications — Code Review Focus' : 'Notifications — CodeNest'}
+        description="View updates, code reviews, and notifications on CodeNest."
+      />
+
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-main">Public Notifications</h1>
-          <p className="text-sm text-muted">Activity and updates from your network</p>
+          <h1 className="text-2xl font-bold text-main">
+            {isShadow ? 'Shadow Notifications' : 'Public Notifications'}
+          </h1>
+          <p className="text-sm text-muted">
+            {isShadow
+              ? 'Code reviews, feedback, and study updates (Focus Mode)'
+              : 'Activity and updates from your network'}
+          </p>
         </div>
 
         {notifications.some((n) => !n.is_read) && (
@@ -98,8 +133,12 @@ export default function NotificationsPage() {
       ) : notifications.length === 0 ? (
         <EmptyState
           preset="notifications"
-          title="You are all caught up!"
-          description="When developers connect with you, like your posts, or comment, updates will appear here."
+          title={isShadow ? 'No code review updates yet' : 'You are all caught up!'}
+          description={
+            isShadow
+              ? 'When peers review your anonymous code submissions or comment on code, updates will appear here.'
+              : 'When developers connect with you, like your posts, or comment, updates will appear here.'
+          }
         />
       ) : (
         <div className="space-y-3">
@@ -112,10 +151,16 @@ export default function NotificationsPage() {
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <span className="text-lg">
-                  {n.type === 'like' && '❤️'}
-                  {n.type === 'comment' && '💬'}
-                  {n.type === 'share' && '🔁'}
-                  {n.type === 'connection' && '🤝'}
+                  {isShadow ? (
+                    n.type === 'review' ? '📝' : '💬'
+                  ) : (
+                    <>
+                      {n.type === 'like' && '❤️'}
+                      {n.type === 'comment' && '💬'}
+                      {n.type === 'share' && '🔁'}
+                      {(n.type === 'connection' || n.type === 'connection_request' || n.type === 'connection_accepted') && '🤝'}
+                    </>
+                  )}
                 </span>
 
                 <div className="min-w-0 flex-1 space-y-0.5">
