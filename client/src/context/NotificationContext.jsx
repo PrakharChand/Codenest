@@ -4,19 +4,23 @@ import { useAuth } from './AuthContext';
 import { connectSocket, disconnectSocket, getSocket } from '../realtime/socket';
 import { notificationsApi } from '../api/notificationsApi';
 
+import { chatApi } from '../api/chatApi';
+
 const NotificationContext = createContext(null);
 
 export function NotificationProvider({ children }) {
   const { user, accessToken } = useAuth();
   const [publicUnread, setPublicUnread] = useState(0);
   const [shadowUnread, setShadowUnread] = useState(0);
+  const [chatUnread, setChatUnread] = useState(0);
 
   const fetchUnreadCounts = useCallback(async () => {
     if (!user) return;
     try {
-      const [pubRes, shRes] = await Promise.all([
+      const [pubRes, shRes, chatRes] = await Promise.all([
         notificationsApi.list('public'),
         notificationsApi.list('shadow'),
+        chatApi.getUnreadCount(),
       ]);
 
       const pubList = pubRes.data || [];
@@ -24,18 +28,22 @@ export function NotificationProvider({ children }) {
 
       setPublicUnread(pubList.filter((n) => !n.is_read).length);
       setShadowUnread(shList.filter((n) => !n.is_read).length);
+      setChatUnread(chatRes?.unreadCount || 0);
     } catch (err) {
       // Quiet degradation
     }
   }, [user]);
 
-  // Initial load when user authenticates
+  // Initial load & 60-second polling for chat unread count
   useEffect(() => {
     if (user) {
       fetchUnreadCounts();
+      const interval = setInterval(fetchUnreadCounts, 60000);
+      return () => clearInterval(interval);
     } else {
       setPublicUnread(0);
       setShadowUnread(0);
+      setChatUnread(0);
     }
   }, [user, fetchUnreadCounts]);
 
@@ -74,15 +82,21 @@ export function NotificationProvider({ children }) {
       }
     };
 
+    const handleNewChatMessage = () => {
+      setChatUnread((prev) => prev + 1);
+    };
+
     const handleConnect = () => {
       fetchUnreadCounts();
     };
 
     socket.on('notification:new', handleNewNotification);
+    socket.on('new_message', handleNewChatMessage);
     socket.on('connect', handleConnect);
 
     return () => {
       socket.off('notification:new', handleNewNotification);
+      socket.off('new_message', handleNewChatMessage);
       socket.off('connect', handleConnect);
     };
   }, [user, accessToken, fetchUnreadCounts]);
@@ -90,6 +104,7 @@ export function NotificationProvider({ children }) {
   const value = {
     publicUnread,
     shadowUnread,
+    chatUnread,
     refreshNotifications: fetchUnreadCounts,
   };
 

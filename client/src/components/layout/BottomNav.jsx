@@ -71,9 +71,15 @@ function BottomNavItem({ to, icon, label, active, badge }) {
 
 // ── Main BottomNav ────────────────────────────────────────────────────────
 
+const ChatIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>
+);
+
 export default function BottomNav() {
   const { user, mode, switchMode } = useAuth();
-  const { publicUnread, shadowUnread } = useNotifications();
+  const { publicUnread, shadowUnread, chatUnread } = useNotifications();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -125,7 +131,7 @@ export default function BottomNav() {
           <>
             <BottomNavItem to="/feed" icon={<HomeIcon filled={is('/feed')} />} label="Home" active={is('/feed')} />
             <BottomNavItem to="/explore" icon={<ExploreIcon filled={is('/explore')} />} label="Explore" active={is('/explore')} />
-            <BottomNavItem to="/communities" icon={<QueueIcon />} label="Communities" active={is('/communities')} />
+            <BottomNavItem to="/chat" icon={<ChatIcon />} label="Chat" active={is('/chat')} badge={chatUnread} />
             <BottomNavItem to="/notifications" icon={<BellIcon />} label="Inbox" active={is('/notifications')} badge={publicUnread} />
             <BottomNavItem to={`/users/${user.id}`} icon={<ProfileIcon filled={is(`/users/${user.id}`)} />} label="Me" active={is(`/users/${user.id}`)} />
           </>

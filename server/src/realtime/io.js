@@ -40,6 +40,10 @@ function initRealtime(httpServer) {
     const userRoom = `user:${socket.userId}`;
     socket.join(userRoom);
 
+    // STEP 3: Join private chat room user_USERID
+    const chatUserRoom = `user_${socket.userId}`;
+    socket.join(chatUserRoom);
+
     socket.on('disconnect', () => {
       // Clean disconnect
     });

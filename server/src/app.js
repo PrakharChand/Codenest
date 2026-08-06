@@ -117,6 +117,8 @@ const assistantRoutes = require('./routes/assistantRoutes');
 app.use('/api/assistant', assistantRoutes);
 
 // Phase 5
+const chatRoutes = require('./routes/chatRoutes');
+app.use('/api/chat',          chatRoutes);          // Real-time chat for Nest Feed
 app.use('/api/notifications', notificationRoutes);   // notification bell
 app.use('/api/upload',        uploadRoutes);        // /api/upload/users/:id/avatar, /api/upload/posts/upload-image
 app.use('/api/ai',            aiRoutes);              // AI features (aiLimiter applied per-route)

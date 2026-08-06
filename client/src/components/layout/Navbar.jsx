@@ -19,7 +19,7 @@ import HelpMenu from '../molecules/HelpMenu';
 
 export default function Navbar() {
   const { user, mode, switchMode, logout } = useAuth();
-  const { publicUnread, shadowUnread } = useNotifications();
+  const { publicUnread, shadowUnread, chatUnread } = useNotifications();
   const navigate = useNavigate();
 
   const activeUnread = mode === 'shadow' ? shadowUnread : publicUnread;
@@ -113,6 +113,14 @@ export default function Navbar() {
               <Link to="/communities" className="text-sm font-medium text-muted hover:text-main">
                 Communities
               </Link>
+              <Link to="/chat" className="text-sm font-medium text-muted hover:text-main flex items-center gap-1">
+                Chat
+                {chatUnread > 0 && (
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
+                    {chatUnread > 9 ? '9+' : chatUnread}
+                  </span>
+                )}
+              </Link>
             </>
           ) : (
             <>
@@ -136,6 +144,20 @@ export default function Navbar() {
 
           {user ? (
             <div className="flex items-center gap-3">
+              {mode === 'feed' && (
+                <Link
+                  to="/chat"
+                  className="relative text-muted hover:text-main text-sm"
+                  title="Messages"
+                >
+                  💬
+                  {chatUnread > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white animate-pulse">
+                      {chatUnread > 9 ? '9+' : chatUnread}
+                    </span>
+                  )}
+                </Link>
+              )}
               <Link
                 to={mode === 'shadow' ? '/notifications?context=shadow' : '/notifications'}
                 className="relative text-muted hover:text-main text-sm"
