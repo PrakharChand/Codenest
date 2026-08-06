@@ -334,6 +334,12 @@ Queue items show only the first 300 characters of submission content (truncated 
 - **Phase 10** — Onboarding complete: DB-backed first-login dual-identity walkthrough (`OnboardingWalkthrough.jsx`) via migration 022 + `onboarding_completed_at` endpoints; persistent navbar help menu (`HelpMenu.jsx`) across both themes and navbars; 0 localStorage used; leak sweep re-confirmed; 100/100 verified. Ready for Phase 11.
 - **Phase 11** — Real-time & wiring complete: Socket.io 1-to-1 notifications via JWT handshake auth (`socketAuth.js`), per-owner `user:{id}` rooms (server-internal, no shared Shadow room), emit-after-commit from `createNotification`, two separate live bells (`identity_context`), graceful degradation + reconnect re-sync (`NotificationContext.jsx`), socket Shadow payloads leak-swept clean; final wiring sweep done; AI slots deferred to Phase 12; 100/100 verified. Ready for Phase 12.
 - **Phase 12** — AI Feature Wiring, E2E Test & Deployment complete: all 5 AI features active (smart tag suggestions, pre-submit anonymity guard, personalized learning roadmap with feed share, developer connection suggestions, hourly AI auto-reviews), isolated `aiApi.js` with fail-open fallbacks, full end-to-end suite passing (299/299 tests green), zero-leak whole-app security verified, production deployment guide configured (Vercel + Render + Supabase); readiness 100/100. PROJECT COMPLETE.
+- **Phase 13** — Communication, Custom Shadow Communities & System Theme Engine complete:
+  - Real-time 1-to-1 Live Chat for Nest Feed (`chatController.js`, `chatRoutes.js`, `chatApi.js`, `ChatPage.jsx`) restricted to mutual connections, with message edit/delete, thread deletion, seen/delivered indicators (`✓`/`✓✓`), and tagged notifications (`💬 Message from [Name]`).
+  - Nest Shadow Anonymous Custom Communities (`shadowCommunityController.js`, `ShadowCommunityPage.jsx`, `ShadowCommunityDetailPage.jsx`) with anonymous posts and custom community creation.
+  - Automatic System Theme Detection & Persistence Engine (`ThemeContext.jsx`) with `prefers-color-scheme: dark` OS auto-switch, zero-flicker `<head>` pre-render script, and localStorage override protection.
+  - Migrations 034–038 added (shadow communities, chat conversations, chat messages, chat message edits, notification check constraint expansion).
+  - 100/100 verified across all surfaces.
 
 ---
 
