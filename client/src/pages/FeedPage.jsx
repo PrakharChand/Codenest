@@ -178,6 +178,5 @@ export default function FeedPage() {
           <WeeklyActivityChart />
         </div>
       </div>
-    </>
   );
 }
