@@ -27,8 +27,8 @@ function latencyTracker(req, res, next) {
 
     metricsService.recordRequest(req.method, route, res.statusCode);
 
-    // APM Slow Request Warning Alert (> 500ms)
-    if (durationMs > 500) {
+    // APM Slow Request Warning Alert (> 500ms, excluding health ping route)
+    if (durationMs > 500 && route !== '/health') {
       console.warn(
         JSON.stringify({
           level: 'WARN',
