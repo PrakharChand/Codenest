@@ -8,8 +8,19 @@
 const pool = require('../config/db');
 const { geminiCircuitBreaker } = require('../utils/circuitBreaker');
 
+// 10-second in-memory cache so Render's health poll doesn't
+// hammer the DB on every request.
+let healthCache = null;
+let healthCacheExpiry = 0;
+const HEALTH_TTL_MS = 10_000;
+
 async function performDeepHealthCheck() {
-  const startTime = Date.now();
+  const now = Date.now();
+  if (healthCache && now < healthCacheExpiry) {
+    return healthCache;
+  }
+
+  const startTime = now;
   const diagnostics = {
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -49,6 +60,11 @@ async function performDeepHealthCheck() {
   };
 
   diagnostics.execution_time_ms = Date.now() - startTime;
+
+  // Cache the result
+  healthCache = diagnostics;
+  healthCacheExpiry = Date.now() + HEALTH_TTL_MS;
+
   return diagnostics;
 }
 

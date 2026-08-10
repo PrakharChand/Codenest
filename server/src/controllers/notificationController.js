@@ -15,6 +15,22 @@ const { query }                                    = require('../config/db');
 const ApiError                                     = require('../utils/ApiError');
 const { parsePagination, buildPaginatedResponse }  = require('../utils/paginate');
 
+// Per-user in-memory notification cache (3-second TTL).
+// Key: `${userId}:${context}` — small footprint, auto-expires.
+const notifCache = new Map();
+const NOTIF_TTL_MS = 3_000;
+
+function getCacheKey(userId, context) {
+  return `${userId}:${context || 'all'}`;
+}
+
+function bustNotifCache(userId) {
+  // Remove all entries for this user across both contexts
+  for (const key of notifCache.keys()) {
+    if (key.startsWith(`${userId}:`)) notifCache.delete(key);
+  }
+}
+
 // ── GET /api/notifications ────────────────────────────────────────────────
 // ?context=public|shadow  — filter by identity context (required for each bell)
 // Default: all notifications, newest first.
@@ -23,6 +39,13 @@ async function listNotifications(req, res) {
   const userId  = req.user.id;
   const context = req.query.context; // 'public' | 'shadow' | undefined
   const { page, limit, offset } = parsePagination(req.query);
+
+  // Serve from cache on repeated fast calls (e.g. dual public+shadow bell fetches)
+  const cacheKey = getCacheKey(userId, context);
+  const cached = notifCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiry) {
+    return res.json(cached.data);
+  }
 
   const params  = [userId];
   const where   = ['user_id = $1'];
@@ -52,7 +75,12 @@ async function listNotifications(req, res) {
   ]);
 
   const total = parseInt(countResult.rows[0].count, 10);
-  return res.json(buildPaginatedResponse(dataResult.rows, total, page, limit));
+  const payload = buildPaginatedResponse(dataResult.rows, total, page, limit);
+
+  // Store in cache
+  notifCache.set(cacheKey, { data: payload, expiry: Date.now() + NOTIF_TTL_MS });
+
+  return res.json(payload);
 }
 
 // ── PUT /api/notifications/:id/read ──────────────────────────────────────
@@ -68,6 +96,7 @@ async function markOneRead(req, res) {
   );
 
   if (!rowCount) throw ApiError.forbidden('Notification not found or not yours.');
+  bustNotifCache(userId);
   return res.json({ message: 'Notification marked as read.' });
 }
 
@@ -94,6 +123,7 @@ async function markAllRead(req, res) {
     params
   );
 
+  bustNotifCache(userId);
   return res.json({ message: 'All notifications marked as read.' });
 }
 

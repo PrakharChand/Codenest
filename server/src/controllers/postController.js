@@ -419,40 +419,66 @@ async function sharePost(req, res) {
   return res.status(201).json(reshare);
 }
 
+// In-memory cache for trending page 1 (30-second TTL)
+let trendingPage1Cache = null;
+let trendingPage1CacheExpiry = 0;
+const TRENDING_CACHE_TTL_MS = 30 * 1000;
+
 // ── GET /api/posts/trending — trending posts ──────────────────────────────
 
 async function getTrendingPosts(req, res) {
   const { page, limit, offset } = parsePagination(req.query);
   const userId = req.user ? req.user.id : 0;
 
-  const countRes = await query(
-    `SELECT COUNT(*)::int AS count FROM posts WHERE visibility = 'public' AND created_at >= NOW() - INTERVAL '7 days'`
-  );
-  const total = countRes.rows[0]?.count || 0;
-
-  const { rows } = await query(
-    `SELECT p.id, p.title, p.content, p.visibility, p.created_at,
-            ${AUTHOR_CARD},
-            (SELECT COUNT(*)::int FROM likes WHERE post_id = p.id) AS like_count,
-            (SELECT COUNT(*)::int FROM comments WHERE post_id = p.id) AS comment_count,
-            EXISTS(SELECT 1 FROM likes WHERE post_id = p.id AND user_id = $1) AS "isLiked"
-     FROM posts p
-     JOIN users u ON u.id = p.user_id
-     WHERE p.visibility = 'public'
-       AND p.created_at >= NOW() - INTERVAL '7 days'
-     ORDER BY (
-       (SELECT COUNT(*) FROM likes WHERE post_id = p.id) * 2 +
-       (SELECT COUNT(*) FROM comments WHERE post_id = p.id) * 3
-     ) DESC, p.created_at DESC
-     LIMIT $2 OFFSET $3`,
-    [userId, limit, offset]
-  );
-
-  for (const post of rows) {
-    post.tags = await getPostTags(post.id);
+  // Serve cached response for unauthenticated page-1 hits
+  const isPage1 = page === 1 && limit === 20;
+  const now = Date.now();
+  if (isPage1 && userId === 0 && trendingPage1Cache && now < trendingPage1CacheExpiry) {
+    return res.json(trendingPage1Cache);
   }
 
-  return res.json(buildPaginatedResponse(rows, page, limit, total));
+  // Single query: use denormalized like_count + comment_count columns (already indexed)
+  // instead of correlated subqueries. like_count*2 + comment_count*3 = trending score.
+  const [countRes, dataRes] = await Promise.all([
+    query(
+      `SELECT COUNT(*)::int AS count
+       FROM posts
+       WHERE visibility = 'public'
+         AND created_at >= NOW() - INTERVAL '7 days'`
+    ),
+    query(
+      `SELECT p.id, p.title, p.content, p.visibility, p.created_at,
+              p.like_count, p.comment_count, p.share_count, p.image_url,
+              p.shared_from_post_id,
+              ${AUTHOR_CARD},
+              EXISTS(
+                SELECT 1 FROM likes WHERE post_id = p.id AND user_id = $1
+              ) AS "isLiked"
+       FROM posts p
+       JOIN users u ON u.id = p.user_id
+       WHERE p.visibility = 'public'
+         AND p.created_at >= NOW() - INTERVAL '7 days'
+       ORDER BY (p.like_count * 2 + p.comment_count * 3) DESC, p.created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [userId, limit, offset]
+    ),
+  ]);
+
+  const total = countRes.rows[0]?.count || 0;
+
+  // Batch-fetch tags (1 query for all posts)
+  const postIds = dataRes.rows.map((p) => p.id);
+  const tagMap  = await getBatchPostTags(postIds);
+  const rows    = dataRes.rows.map((p) => ({ ...p, tags: tagMap[p.id] || [] }));
+
+  const payload = buildPaginatedResponse(rows, total, page, limit);
+
+  if (isPage1 && userId === 0) {
+    trendingPage1Cache = payload;
+    trendingPage1CacheExpiry = now + TRENDING_CACHE_TTL_MS;
+  }
+
+  return res.json(payload);
 }
 
 module.exports = {

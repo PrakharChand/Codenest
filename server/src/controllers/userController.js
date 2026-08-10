@@ -90,13 +90,62 @@ async function exploreUsers(req, res) {
   ]);
 
   const total = parseInt(countResult.rows[0].count, 10);
+  const userIds = dataResult.rows.map((u) => u.id);
 
-  const rowsWithRel = await Promise.all(
-    dataResult.rows.map(async (u) => {
-      const rel = await getUserRelationship(viewerId, u.id);
-      return { ...u, ...rel };
-    })
-  );
+  // Batch-fetch all follow relationships for the page in 2 queries (not N*2)
+  let followMap = {};  // viewerId -> Set of following ids
+  let followsMe = {}; // set of user ids that follow viewer
+  let pendingMap = {};
+
+  if (viewerId && userIds.length) {
+    const [connRes, reqRes] = await Promise.all([
+      query(
+        `SELECT follower_id, following_id FROM connections
+         WHERE follower_id = ANY($1::int[]) OR following_id = ANY($1::int[])
+         AND (follower_id = $2 OR following_id = $2)`,
+        [userIds, viewerId]
+      ),
+      query(
+        `SELECT id, requester_id, requestee_id FROM connection_requests
+         WHERE status = 'pending'
+           AND (requester_id = $1 OR requestee_id = $1)
+           AND (requester_id = ANY($2::int[]) OR requestee_id = ANY($2::int[]))`,
+        [viewerId, userIds]
+      ),
+    ]);
+
+    for (const row of connRes.rows) {
+      if (row.follower_id === viewerId) followMap[row.following_id] = true;
+      if (row.following_id === viewerId) followsMe[row.follower_id] = true;
+    }
+    for (const row of reqRes.rows) {
+      const otherId = row.requester_id === viewerId ? row.requestee_id : row.requester_id;
+      pendingMap[otherId] = {
+        id: row.id,
+        outgoing: row.requester_id === viewerId,
+      };
+    }
+  }
+
+  const rowsWithRel = dataResult.rows.map((u) => {
+    if (!viewerId || viewerId === u.id) {
+      return { ...u, isFollowing: false, followsMe: false, isConnected: false,
+               connectionStatus: viewerId === u.id ? 'self' : 'none', pendingRequestId: null };
+    }
+    const iF  = !!followMap[u.id];
+    const fMe = !!followsMe[u.id];
+    const pend = pendingMap[u.id];
+    let connectionStatus = 'none';
+    let pendingRequestId = null;
+    if (iF && fMe) { connectionStatus = 'connected'; }
+    else if (pend) {
+      pendingRequestId = pend.id;
+      connectionStatus = pend.outgoing ? 'pending_outgoing' : 'pending_incoming';
+    } else if (iF) { connectionStatus = 'following'; }
+    else if (fMe) { connectionStatus = 'follows_me'; }
+    return { ...u, isFollowing: iF, followsMe: fMe, isConnected: iF && fMe,
+             connectionStatus, pendingRequestId };
+  });
 
   return res.json(buildPaginatedResponse(rowsWithRel, total, page, limit));
 }

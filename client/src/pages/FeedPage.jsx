@@ -244,22 +244,28 @@ export default function FeedPage() {
   const [activeTab, setActiveTab] = useState('following');
   const [tabInitialized, setTabInitialized] = useState(false);
 
-  // Mount: directly override AppShell root div background so the fixed canvas is visible.
-  // We use inline style (highest specificity) because Tailwind's bg-[var(--bg-base)]
-  // cannot be overridden by a CSS class selector.
+  // Mount: make AppShell transparent so the fixed canvas shows through.
+  // Tailwind's bg-[var(--bg-base)] sets `background-color` (not `background`),
+  // so we override both properties with inline styles (always highest specificity).
   useEffect(() => {
-    // AppShell root is the first div inside <body> (or first .min-h-screen)
     const shell = document.querySelector('.min-h-screen');
+    const savedBg    = shell ? shell.style.background : '';
+    const savedBgCol = shell ? shell.style.backgroundColor : '';
+    const savedBodyBg = document.body.style.backgroundColor;
+
     if (shell) {
-      shell.dataset.feedBgSaved = shell.style.background;
       shell.style.background = 'transparent';
+      shell.style.backgroundColor = 'transparent';
     }
+    document.body.style.backgroundColor = 'transparent';
     document.body.classList.add('feed-bg-active');
+
     return () => {
       if (shell) {
-        shell.style.background = shell.dataset.feedBgSaved || '';
-        delete shell.dataset.feedBgSaved;
+        shell.style.background = savedBg;
+        shell.style.backgroundColor = savedBgCol;
       }
+      document.body.style.backgroundColor = savedBodyBg;
       document.body.classList.remove('feed-bg-active');
     };
   }, []);
