@@ -15,9 +15,10 @@ const { Pool } = require('pg');
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
-  // Pool sizing — increased to 20 to prevent pool starvation under concurrent loads
+  // Pool sizing — min 4 warm connections to eliminate WAN SSL handshake latency on bursts
   max: parseInt(process.env.DB_POOL_MAX, 10) || 20,
-  idleTimeoutMillis: 30_000,
+  min: parseInt(process.env.DB_POOL_MIN, 10) || 4,
+  idleTimeoutMillis: 300_000, // 5 minutes (prevents socket teardown during brief idle periods)
   connectionTimeoutMillis: 5_000,
 });
 

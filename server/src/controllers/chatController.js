@@ -391,12 +391,25 @@ async function markAsRead(req, res) {
   return res.json({ message: 'Messages marked as read.', conversation_id: conversationId });
 }
 
+// In-memory cache for unread chat message counts (3-second TTL per user)
+const unreadCountCache = new Map();
+const UNREAD_CACHE_TTL_MS = 3_000;
+
+function bustUnreadCountCache(userId) {
+  unreadCountCache.delete(userId);
+}
+
 // ── GET /api/chat/unread-count ───────────────────────────────────────────
 async function getUnreadCount(req, res) {
   const userId = req.user.id;
 
+  const cached = unreadCountCache.get(userId);
+  if (cached && Date.now() < cached.expiry) {
+    return res.json(cached.data);
+  }
+
   const { rows } = await query(
-    `SELECT COUNT(*) FROM messages m
+    `SELECT COUNT(*)::int AS count FROM messages m
      JOIN conversations c ON c.id = m.conversation_id
      WHERE (c.participant_one_id = $1 OR c.participant_two_id = $1)
        AND m.sender_id <> $1
@@ -404,8 +417,12 @@ async function getUnreadCount(req, res) {
     [userId]
   );
 
-  const unreadCount = parseInt(rows[0].count, 10);
-  return res.json({ unreadCount });
+  const unreadCount = parseInt(rows[0]?.count || 0, 10);
+  const payload = { unreadCount };
+
+  unreadCountCache.set(userId, { data: payload, expiry: Date.now() + UNREAD_CACHE_TTL_MS });
+
+  return res.json(payload);
 }
 
 module.exports = {

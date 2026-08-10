@@ -57,6 +57,9 @@ async function sendRequest(req, res) {
     }
   });
 
+  bustRequestsCache(requesterId);
+  bustRequestsCache(requesteeId);
+
   const relationship = await getUserRelationship(requesterId, requesteeId);
   return res.status(200).json({ message: 'Connection request sent.', relationship, ...relationship });
 }
@@ -97,6 +100,9 @@ async function acceptRequest(req, res) {
     }
   });
 
+  bustRequestsCache(requesterId);
+  bustRequestsCache(requesteeId);
+
   const relationship = await getUserRelationship(requesteeId, requesterId);
   return res.json({ message: 'Connection request accepted.', relationship, ...relationship });
 }
@@ -114,14 +120,32 @@ async function declineRequest(req, res) {
     [requesterId, requesteeId]
   );
 
+  bustRequestsCache(requesterId);
+  bustRequestsCache(requesteeId);
+
   const relationship = await getUserRelationship(requesteeId, requesterId);
   return res.json({ message: 'Connection request declined.', relationship, ...relationship });
+}
+
+// In-memory cache for connection requests (10-second TTL)
+const requestsCache = new Map();
+const REQUESTS_TTL_MS = 10_000;
+
+function bustRequestsCache(userId) {
+  for (const key of requestsCache.keys()) {
+    if (key.startsWith(`${userId}:`)) requestsCache.delete(key);
+  }
 }
 
 // ── GET /api/users/me/requests/incoming ──────────────────────────────────
 
 async function incomingRequests(req, res) {
   const userId = req.user.id;
+  const cacheKey = `${userId}:incoming`;
+  const cached = requestsCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiry) {
+    return res.json(cached.data);
+  }
 
   const { rows } = await query(
     `SELECT cr.id, cr.created_at,
@@ -134,13 +158,20 @@ async function incomingRequests(req, res) {
     [userId]
   );
 
-  return res.json({ requests: rows, total: rows.length });
+  const payload = { requests: rows, total: rows.length };
+  requestsCache.set(cacheKey, { data: payload, expiry: Date.now() + REQUESTS_TTL_MS });
+  return res.json(payload);
 }
 
 // ── GET /api/users/me/requests/outgoing ──────────────────────────────────
 
 async function outgoingRequests(req, res) {
   const userId = req.user.id;
+  const cacheKey = `${userId}:outgoing`;
+  const cached = requestsCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiry) {
+    return res.json(cached.data);
+  }
 
   const { rows } = await query(
     `SELECT cr.id, cr.status, cr.created_at,
@@ -153,7 +184,9 @@ async function outgoingRequests(req, res) {
     [userId]
   );
 
-  return res.json({ requests: rows, total: rows.length });
+  const payload = { requests: rows, total: rows.length };
+  requestsCache.set(cacheKey, { data: payload, expiry: Date.now() + REQUESTS_TTL_MS });
+  return res.json(payload);
 }
 
 module.exports = {

@@ -89,13 +89,9 @@ async function listConnections(req, res) {
   const viewerId = req.user?.id ?? null;
   const { page, limit, offset } = parsePagination(req.query);
 
-  // Confirm user exists
-  const { rows: userRows } = await query('SELECT id FROM users WHERE id = $1', [userId]);
-  if (!userRows.length) throw ApiError.notFound('User not found.');
-
   const [countResult, dataResult] = await Promise.all([
     query(
-      'SELECT COUNT(*) FROM connections WHERE follower_id = $1',
+      'SELECT COUNT(*)::int AS count FROM connections WHERE follower_id = $1',
       [userId]
     ),
     query(
@@ -116,7 +112,7 @@ async function listConnections(req, res) {
     ),
   ]);
 
-  const total = parseInt(countResult.rows[0].count, 10);
+  const total = parseInt(countResult.rows[0]?.count || 0, 10);
   return res.json(buildPaginatedResponse(dataResult.rows, total, page, limit));
 }
 
@@ -127,12 +123,9 @@ async function listFollowers(req, res) {
   const viewerId = req.user?.id ?? null;
   const { page, limit, offset } = parsePagination(req.query);
 
-  const { rows: userRows } = await query('SELECT id FROM users WHERE id = $1', [userId]);
-  if (!userRows.length) throw ApiError.notFound('User not found.');
-
   const [countResult, dataResult] = await Promise.all([
     query(
-      'SELECT COUNT(*) FROM connections WHERE following_id = $1',
+      'SELECT COUNT(*)::int AS count FROM connections WHERE following_id = $1',
       [userId]
     ),
     query(
@@ -153,7 +146,7 @@ async function listFollowers(req, res) {
     ),
   ]);
 
-  const total = parseInt(countResult.rows[0].count, 10);
+  const total = parseInt(countResult.rows[0]?.count || 0, 10);
   return res.json(buildPaginatedResponse(dataResult.rows, total, page, limit));
 }
 
@@ -164,12 +157,9 @@ async function listMutual(req, res) {
   const viewerId = req.user?.id ?? null;
   const { page, limit, offset } = parsePagination(req.query);
 
-  const { rows: userRows } = await query('SELECT id FROM users WHERE id = $1', [userId]);
-  if (!userRows.length) throw ApiError.notFound('User not found.');
-
   const [countResult, dataResult] = await Promise.all([
     query(
-      `SELECT COUNT(*)
+      `SELECT COUNT(*)::int AS count
        FROM connections a
        JOIN connections b ON b.follower_id = a.following_id AND b.following_id = a.follower_id
        WHERE a.follower_id = $1`,
@@ -191,7 +181,7 @@ async function listMutual(req, res) {
     ),
   ]);
 
-  const total = parseInt(countResult.rows[0].count, 10);
+  const total = parseInt(countResult.rows[0]?.count || 0, 10);
   return res.json(buildPaginatedResponse(dataResult.rows, total, page, limit));
 }
 

@@ -231,10 +231,19 @@ async function deleteAccount(req, res) {
   return res.json({ message: 'Account deleted successfully.' });
 }
 
+// In-memory cache for user activity charts (60-second TTL per user)
+const userActivityCache = new Map();
+const ACTIVITY_CACHE_TTL_MS = 60 * 1000;
+
 // ── GET /api/users/me/activity ─────────────────────────────────────────────
 
 async function getUserActivity(req, res) {
   const userId = req.user.id;
+
+  const cached = userActivityCache.get(userId);
+  if (cached && Date.now() < cached.expiry) {
+    return res.json(cached.data);
+  }
 
   // 1. Fetch user's activity timestamps for the last 30 days
   const { rows } = await query(
@@ -336,7 +345,7 @@ async function getUserActivity(req, res) {
   let activeDays = daily.filter((d) => d.activity > 0).length;
   const timeSpentMins = (totalPosts * 15) + (totalReviews * 20) + (totalComments * 5) + (activeDays * 15);
 
-  return res.json({
+  const payload = {
     daily,
     streak,
     activityCount: total7DayActivity,
@@ -344,7 +353,11 @@ async function getUserActivity(req, res) {
     totalComments,
     totalReviews,
     timeSpentMins,
-  });
+  };
+
+  userActivityCache.set(userId, { data: payload, expiry: Date.now() + ACTIVITY_CACHE_TTL_MS });
+
+  return res.json(payload);
 }
 
 module.exports = {
