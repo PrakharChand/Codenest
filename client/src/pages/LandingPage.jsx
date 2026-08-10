@@ -533,9 +533,9 @@ export default function LandingPage() {
                 <Link to="/login">
                   <Button
                     size="lg"
-                    className="!bg-white/10 hover:!bg-white/20 !text-white !border !border-white/20 hover:!border-amber-400/60 backdrop-blur-md shadow-sm transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
+                    className="!bg-amber-500 hover:!bg-amber-400 !text-black !border-0 shadow-md hover:shadow-amber-500/40 hover:shadow-lg font-bold transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
                   >
-                    Sign In <span className="text-amber-300 ml-0.5">→</span>
+                    Sign In →
                   </Button>
                 </Link>
               </div>
