@@ -33,7 +33,7 @@ export default function AppShell({ children, className = '', hideSidebar = false
   };
 
   return (
-    <div className={`min-h-screen text-[var(--text-main)] ${hideSidebar ? 'bg-transparent' : 'bg-[var(--bg-base)]'}`}>
+    <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-main)]">
       {/* Fixed left sidebar — desktop only (hidden when hideSidebar is true) */}
       {!hideSidebar && <Sidebar />}
 

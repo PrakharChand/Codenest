@@ -418,20 +418,6 @@ export default function LandingPage() {
   return (
     <div className="relative space-y-10 page-enter" style={{ zIndex: 1 }}>
 
-      {/* ── Full-page tall background: Sunset Sky + Ocean ────────────────── */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: 'absolute',
-          inset: 0,
-          zIndex: 0,
-          overflow: 'hidden',
-          pointerEvents: 'none',
-          minHeight: '100%',
-        }}
-      >
-        <PageBackground isDark={isDark} />
-      </div>
 
       <SEO
         title="Build Public Reputation & Get Honest Code Reviews"
@@ -473,12 +459,36 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* ── Hero — animated background + content ─────────────────────────── */}
+      {/* ── Hero — animated canvas fills section bg, content layered above ── */}
       {!user && (
-        <section className="relative z-10 overflow-hidden rounded-2xl" style={{ minHeight: '68vh', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <section
+          className="relative z-10 overflow-hidden rounded-2xl"
+          style={{ minHeight: '68vh', border: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          {/* Animated background canvas — fills the entire section */}
+          <div
+            aria-hidden="true"
+            style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}
+          >
+            <PageBackground isDark={isDark} />
+          </div>
+
+          {/* Dark gradient overlay for text readability */}
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 1,
+              pointerEvents: 'none',
+              background: isDark
+                ? 'linear-gradient(105deg, rgba(10,8,16,0.72) 0%, rgba(10,8,16,0.52) 55%, rgba(10,8,16,0.10) 100%)'
+                : 'linear-gradient(105deg, rgba(28,20,10,0.60) 0%, rgba(28,20,10,0.38) 55%, rgba(28,20,10,0.05) 100%)',
+            }}
+          />
 
           {/* Left: headline + subtext + CTAs */}
-          <div className="relative flex flex-col justify-center h-full px-6 py-14 sm:px-10 md:px-14 md:py-20 max-w-2xl space-y-6">
+          <div className="relative flex flex-col justify-center h-full px-6 py-14 sm:px-10 md:px-14 md:py-20 max-w-2xl space-y-6" style={{ zIndex: 2 }}>
 
             {/* Pill */}
             <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold w-fit"
@@ -523,8 +533,12 @@ export default function LandingPage() {
           </div>
 
           {/* Right: floating code card */}
-          <div className="absolute right-6 top-1/2 -translate-y-1/2 hidden lg:block pointer-events-none select-none z-10" style={{ maxWidth: '300px' }}>
-            <div className="p-5 rounded-2xl shadow-2xl" style={{ background: 'rgba(10,8,16,0.72)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div
+            className="absolute right-6 top-1/2 -translate-y-1/2 hidden lg:block select-none"
+            style={{ maxWidth: '300px', zIndex: 2 }}
+          >
+            <div className="p-5 rounded-2xl shadow-2xl"
+              style={{ background: 'rgba(10,8,16,0.72)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <div className="flex items-center gap-1.5 mb-3">
                 <div className="w-3 h-3 rounded-full bg-rose-500/80" />
                 <div className="w-3 h-3 rounded-full bg-amber-500/80" />
