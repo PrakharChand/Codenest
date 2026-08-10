@@ -291,29 +291,34 @@ function SkyCanvas({ isDark }) {
     if (!canvas) return;
 
     const resize = () => {
-      canvas.width = canvas.parentElement.offsetWidth;
-      canvas.height = canvas.parentElement.offsetHeight;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
       initScene(canvas);
     };
 
     resize();
-    const ro = new ResizeObserver(resize);
-    ro.observe(canvas.parentElement);
-
+    window.addEventListener('resize', resize);
     animRef.current = requestAnimationFrame(animate);
 
     return () => {
       cancelAnimationFrame(animRef.current);
-      ro.disconnect();
+      window.removeEventListener('resize', resize);
     };
   }, [animate, initScene]);
 
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 w-full h-full"
-      style={{ display: 'block' }}
       aria-hidden="true"
+      style={{
+        display: 'block',
+        position: 'fixed',
+        inset: 0,
+        width: '100vw',
+        height: '100vh',
+        zIndex: 0,
+        pointerEvents: 'none',
+      }}
     />
   );
 }
@@ -360,14 +365,17 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="space-y-10 page-enter">
+    <div className="relative space-y-10 page-enter" style={{ zIndex: 1 }}>
+      {/* ── Full-page animated sky background ──────────────────────── */}
+      <SkyCanvas isDark={isDark} />
+
       <SEO
         title="Build Public Reputation & Get Honest Code Reviews"
         description="CodeNest is a dual-identity developer platform. Share tech insights publicly on Nest Feed or get 100% anonymous, bias-free code reviews on Nest Shadow."
       />
 
       {/* ── Top Nav ──────────────────────────────────────────────────────── */}
-      <nav className="flex items-center justify-between pb-4 border-b border-[var(--border-main)]/50">
+      <nav className="flex items-center justify-between pb-4 border-b border-white/10">
         <Link to="/" className="flex items-center gap-2 group cursor-pointer">
           <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)] flex items-center justify-center shadow-xs transition-transform duration-200 group-hover:scale-105">
             <span className="text-white font-bold text-xs tracking-tight">CN</span>
@@ -401,13 +409,11 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* ── Hero Section — Animated Sky Scene ───────────────────────────── */}
+      {/* ── Hero Section — floats above the animated page background ─────── */}
       {!user && (
-        <section className="relative overflow-hidden rounded-3xl border border-[var(--border-main)] shadow-[var(--shadow-lg)]" style={{ minHeight: '480px' }}>
-          {/* Animated Canvas Sky */}
-          <SkyCanvas isDark={isDark} />
+        <section className="relative overflow-hidden rounded-3xl border border-white/10 shadow-2xl" style={{ minHeight: '480px', background: 'transparent' }}>
 
-          {/* Hero Content — layered above canvas */}
+          {/* Hero Content */}
           <div className="relative z-10 flex flex-col justify-center h-full px-6 py-14 sm:px-10 md:px-16 md:py-20 max-w-3xl space-y-7">
             {/* Pill label */}
             <div className="inline-flex items-center gap-2.5 rounded-full border border-[var(--color-primary)]/40 bg-black/30 backdrop-blur-md px-4 py-1.5 text-xs font-semibold text-amber-300 w-fit transition-transform duration-200 hover:scale-105">
@@ -470,7 +476,7 @@ const review = await shadow.submit({
 
       {/* ── Stats Row ───────────────────────────────────────────────────── */}
       {!user && (
-        <section className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-surface)] shadow-[var(--shadow-sm)] px-6 py-6">
+        <section className="rounded-2xl border border-white/10 shadow-[var(--shadow-sm)] px-6 py-6" style={{ background: 'rgba(14,12,20,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
           <div className="grid grid-cols-3 gap-4">
             {statsItems.map((s) => (
               <div
@@ -491,7 +497,7 @@ const review = await shadow.submit({
 
       {/* ── Feature Grid ─────────────────────────────────────────────────── */}
       {!user && (
-        <section className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-surface)] shadow-[var(--shadow-sm)] p-6 sm:p-8 space-y-6">
+        <section className="rounded-2xl border border-white/10 shadow-[var(--shadow-sm)] p-6 sm:p-8 space-y-6" style={{ background: 'rgba(14,12,20,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
           <div className="flex items-center gap-3">
             <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-subtle)]">Why CodeNest</span>
             <div className="flex-1 h-px bg-[var(--border-main)]/60" />
@@ -520,7 +526,7 @@ const review = await shadow.submit({
       )}
 
       {/* ── Community Feed ───────────────────────────────────────────────── */}
-      <section className="rounded-2xl border border-[var(--border-main)] bg-[var(--bg-surface)] shadow-[var(--shadow-sm)] p-5 sm:p-7 space-y-5">
+      <section className="rounded-2xl border border-white/10 shadow-[var(--shadow-sm)] p-5 sm:p-7 space-y-5" style={{ background: 'rgba(14,12,20,0.60)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
         <div className="flex items-center justify-between border-b border-[var(--border-main)]/50 pb-3">
           <div>
             <h2 className="text-xl font-bold text-[var(--text-main)]">
@@ -551,7 +557,7 @@ const review = await shadow.submit({
 
       {/* ── Join CTA Banner ──────────────────────────────────────────────── */}
       {!user && (
-        <section className="relative overflow-hidden rounded-2xl border border-[var(--border-main)] bg-[var(--bg-surface)] shadow-[var(--shadow-md)] p-8 sm:p-10 text-center space-y-4">
+        <section className="relative overflow-hidden rounded-2xl border border-white/10 shadow-[var(--shadow-md)] p-8 sm:p-10 text-center space-y-4" style={{ background: 'rgba(14,12,20,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
           <div className="absolute inset-0 dot-grid opacity-30 pointer-events-none" />
           <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-72 h-72 bg-[var(--color-primary)]/10 rounded-full blur-3xl pointer-events-none" />
           <div className="relative z-10 space-y-4">
