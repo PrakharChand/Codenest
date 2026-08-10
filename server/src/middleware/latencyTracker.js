@@ -6,6 +6,8 @@
  * and logs slow API routes exceeding 500ms latency threshold.
  */
 
+const metricsService = require('../services/metricsService');
+
 function latencyTracker(req, res, next) {
   const startTime = Date.now();
 
@@ -21,6 +23,9 @@ function latencyTracker(req, res, next) {
 
   res.on('finish', () => {
     const durationMs = Date.now() - startTime;
+    const route = req.baseUrl ? `${req.baseUrl}${req.path}` : req.path;
+
+    metricsService.recordRequest(req.method, route, res.statusCode);
 
     // APM Slow Request Warning Alert (> 500ms)
     if (durationMs > 500) {

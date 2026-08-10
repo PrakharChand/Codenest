@@ -39,6 +39,8 @@ async function boot() {
     initIndexer();
     const { startDBKeepAlive } = require('./src/db/dbKeepAlive');
     startDBKeepAlive();
+    const { setupGracefulShutdown } = require('./src/utils/gracefulShutdown');
+    setupGracefulShutdown(server, io);
   }
 }
 
