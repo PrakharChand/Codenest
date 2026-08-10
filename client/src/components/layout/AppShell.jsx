@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
  * Desktop (≥ lg): fixed Sidebar (240px) on left, content pushed right.
  * Mobile (< lg):  no sidebar, BottomNav fixed at bottom, content has pb-32 clearance.
  */
-export default function AppShell({ children, className = '', hideSidebar = false }) {
+export default function AppShell({ children, className = '', hideSidebar = false, fullWidth = false }) {
   const { user, setUser } = useAuth();
   const [verifying, setVerifying] = useState(false);
   const isUnverified = user && user.verified === false;
@@ -56,7 +56,7 @@ export default function AppShell({ children, className = '', hideSidebar = false
 
         <main
           className={`
-            ${hideSidebar ? 'mx-auto max-w-7xl px-4 sm:px-8 py-8' : 'mx-auto max-w-5xl px-4 sm:px-6 py-8'}
+            ${fullWidth ? 'w-full' : hideSidebar ? 'mx-auto max-w-7xl px-4 sm:px-8 py-8' : 'mx-auto max-w-5xl px-4 sm:px-6 py-8'}
             pb-32 lg:pb-10
             page-enter
             ${className}

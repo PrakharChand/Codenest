@@ -416,110 +416,114 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="relative space-y-10 page-enter" style={{ zIndex: 1 }}>
-
-
+    <div className="w-full page-enter">
       <SEO
         title="Build Public Reputation & Get Honest Code Reviews"
         description="CodeNest is a dual-identity developer platform. Share tech insights publicly on Nest Feed or get 100% anonymous, bias-free code reviews on Nest Shadow."
       />
 
-      {/* ── Top Nav ─────────────────────────────────────────────────────── */}
-      <nav className="relative z-10 flex items-center justify-between pb-4 border-b border-white/10">
-        <Link to="/" className="flex items-center gap-2 group cursor-pointer">
-          <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)] flex items-center justify-center shadow-xs transition-transform duration-200 group-hover:scale-105">
-            <span className="text-white font-bold text-xs tracking-tight">CN</span>
-          </div>
-          <span className="text-base font-bold text-[var(--text-main)] transition-colors duration-200 group-hover:text-[var(--color-primary)]">
-            Code<span className="text-[var(--color-primary)]">Nest</span>
-          </span>
-        </Link>
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
-          {user ? (
-            <Link to="/feed">
-              <Button variant="primary" size="sm" className="transition-all duration-200 hover:scale-[1.02] active:scale-95 shadow-xs">
-                Go to Feed 🚀
-              </Button>
+      {/* ── Top Nav (Centered Max-Width Container) ───────────────────────── */}
+      <header className="w-full border-b border-white/10">
+        <div className="mx-auto max-w-7xl px-4 sm:px-8 py-4">
+          <nav className="flex items-center justify-between">
+            <Link to="/" className="flex items-center gap-2 group cursor-pointer">
+              <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)] flex items-center justify-center shadow-xs transition-transform duration-200 group-hover:scale-105">
+                <span className="text-white font-bold text-xs tracking-tight">CN</span>
+              </div>
+              <span className="text-base font-bold text-[var(--text-main)] transition-colors duration-200 group-hover:text-[var(--color-primary)]">
+                Code<span className="text-[var(--color-primary)]">Nest</span>
+              </span>
             </Link>
-          ) : (
-            <>
-              <Link to="/login">
-                <Button variant="secondary" size="sm" className="transition-all duration-200 hover:scale-[1.02] active:scale-95">
-                  Sign In
-                </Button>
-              </Link>
-              <Link to="/register">
-                <Button variant="primary" size="sm" className="transition-all duration-200 hover:scale-[1.02] active:scale-95 shadow-xs hover:shadow-sm">
-                  Get Started
-                </Button>
-              </Link>
-            </>
-          )}
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              {user ? (
+                <Link to="/feed">
+                  <Button variant="primary" size="sm" className="transition-all duration-200 hover:scale-[1.02] active:scale-95 shadow-xs">
+                    Go to Feed 🚀
+                  </Button>
+                </Link>
+              ) : (
+                <>
+                  <Link to="/login">
+                    <Button variant="secondary" size="sm" className="transition-all duration-200 hover:scale-[1.02] active:scale-95">
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Link to="/register">
+                    <Button variant="primary" size="sm" className="transition-all duration-200 hover:scale-[1.02] active:scale-95 shadow-xs hover:shadow-sm">
+                      Get Started
+                    </Button>
+                  </Link>
+                </>
+              )}
+            </div>
+          </nav>
         </div>
-      </nav>
+      </header>
 
-      {/* ── Hero — full-width animated background, content in max-w container ── */}
+      {/* ── FULL-WIDTH HERO SECTION (Edge-to-Edge 100% Screen Width) ─────── */}
       {!user && (
         <section
-          className="relative z-10 overflow-hidden -mx-4 sm:-mx-8"
-          style={{ minHeight: '68vh' }}
+          className="relative w-full overflow-hidden bg-[var(--bg-base)]"
+          style={{ minHeight: '65vh' }}
         >
-          {/* Animated background canvas — fills the entire section */}
+          {/* 100% Full-Width Canvas Background */}
           <div
             aria-hidden="true"
-            style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}
+            className="absolute inset-0 z-0 pointer-events-none"
           >
             <PageBackground isDark={isDark} />
           </div>
 
-          {/* Dark gradient overlay for text readability */}
+          {/* Dark gradient overlay across full width for maximum text contrast */}
           <div
             aria-hidden="true"
+            className="absolute inset-0 z-1 pointer-events-none"
             style={{
-              position: 'absolute',
-              inset: 0,
-              zIndex: 1,
-              pointerEvents: 'none',
               background: isDark
-                ? 'linear-gradient(105deg, rgba(10,8,16,0.72) 0%, rgba(10,8,16,0.52) 55%, rgba(10,8,16,0.10) 100%)'
-                : 'linear-gradient(105deg, rgba(28,20,10,0.60) 0%, rgba(28,20,10,0.38) 55%, rgba(28,20,10,0.05) 100%)',
+                ? 'linear-gradient(105deg, rgba(10,8,16,0.85) 0%, rgba(10,8,16,0.65) 55%, rgba(10,8,16,0.20) 100%)'
+                : 'linear-gradient(105deg, rgba(28,20,10,0.75) 0%, rgba(28,20,10,0.50) 55%, rgba(28,20,10,0.15) 100%)',
             }}
           />
 
-          {/* Re-contained inner layout — matches AppShell padding exactly */}
+          {/* Centered Content Container */}
           <div
-            className="relative mx-auto max-w-7xl px-4 sm:px-8"
-            style={{ zIndex: 2, minHeight: '68vh', display: 'flex', alignItems: 'center' }}
+            className="relative z-10 mx-auto max-w-7xl px-4 sm:px-8 py-16 sm:py-24 flex items-center justify-between"
+            style={{ minHeight: '65vh' }}
           >
-            {/* Left: text content */}
-            <div className="flex flex-col justify-center py-14 md:py-20 max-w-2xl space-y-6">
-
-              {/* Pill */}
-              <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold w-fit"
-                style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(10px)', border: '1px solid rgba(245,158,11,0.35)', color: '#FCD34D' }}>
+            {/* Left: Text Content */}
+            <div className="flex flex-col justify-center max-w-2xl space-y-6">
+              {/* Pill Badge */}
+              <div
+                className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold w-fit"
+                style={{ background: 'rgba(0,0,0,0.40)', backdropFilter: 'blur(12px)', border: '1px solid rgba(245,158,11,0.35)', color: '#FCD34D' }}
+              >
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
                 🚀 The Dual-Identity Platform for Developers
               </div>
 
-              {/* Headline */}
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.12]"
-                style={{ color: '#F5F0FF', textShadow: '0 2px 32px rgba(0,0,0,0.7)' }}>
+              {/* Main Headline */}
+              <h1
+                className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.12]"
+                style={{ color: '#F5F0FF', textShadow: '0 2px 32px rgba(0,0,0,0.8)' }}
+              >
                 Build your profile.{' '}
                 <span className="gradient-text">Get honest</span>{' '}
                 code reviews.
               </h1>
 
-              {/* Subtext */}
-              <p className="text-base sm:text-lg leading-relaxed max-w-lg"
-                style={{ color: '#D4C4B0', textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}>
+              {/* Subheading / Description */}
+              <p
+                className="text-base sm:text-lg leading-relaxed max-w-lg"
+                style={{ color: '#D4C4B0', textShadow: '0 1px 8px rgba(0,0,0,0.7)' }}
+              >
                 One account. Two worlds. Share publicly on{' '}
                 <strong style={{ color: '#FDE68A' }}>Nest Feed</strong>, or switch to{' '}
                 <strong style={{ color: '#FDE68A' }}>Nest Shadow</strong>{' '}
                 for completely anonymous, bias-free code reviews.
               </p>
 
-              {/* CTAs */}
+              {/* Action Buttons */}
               <div className="flex flex-wrap items-center gap-4 pt-1">
                 <Link to="/register">
                   <Button variant="primary" size="lg" className="transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] shadow-md hover:shadow-lg">
@@ -529,7 +533,7 @@ export default function LandingPage() {
                 <Link to="/login">
                   <button
                     className="text-sm font-semibold transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
-                    style={{ color: '#F5F0FF', textShadow: '0 1px 6px rgba(0,0,0,0.5)' }}
+                    style={{ color: '#F5F0FF', textShadow: '0 1px 6px rgba(0,0,0,0.6)' }}
                   >
                     Sign In →
                   </button>
@@ -537,13 +541,12 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Right: floating code card — desktop only */}
-            <div
-              className="hidden lg:block absolute right-8 select-none"
-              style={{ top: '50%', transform: 'translateY(-50%)', maxWidth: '290px', zIndex: 2 }}
-            >
-              <div className="p-5 rounded-2xl shadow-2xl"
-                style={{ background: 'rgba(10,8,16,0.72)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            {/* Right: Floating Code Snippet Card (Desktop Only) */}
+            <div className="hidden lg:block select-none max-w-xs">
+              <div
+                className="p-5 rounded-2xl shadow-2xl"
+                style={{ background: 'rgba(10,8,16,0.75)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.08)' }}
+              >
                 <div className="flex items-center gap-1.5 mb-3">
                   <div className="w-3 h-3 rounded-full bg-rose-500/80" />
                   <div className="w-3 h-3 rounded-full bg-amber-500/80" />
@@ -563,112 +566,115 @@ const review = await shadow.submit({
         </section>
       )}
 
-      {/* ── Stats Row ────────────────────────────────────────────────────── */}
-      {!user && (
-        <section className="rounded-2xl border border-white/10 shadow-[var(--shadow-sm)] px-6 py-6" style={{ background: 'rgba(14,12,20,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
-          <div className="grid grid-cols-3 gap-4">
-            {statsItems.map((s) => (
-              <div
-                key={s.label}
-                className="text-center space-y-1 transition-all duration-200 hover:-translate-y-0.5"
-              >
-                <div className="text-2xl sm:text-3xl font-extrabold text-[var(--color-primary)] tracking-tight h-9 flex items-center justify-center">
-                  {loadingStats ? (
-                    <Skeleton height="28px" width="70px" rounded="rounded-md" />
-                  ) : s.value}
+      {/* ── Page Content Below Hero ──────────────────────────────────────── */}
+      <div className="mx-auto max-w-7xl px-4 sm:px-8 py-10 space-y-10">
+        {/* ── Stats Row ────────────────────────────────────────────────────── */}
+        {!user && (
+          <section className="rounded-2xl border border-white/10 shadow-[var(--shadow-sm)] px-6 py-6" style={{ background: 'rgba(14,12,20,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
+            <div className="grid grid-cols-3 gap-4">
+              {statsItems.map((s) => (
+                <div
+                  key={s.label}
+                  className="text-center space-y-1 transition-all duration-200 hover:-translate-y-0.5"
+                >
+                  <div className="text-2xl sm:text-3xl font-extrabold text-[var(--color-primary)] tracking-tight h-9 flex items-center justify-center">
+                    {loadingStats ? (
+                      <Skeleton height="28px" width="70px" rounded="rounded-md" />
+                    ) : s.value}
+                  </div>
+                  <div className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">{s.label}</div>
                 </div>
-                <div className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">{s.label}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+              ))}
+            </div>
+          </section>
+        )}
 
-      {/* ── Feature Grid ─────────────────────────────────────────────────── */}
-      {!user && (
-        <section className="rounded-2xl border border-white/10 shadow-[var(--shadow-sm)] p-6 sm:p-8 space-y-6" style={{ background: 'rgba(14,12,20,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-subtle)]">Why CodeNest</span>
-            <div className="flex-1 h-px bg-[var(--border-main)]/60" />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            {features.map((f) => (
-              <div
-                key={f.title}
-                className={`group relative rounded-2xl bg-gradient-to-br ${f.color} border border-[var(--border-main)] p-6 space-y-4 shadow-xs transition-all duration-300 hover:shadow-[var(--shadow-md)] hover:-translate-y-1 ${f.borderColor}`}
-              >
-                <div className="w-12 h-12 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-main)] flex items-center justify-center text-2xl shadow-xs transition-transform duration-300 group-hover:scale-110 group-hover:border-[var(--color-primary)]/30">
-                  {f.icon}
+        {/* ── Feature Grid ─────────────────────────────────────────────────── */}
+        {!user && (
+          <section className="rounded-2xl border border-white/10 shadow-[var(--shadow-sm)] p-6 sm:p-8 space-y-6" style={{ background: 'rgba(14,12,20,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-bold uppercase tracking-widest text-[var(--text-subtle)]">Why CodeNest</span>
+              <div className="flex-1 h-px bg-[var(--border-main)]/60" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              {features.map((f) => (
+                <div
+                  key={f.title}
+                  className={`group relative rounded-2xl bg-gradient-to-br ${f.color} border border-[var(--border-main)] p-6 space-y-4 shadow-xs transition-all duration-300 hover:shadow-[var(--shadow-md)] hover:-translate-y-1 ${f.borderColor}`}
+                >
+                  <div className="w-12 h-12 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-main)] flex items-center justify-center text-2xl shadow-xs transition-transform duration-300 group-hover:scale-110 group-hover:border-[var(--color-primary)]/30">
+                    {f.icon}
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="font-bold text-[var(--text-main)] text-base group-hover:text-[var(--color-primary)] transition-colors duration-200">
+                      {f.title}
+                    </h3>
+                    <p className="text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed">
+                      {f.description}
+                    </p>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <h3 className="font-bold text-[var(--text-main)] text-base group-hover:text-[var(--color-primary)] transition-colors duration-200">
-                    {f.title}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-[var(--text-muted)] leading-relaxed">
-                    {f.description}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+              ))}
+            </div>
+          </section>
+        )}
 
-      {/* ── Community Feed ───────────────────────────────────────────────── */}
-      <section className="rounded-2xl border border-white/10 shadow-[var(--shadow-sm)] p-5 sm:p-7 space-y-5" style={{ background: 'rgba(14,12,20,0.60)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
-        <div className="flex items-center justify-between border-b border-[var(--border-main)]/50 pb-3">
-          <div>
-            <h2 className="text-xl font-bold text-[var(--text-main)]">
-              {user ? 'Your Feed' : 'Community Feed'}
-            </h2>
-            <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5">
-              Latest posts from the developer community
-            </p>
-          </div>
-          {user && (
-            <Link to="/posts/new">
-              <Button variant="primary" size="sm" className="transition-all duration-200 hover:scale-[1.02] active:scale-95 shadow-xs">
-                + New Post
-              </Button>
-            </Link>
-          )}
-        </div>
-
-        <PaginatedList
-          fetchData={(params) => postsApi.list(params)}
-          renderItem={(post) => <PostCard key={post.id} post={post} />}
-          emptyTitle="No public posts yet"
-          emptyDescription="Be the first to share something with the community!"
-          emptyActionLabel={user ? 'Write First Post' : 'Join to Post'}
-          onEmptyAction={() => navigate(user ? '/posts/new' : '/register')}
-        />
-      </section>
-
-      {/* ── Join CTA Banner ──────────────────────────────────────────────── */}
-      {!user && (
-        <section className="relative overflow-hidden rounded-2xl border border-white/10 shadow-[var(--shadow-md)] p-8 sm:p-10 text-center space-y-4" style={{ background: 'rgba(14,12,20,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
-          <div className="absolute inset-0 dot-grid opacity-30 pointer-events-none" />
-          <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-72 h-72 bg-[var(--color-primary)]/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="relative z-10 space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[var(--text-main)] tracking-tight">
-              Ready to build something great?
-            </h2>
-            <p className="text-sm text-[var(--text-muted)] max-w-lg mx-auto leading-relaxed">
-              Join thousands of developers sharing knowledge publicly and reviewing code anonymously on CodeNest.
-            </p>
-            <div className="flex flex-wrap justify-center gap-4 pt-2">
-              <Link to="/register">
-                <Button variant="primary" size="lg" className="transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] shadow-sm">
-                  Join CodeNest Free →
+        {/* ── Community Feed ───────────────────────────────────────────────── */}
+        <section className="rounded-2xl border border-white/10 shadow-[var(--shadow-sm)] p-5 sm:p-7 space-y-5" style={{ background: 'rgba(14,12,20,0.60)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
+          <div className="flex items-center justify-between border-b border-[var(--border-main)]/50 pb-3">
+            <div>
+              <h2 className="text-xl font-bold text-[var(--text-main)]">
+                {user ? 'Your Feed' : 'Community Feed'}
+              </h2>
+              <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5">
+                Latest posts from the developer community
+              </p>
+            </div>
+            {user && (
+              <Link to="/posts/new">
+                <Button variant="primary" size="sm" className="transition-all duration-200 hover:scale-[1.02] active:scale-95 shadow-xs">
+                  + New Post
                 </Button>
               </Link>
-            </div>
+            )}
           </div>
-        </section>
-      )}
 
-      {/* Footer */}
-      <Footer />
+          <PaginatedList
+            fetchData={(params) => postsApi.list(params)}
+            renderItem={(post) => <PostCard key={post.id} post={post} />}
+            emptyTitle="No public posts yet"
+            emptyDescription="Be the first to share something with the community!"
+            emptyActionLabel={user ? 'Write First Post' : 'Join to Post'}
+            onEmptyAction={() => navigate(user ? '/posts/new' : '/register')}
+          />
+        </section>
+
+        {/* ── Join CTA Banner ──────────────────────────────────────────────── */}
+        {!user && (
+          <section className="relative overflow-hidden rounded-2xl border border-white/10 shadow-[var(--shadow-md)] p-8 sm:p-10 text-center space-y-4" style={{ background: 'rgba(14,12,20,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
+            <div className="absolute inset-0 dot-grid opacity-30 pointer-events-none" />
+            <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-72 h-72 bg-[var(--color-primary)]/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative z-10 space-y-4">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[var(--text-main)] tracking-tight">
+                Ready to build something great?
+              </h2>
+              <p className="text-sm text-[var(--text-muted)] max-w-lg mx-auto leading-relaxed">
+                Join thousands of developers sharing knowledge publicly and reviewing code anonymously on CodeNest.
+              </p>
+              <div className="flex flex-wrap justify-center gap-4 pt-2">
+                <Link to="/register">
+                  <Button variant="primary" size="lg" className="transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] shadow-sm">
+                    Join CodeNest Free →
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Footer */}
+        <Footer />
+      </div>
     </div>
   );
 }
