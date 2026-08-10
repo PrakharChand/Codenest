@@ -531,12 +531,12 @@ export default function LandingPage() {
                   </Button>
                 </Link>
                 <Link to="/login">
-                  <button
-                    className="text-sm font-semibold transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
-                    style={{ color: '#F5F0FF', textShadow: '0 1px 6px rgba(0,0,0,0.6)' }}
+                  <Button
+                    size="lg"
+                    className="!bg-white/10 hover:!bg-white/20 !text-white !border !border-white/20 hover:!border-amber-400/60 backdrop-blur-md shadow-sm transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
                   >
-                    Sign In →
-                  </button>
+                    Sign In <span className="text-amber-300 ml-0.5">→</span>
+                  </Button>
                 </Link>
               </div>
             </div>
