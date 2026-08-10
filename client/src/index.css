@@ -255,3 +255,59 @@ input[type="search"]::-webkit-search-results-decoration {
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-main);
 }
+
+/* ─── Feed Page Animated Background — body class overrides ──────────────── */
+/*
+ * When .feed-bg-active is present on <body>, the AppShell's root div
+ * (which sets bg-[var(--bg-base)]) becomes transparent so the fixed canvas
+ * is visible behind the entire page layout.
+ */
+.feed-bg-active .min-h-screen {
+  background: transparent !important;
+}
+
+/* ─── Feed Post Card — visual separation layer ──────────────────────────── */
+/*
+ * Wraps each <PostCard> inside the Feed page renderItem.
+ * Provides: rounded corners, subtle border, glassmorphic semi-opacity,
+ * and vertical breathing room between cards.
+ * Does NOT override any inner PostCard content styles.
+ */
+.feed-post-card {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border-main);
+  background: var(--bg-surface-glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.10);
+  transition: box-shadow 150ms ease, border-color 150ms ease;
+}
+
+.feed-post-card:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--border-main));
+  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.16);
+}
+
+/* Remove the Card's own border/background so feed-post-card is the single
+   visual container — prevents doubled borders + double backgrounds */
+.feed-post-card > div[class*="border"] {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+/* Sidebar cards on the Feed page: same glassmorphic treatment */
+.feed-sidebar-card {
+  background: var(--bg-surface-glass) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+/* Ensure no horizontal overflow from the canvas on any screen size */
+.feed-bg-active,
+.feed-bg-active body {
+  overflow-x: hidden;
+}
+
