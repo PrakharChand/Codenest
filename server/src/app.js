@@ -33,6 +33,8 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const uploadRoutes       = require('./routes/uploadRoutes');
 const aiRoutes           = require('./routes/aiRoutes');
 const statsRoutes        = require('./routes/statsRoutes');
+const sseRoutes          = require('./routes/sseRoutes');
+const { idempotencyGuard } = require('./middleware/idempotency');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -83,6 +85,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());          // Required to read req.cookies (refresh token)
+app.use(idempotencyGuard);        // Idempotency Key Guard for mutating API operations
 
 // Passport — stateless mode (session: false on each route).
 // initialize() is required; session() is deliberately NOT used (JWT, no server sessions).
@@ -122,6 +125,7 @@ app.use('/api/chat',          chatRoutes);          // Real-time chat for Nest F
 app.use('/api/notifications', notificationRoutes);   // notification bell
 app.use('/api/upload',        uploadRoutes);        // /api/upload/users/:id/avatar, /api/upload/posts/upload-image
 app.use('/api/ai',            aiRoutes);              // AI features (aiLimiter applied per-route)
+app.use('/api/sse',           sseRoutes);             // Real-time HTTP SSE streaming fallbacks
 
 // ── Terminal middleware (order is critical — must be last) ─────────────────
 app.use(notFound);
