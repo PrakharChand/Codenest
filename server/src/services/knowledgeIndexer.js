@@ -106,26 +106,25 @@ async function indexFile(filePath, sourceType) {
 async function indexAllDocuments() {
   ensureDirs();
   try {
+    // Count total doc files across both dirs before doing any DB queries
+    const knowledgeFiles = fs.existsSync(KNOWLEDGE_DIR) ? fs.readdirSync(KNOWLEDGE_DIR).filter(f => {
+      try { return fs.statSync(path.join(KNOWLEDGE_DIR, f)).isFile(); } catch { return false; }
+    }) : [];
+    const profileFiles = fs.existsSync(PROFILE_DIR) ? fs.readdirSync(PROFILE_DIR).filter(f => {
+      try { return fs.statSync(path.join(PROFILE_DIR, f)).isFile(); } catch { return false; }
+    }) : [];
+
+    // Short-circuit: skip all DB queries if there are no documents to index
+    if (knowledgeFiles.length === 0 && profileFiles.length === 0) return;
+
     // 1. Knowledge docs
-    if (fs.existsSync(KNOWLEDGE_DIR)) {
-      const files = fs.readdirSync(KNOWLEDGE_DIR);
-      for (const file of files) {
-        const fullPath = path.join(KNOWLEDGE_DIR, file);
-        if (fs.statSync(fullPath).isFile()) {
-          await indexFile(fullPath, 'knowledge');
-        }
-      }
+    for (const file of knowledgeFiles) {
+      await indexFile(path.join(KNOWLEDGE_DIR, file), 'knowledge');
     }
 
     // 2. Profile / Resume docs
-    if (fs.existsSync(PROFILE_DIR)) {
-      const files = fs.readdirSync(PROFILE_DIR);
-      for (const file of files) {
-        const fullPath = path.join(PROFILE_DIR, file);
-        if (fs.statSync(fullPath).isFile()) {
-          await indexFile(fullPath, 'creator');
-        }
-      }
+    for (const file of profileFiles) {
+      await indexFile(path.join(PROFILE_DIR, file), 'creator');
     }
   } catch (err) {
     // Indexing scan non-blocking fail-safe

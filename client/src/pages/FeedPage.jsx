@@ -13,6 +13,7 @@ import ShadowDiscoveryBanner from '../components/organisms/ShadowDiscoveryBanner
 import Button from '../components/atoms/Button';
 import Card from '../components/atoms/Card';
 import Avatar from '../components/atoms/Avatar';
+import SEO from '../components/atoms/SEO';
 import ThemeToggle from '../components/atoms/ThemeToggle';
 
 // ─── Main Feed Page ─────────────────────────────────────────────────────────
