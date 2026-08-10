@@ -244,10 +244,24 @@ export default function FeedPage() {
   const [activeTab, setActiveTab] = useState('following');
   const [tabInitialized, setTabInitialized] = useState(false);
 
-  // Mount: add body class so AppShell bg becomes transparent, letting canvas show
+  // Mount: directly override AppShell root div background so the fixed canvas is visible.
+  // We use inline style (highest specificity) because Tailwind's bg-[var(--bg-base)]
+  // cannot be overridden by a CSS class selector.
   useEffect(() => {
+    // AppShell root is the first div inside <body> (or first .min-h-screen)
+    const shell = document.querySelector('.min-h-screen');
+    if (shell) {
+      shell.dataset.feedBgSaved = shell.style.background;
+      shell.style.background = 'transparent';
+    }
     document.body.classList.add('feed-bg-active');
-    return () => document.body.classList.remove('feed-bg-active');
+    return () => {
+      if (shell) {
+        shell.style.background = shell.dataset.feedBgSaved || '';
+        delete shell.dataset.feedBgSaved;
+      }
+      document.body.classList.remove('feed-bg-active');
+    };
   }, []);
 
   useEffect(() => {
