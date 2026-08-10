@@ -44,208 +44,272 @@ function formatStatNumber(val, fallbackStr) {
   return `${val.toLocaleString()}+`;
 }
 
-// ── Animated Sky Canvas ────────────────────────────────────────────────────
-function SkyCanvas({ isDark }) {
+// ── Full Page Background Canvas (Sunset Sky + Ocean) ─────────────────────
+function PageBackground({ isDark }) {
   const canvasRef = useRef(null);
   const animRef = useRef(null);
   const starsRef = useRef([]);
   const birdsRef = useRef([]);
   const cloudsRef = useRef([]);
+  const wavesRef = useRef([]);
   const frameRef = useRef(0);
 
-  const initScene = useCallback((canvas) => {
-    const W = canvas.width;
-    const H = canvas.height;
-
-    // Stars (for dark/sunset mode)
-    starsRef.current = Array.from({ length: 180 }, () => ({
+  const initScene = useCallback((W, H) => {
+    // Stars
+    starsRef.current = Array.from({ length: 220 }, () => ({
       x: Math.random() * W,
-      y: Math.random() * H * 0.65,
-      r: Math.random() * 1.5 + 0.3,
-      alpha: Math.random(),
-      speed: Math.random() * 0.01 + 0.003,
+      y: Math.random() * H * 0.55,
+      r: Math.random() * 1.6 + 0.3,
       phase: Math.random() * Math.PI * 2,
+      speed: Math.random() * 0.008 + 0.003,
     }));
-
-    // Birds (for light/sunrise mode) - V-shape flocks
-    birdsRef.current = Array.from({ length: 14 }, (_, i) => ({
-      x: Math.random() * W * 0.6 + W * 0.1,
-      y: Math.random() * H * 0.4 + H * 0.05,
-      vx: Math.random() * 0.5 + 0.4,
-      vy: Math.sin(i * 0.8) * 0.15,
+    // Birds
+    birdsRef.current = Array.from({ length: 16 }, (_, i) => ({
+      x: Math.random() * W * 0.7 + W * 0.1,
+      y: Math.random() * H * 0.35 + H * 0.05,
+      vx: Math.random() * 0.55 + 0.35,
+      vy: Math.sin(i * 0.7) * 0.12,
       flap: Math.random() * Math.PI * 2,
       flapSpeed: Math.random() * 0.06 + 0.04,
       size: Math.random() * 3 + 3,
-      group: Math.floor(i / 5),
     }));
-
-    // Clouds (both modes, subtle)
-    cloudsRef.current = Array.from({ length: 6 }, () => ({
+    // Clouds
+    cloudsRef.current = Array.from({ length: 7 }, () => ({
       x: Math.random() * W,
-      y: Math.random() * H * 0.45 + H * 0.05,
-      w: Math.random() * 140 + 80,
-      h: Math.random() * 40 + 22,
-      speed: Math.random() * 0.15 + 0.06,
+      y: Math.random() * H * 0.40 + H * 0.04,
+      w: Math.random() * 160 + 80,
+      h: Math.random() * 44 + 22,
+      speed: Math.random() * 0.18 + 0.06,
       alpha: Math.random() * 0.18 + 0.06,
     }));
+    // Ocean waves — multiple layers at different depths
+    wavesRef.current = Array.from({ length: 5 }, (_, i) => ({
+      offset: Math.random() * Math.PI * 2,
+      speed: 0.008 + i * 0.004,
+      amp: 10 + i * 6,
+      yBase: 0.60 + i * 0.045,
+      freq: 0.004 + i * 0.002,
+      alpha: 0.55 - i * 0.08,
+    }));
   }, []);
 
-  const drawSunset = useCallback((ctx, W, H, t) => {
-    // Deep dusk gradient — purple-black → amber horizon → burnt orange
-    const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, '#0E0C14');
-    grad.addColorStop(0.35, '#1A0E1F');
-    grad.addColorStop(0.62, '#2D1209');
-    grad.addColorStop(0.78, '#7C2D0A');
-    grad.addColorStop(0.90, '#D97706');
-    grad.addColorStop(1, '#F59E0B');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
+  const draw = useCallback((ctx, W, H, t) => {
+    ctx.clearRect(0, 0, W, H);
 
-    // Sun glow on horizon
-    const sunX = W * 0.72;
-    const sunY = H * 0.82;
-    const sunGlow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 180);
-    sunGlow.addColorStop(0, 'rgba(251, 191, 36, 0.55)');
-    sunGlow.addColorStop(0.4, 'rgba(245, 158, 11, 0.25)');
-    sunGlow.addColorStop(0.8, 'rgba(217, 119, 6, 0.08)');
-    sunGlow.addColorStop(1, 'transparent');
-    ctx.fillStyle = sunGlow;
-    ctx.fillRect(0, 0, W, H);
+    // ── SKY ZONE (top 65% of page) ─────────────────────────────────
+    const skyH = H * 0.65;
 
-    // Sun disk
-    ctx.beginPath();
-    ctx.arc(sunX, sunY, 32, 0, Math.PI * 2);
-    const sunDisk = ctx.createRadialGradient(sunX, sunY - 5, 4, sunX, sunY, 32);
-    sunDisk.addColorStop(0, '#FDE68A');
-    sunDisk.addColorStop(0.6, '#F59E0B');
-    sunDisk.addColorStop(1, '#D97706');
-    ctx.fillStyle = sunDisk;
-    ctx.fill();
+    if (isDark) {
+      // Sunset sky
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, skyH);
+      skyGrad.addColorStop(0, '#0A0810');
+      skyGrad.addColorStop(0.30, '#16091C');
+      skyGrad.addColorStop(0.58, '#2B1108');
+      skyGrad.addColorStop(0.78, '#7C2D0A');
+      skyGrad.addColorStop(0.92, '#D97706');
+      skyGrad.addColorStop(1, '#F59E0B');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, W, skyH);
 
-    // Desert silhouette hills
-    const hillGrad = ctx.createLinearGradient(0, H * 0.7, 0, H);
-    hillGrad.addColorStop(0, '#1C0A04');
-    hillGrad.addColorStop(1, '#0E0C14');
+      // Sun glow
+      const sunX = W * 0.70, sunY = skyH * 0.88;
+      const glow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 200);
+      glow.addColorStop(0, 'rgba(251,191,36,0.55)');
+      glow.addColorStop(0.4, 'rgba(245,158,11,0.22)');
+      glow.addColorStop(1, 'transparent');
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, W, skyH);
+
+      // Sun disk
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 30, 0, Math.PI * 2);
+      const sd = ctx.createRadialGradient(sunX, sunY - 4, 4, sunX, sunY, 30);
+      sd.addColorStop(0, '#FDE68A');
+      sd.addColorStop(0.6, '#F59E0B');
+      sd.addColorStop(1, '#D97706');
+      ctx.fillStyle = sd;
+      ctx.fill();
+
+      // Twinkling stars
+      starsRef.current.forEach((star) => {
+        const twinkle = 0.35 + 0.65 * Math.abs(Math.sin(star.phase + t * star.speed));
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,240,200,${twinkle * 0.88})`;
+        ctx.fill();
+      });
+
+      // Silhouette clouds
+      cloudsRef.current.forEach((c) => {
+        ctx.save();
+        ctx.globalAlpha = c.alpha * 0.5;
+        ctx.fillStyle = '#3D1A08';
+        ctx.beginPath();
+        ctx.ellipse(c.x, c.y, c.w / 2, c.h / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+    } else {
+      // Sunrise sky
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, skyH);
+      skyGrad.addColorStop(0, '#E8D5B7');
+      skyGrad.addColorStop(0.28, '#F5C89A');
+      skyGrad.addColorStop(0.55, '#FBBF24');
+      skyGrad.addColorStop(0.80, '#F97316');
+      skyGrad.addColorStop(1, '#FDE68A');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, W, skyH);
+
+      const sunX = W * 0.32, sunY = skyH * 0.84;
+      const glow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 230);
+      glow.addColorStop(0, 'rgba(253,230,138,0.70)');
+      glow.addColorStop(0.4, 'rgba(251,191,36,0.30)');
+      glow.addColorStop(1, 'transparent');
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, W, skyH);
+
+      ctx.beginPath();
+      ctx.arc(sunX, sunY + 6 * Math.sin(t * 0.0003), 26, 0, Math.PI * 2);
+      const sd = ctx.createRadialGradient(sunX, sunY - 4, 3, sunX, sunY, 26);
+      sd.addColorStop(0, '#FFFBEB');
+      sd.addColorStop(0.5, '#FDE68A');
+      sd.addColorStop(1, '#FBBF24');
+      ctx.fillStyle = sd;
+      ctx.fill();
+
+      // Morning clouds
+      cloudsRef.current.forEach((c) => {
+        ctx.save();
+        ctx.globalAlpha = c.alpha + 0.12;
+        const cg = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.w / 2);
+        cg.addColorStop(0, 'rgba(255,255,255,0.90)');
+        cg.addColorStop(0.6, 'rgba(253,230,138,0.35)');
+        cg.addColorStop(1, 'transparent');
+        ctx.fillStyle = cg;
+        ctx.beginPath();
+        ctx.ellipse(c.x, c.y, c.w / 2, c.h / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      // Birds
+      birdsRef.current.forEach((bird) => {
+        const flapAngle = Math.sin(bird.flap + t * bird.flapSpeed * 0.05);
+        ctx.save();
+        ctx.strokeStyle = 'rgba(92,50,10,0.70)';
+        ctx.lineWidth = 1.4;
+        ctx.lineCap = 'round';
+        const bx = bird.x;
+        const by = bird.y + Math.sin(t * 0.001) * 3;
+        const wing = bird.size * (0.6 + 0.4 * Math.abs(flapAngle));
+        ctx.beginPath();
+        ctx.moveTo(bx - wing, by - flapAngle * wing * 0.5);
+        ctx.quadraticCurveTo(bx - wing * 0.5, by + flapAngle * wing * 0.3, bx, by);
+        ctx.moveTo(bx, by);
+        ctx.quadraticCurveTo(bx + wing * 0.5, by + flapAngle * wing * 0.3, bx + wing, by - flapAngle * wing * 0.5);
+        ctx.stroke();
+        ctx.restore();
+      });
+    }
+
+    // ── DESERT HILLS at the sky/ocean boundary ──────────────────────
+    const hillY = skyH - 30;
+    const hillGrad = ctx.createLinearGradient(0, hillY * 0.85, 0, skyH + 10);
+    if (isDark) {
+      hillGrad.addColorStop(0, '#1C0A04');
+      hillGrad.addColorStop(1, '#0A0810');
+    } else {
+      hillGrad.addColorStop(0, '#D97706');
+      hillGrad.addColorStop(1, '#78350F');
+    }
     ctx.fillStyle = hillGrad;
     ctx.beginPath();
     ctx.moveTo(0, H);
-    ctx.lineTo(0, H * 0.78);
-    ctx.bezierCurveTo(W * 0.08, H * 0.70, W * 0.18, H * 0.68, W * 0.28, H * 0.73);
-    ctx.bezierCurveTo(W * 0.38, H * 0.78, W * 0.48, H * 0.65, W * 0.58, H * 0.72);
-    ctx.bezierCurveTo(W * 0.68, H * 0.79, W * 0.76, H * 0.74, W * 0.85, H * 0.77);
-    ctx.bezierCurveTo(W * 0.92, H * 0.80, W * 0.97, H * 0.78, W, H * 0.80);
+    ctx.lineTo(0, hillY * 0.90);
+    ctx.bezierCurveTo(W * 0.10, hillY * 0.75, W * 0.22, hillY * 0.70, W * 0.33, hillY * 0.82);
+    ctx.bezierCurveTo(W * 0.44, hillY * 0.94, W * 0.54, hillY * 0.68, W * 0.64, hillY * 0.76);
+    ctx.bezierCurveTo(W * 0.74, hillY * 0.84, W * 0.86, hillY * 0.78, W, hillY * 0.86);
     ctx.lineTo(W, H);
     ctx.closePath();
     ctx.fill();
 
-    // Twinkling stars
-    starsRef.current.forEach((star) => {
-      const twinkle = 0.4 + 0.6 * Math.abs(Math.sin(star.phase + t * star.speed));
-      ctx.beginPath();
-      ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255, 240, 200, ${twinkle * 0.85})`;
-      ctx.fill();
-    });
+    // ── OCEAN ZONE (bottom 40% of page) ─────────────────────────────
+    const oceanTop = H * 0.62;
 
-    // Clouds — silhouette dark
-    cloudsRef.current.forEach((cloud) => {
+    // Ocean base deep water gradient
+    const oceanGrad = ctx.createLinearGradient(0, oceanTop, 0, H);
+    if (isDark) {
+      oceanGrad.addColorStop(0, '#1A0E2A');
+      oceanGrad.addColorStop(0.25, '#0C1A3A');
+      oceanGrad.addColorStop(0.60, '#062240');
+      oceanGrad.addColorStop(1, '#020D1C');
+    } else {
+      oceanGrad.addColorStop(0, '#0369A1');
+      oceanGrad.addColorStop(0.30, '#0C4A6E');
+      oceanGrad.addColorStop(0.65, '#083344');
+      oceanGrad.addColorStop(1, '#020D1C');
+    }
+    ctx.fillStyle = oceanGrad;
+    ctx.fillRect(0, oceanTop, W, H - oceanTop);
+
+    // Sun / moon reflection on water
+    const reflX = isDark ? W * 0.70 : W * 0.32;
+    const reflColor = isDark ? 'rgba(245,158,11,' : 'rgba(253,230,138,';
+    for (let i = 0; i < 8; i++) {
+      const ry = oceanTop + 20 + i * 22;
+      const rw = (70 - i * 7) * (0.7 + 0.3 * Math.sin(t * 0.02 + i));
+      const rx = reflX - rw / 2 + Math.sin(t * 0.015 + i * 0.8) * 10;
       ctx.save();
-      ctx.globalAlpha = cloud.alpha * 0.6;
-      ctx.fillStyle = '#3D1A08';
+      ctx.globalAlpha = (0.45 - i * 0.045) * (0.8 + 0.2 * Math.sin(t * 0.01 + i));
+      ctx.fillStyle = `${reflColor}1)`;
       ctx.beginPath();
-      ctx.ellipse(cloud.x, cloud.y, cloud.w / 2, cloud.h / 2, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    });
-  }, []);
-
-  const drawSunrise = useCallback((ctx, W, H, t) => {
-    // Warm dawn gradient — soft lavender sky → peach → golden horizon
-    const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0, '#E8D5B7');
-    grad.addColorStop(0.25, '#F5C89A');
-    grad.addColorStop(0.55, '#FBBF24');
-    grad.addColorStop(0.75, '#F97316');
-    grad.addColorStop(0.90, '#FDE68A');
-    grad.addColorStop(1, '#FDFBF7');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
-
-    // Sunrise sun glow
-    const sunX = W * 0.30;
-    const sunY = H * 0.78;
-    const sunGlow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 220);
-    sunGlow.addColorStop(0, 'rgba(253, 230, 138, 0.70)');
-    sunGlow.addColorStop(0.35, 'rgba(251, 191, 36, 0.35)');
-    sunGlow.addColorStop(0.70, 'rgba(245, 158, 11, 0.12)');
-    sunGlow.addColorStop(1, 'transparent');
-    ctx.fillStyle = sunGlow;
-    ctx.fillRect(0, 0, W, H);
-
-    // Sun disk (partially risen)
-    const riseY = sunY + 8 * Math.sin(t * 0.0003);
-    ctx.beginPath();
-    ctx.arc(sunX, riseY, 26, 0, Math.PI * 2);
-    const sunDisk = ctx.createRadialGradient(sunX, riseY - 4, 3, sunX, riseY, 26);
-    sunDisk.addColorStop(0, '#FFFBEB');
-    sunDisk.addColorStop(0.5, '#FDE68A');
-    sunDisk.addColorStop(1, '#FBBF24');
-    ctx.fillStyle = sunDisk;
-    ctx.fill();
-
-    // Gentle rolling desert sand hills
-    const hillGrad = ctx.createLinearGradient(0, H * 0.72, 0, H);
-    hillGrad.addColorStop(0, '#D97706');
-    hillGrad.addColorStop(0.5, '#B45309');
-    hillGrad.addColorStop(1, '#78350F');
-    ctx.fillStyle = hillGrad;
-    ctx.beginPath();
-    ctx.moveTo(0, H);
-    ctx.lineTo(0, H * 0.82);
-    ctx.bezierCurveTo(W * 0.12, H * 0.74, W * 0.22, H * 0.72, W * 0.35, H * 0.78);
-    ctx.bezierCurveTo(W * 0.45, H * 0.83, W * 0.55, H * 0.72, W * 0.65, H * 0.76);
-    ctx.bezierCurveTo(W * 0.75, H * 0.80, W * 0.88, H * 0.75, W, H * 0.79);
-    ctx.lineTo(W, H);
-    ctx.closePath();
-    ctx.fill();
-
-    // Soft morning clouds
-    cloudsRef.current.forEach((cloud) => {
-      ctx.save();
-      ctx.globalAlpha = cloud.alpha + 0.10;
-      const cg = ctx.createRadialGradient(cloud.x, cloud.y, 0, cloud.x, cloud.y, cloud.w / 2);
-      cg.addColorStop(0, 'rgba(255, 255, 255, 0.88)');
-      cg.addColorStop(0.6, 'rgba(253, 230, 138, 0.35)');
-      cg.addColorStop(1, 'transparent');
-      ctx.fillStyle = cg;
-      ctx.beginPath();
-      ctx.ellipse(cloud.x, cloud.y, cloud.w / 2, cloud.h / 2, 0, 0, Math.PI * 2);
+      ctx.ellipse(rx + rw / 2, ry, rw / 2, 3, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
-    });
+    }
 
-    // Flying birds in V-formation
-    birdsRef.current.forEach((bird) => {
-      const flapAngle = Math.sin(bird.flap + t * bird.flapSpeed * 0.05);
-      ctx.save();
-      ctx.strokeStyle = 'rgba(92, 50, 10, 0.75)';
-      ctx.lineWidth = 1.4;
-      ctx.lineCap = 'round';
-
-      const bx = bird.x;
-      const by = bird.y + Math.sin(t * 0.001 + bird.phase || 0) * 3;
-      const wing = bird.size * (0.6 + 0.4 * Math.abs(flapAngle));
-
+    // Animated wave layers
+    wavesRef.current.forEach((wave, idx) => {
+      const wy = oceanTop + (H - oceanTop) * (wave.yBase - 0.60) * 2.5;
       ctx.beginPath();
-      ctx.moveTo(bx - wing, by - flapAngle * wing * 0.5);
-      ctx.quadraticCurveTo(bx - wing * 0.5, by + flapAngle * wing * 0.3, bx, by);
-      ctx.moveTo(bx, by);
-      ctx.quadraticCurveTo(bx + wing * 0.5, by + flapAngle * wing * 0.3, bx + wing, by - flapAngle * wing * 0.5);
-      ctx.stroke();
-      ctx.restore();
+      ctx.moveTo(0, wy);
+      for (let x = 0; x <= W; x += 4) {
+        const y = wy + Math.sin(x * wave.freq + t * wave.speed + wave.offset) * wave.amp
+          + Math.sin(x * wave.freq * 1.7 + t * wave.speed * 0.7 + wave.offset + 1) * wave.amp * 0.4;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(W, H);
+      ctx.lineTo(0, H);
+      ctx.closePath();
+
+      const wg = ctx.createLinearGradient(0, wy - wave.amp, 0, wy + wave.amp * 2);
+      if (isDark) {
+        wg.addColorStop(0, `rgba(14,28,60,${wave.alpha + 0.1})`);
+        wg.addColorStop(0.5, `rgba(6,30,55,${wave.alpha})`);
+        wg.addColorStop(1, `rgba(2,13,28,${wave.alpha + 0.15})`);
+      } else {
+        wg.addColorStop(0, `rgba(3,105,161,${wave.alpha + 0.1})`);
+        wg.addColorStop(0.5, `rgba(12,74,110,${wave.alpha})`);
+        wg.addColorStop(1, `rgba(8,51,68,${wave.alpha + 0.15})`);
+      }
+      ctx.fillStyle = wg;
+      ctx.fill();
+
+      // Wave crest foam
+      if (idx < 3) {
+        ctx.beginPath();
+        ctx.moveTo(0, wy);
+        for (let x = 0; x <= W; x += 4) {
+          const y = wy + Math.sin(x * wave.freq + t * wave.speed + wave.offset) * wave.amp
+            + Math.sin(x * wave.freq * 1.7 + t * wave.speed * 0.7 + wave.offset + 1) * wave.amp * 0.4;
+          ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = isDark ? 'rgba(180,150,100,0.18)' : 'rgba(255,255,255,0.22)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
     });
-  }, []);
+  }, [isDark]);
 
   const animate = useCallback(() => {
     const canvas = canvasRef.current;
@@ -255,54 +319,49 @@ function SkyCanvas({ isDark }) {
     const H = canvas.height;
     const t = frameRef.current;
 
-    ctx.clearRect(0, 0, W, H);
-
-    if (isDark) {
-      drawSunset(ctx, W, H, t);
-    } else {
-      drawSunrise(ctx, W, H, t);
-    }
+    draw(ctx, W, H, t);
 
     // Move clouds
-    cloudsRef.current.forEach((cloud) => {
-      cloud.x += cloud.speed;
-      if (cloud.x - cloud.w / 2 > W) cloud.x = -cloud.w / 2;
+    cloudsRef.current.forEach((c) => {
+      c.x += c.speed;
+      if (c.x - c.w / 2 > W) c.x = -c.w / 2;
     });
-
-    // Move birds (only in light mode)
+    // Move birds (light only)
     if (!isDark) {
-      birdsRef.current.forEach((bird) => {
-        bird.x += bird.vx;
-        bird.y += bird.vy;
-        bird.flap += bird.flapSpeed;
-        if (bird.x > W + 60) {
-          bird.x = -60;
-          bird.y = Math.random() * H * 0.40 + H * 0.05;
+      birdsRef.current.forEach((b) => {
+        b.x += b.vx;
+        b.y += b.vy;
+        b.flap += b.flapSpeed;
+        if (b.x > W + 60) {
+          b.x = -60;
+          b.y = Math.random() * window.innerHeight * 0.35 + window.innerHeight * 0.05;
         }
       });
     }
 
     frameRef.current += 1;
     animRef.current = requestAnimationFrame(animate);
-  }, [isDark, drawSunset, drawSunrise]);
+  }, [draw, isDark]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const container = canvas.parentElement;
 
     const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      initScene(canvas);
+      canvas.width = container.offsetWidth;
+      canvas.height = container.offsetHeight;
+      initScene(canvas.width, canvas.height);
     };
 
     resize();
-    window.addEventListener('resize', resize);
+    const ro = new ResizeObserver(resize);
+    ro.observe(container);
     animRef.current = requestAnimationFrame(animate);
 
     return () => {
       cancelAnimationFrame(animRef.current);
-      window.removeEventListener('resize', resize);
+      ro.disconnect();
     };
   }, [animate, initScene]);
 
@@ -310,15 +369,7 @@ function SkyCanvas({ isDark }) {
     <canvas
       ref={canvasRef}
       aria-hidden="true"
-      style={{
-        display: 'block',
-        position: 'fixed',
-        inset: 0,
-        width: '100vw',
-        height: '100vh',
-        zIndex: 0,
-        pointerEvents: 'none',
-      }}
+      style={{ display: 'block', width: '100%', height: '100%' }}
     />
   );
 }
@@ -366,16 +417,29 @@ export default function LandingPage() {
 
   return (
     <div className="relative space-y-10 page-enter" style={{ zIndex: 1 }}>
-      {/* ── Full-page animated sky background ──────────────────────── */}
-      <SkyCanvas isDark={isDark} />
+
+      {/* ── Full-page tall background: Sunset Sky + Ocean ────────────────── */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 0,
+          overflow: 'hidden',
+          pointerEvents: 'none',
+          minHeight: '100%',
+        }}
+      >
+        <PageBackground isDark={isDark} />
+      </div>
 
       <SEO
         title="Build Public Reputation & Get Honest Code Reviews"
         description="CodeNest is a dual-identity developer platform. Share tech insights publicly on Nest Feed or get 100% anonymous, bias-free code reviews on Nest Shadow."
       />
 
-      {/* ── Top Nav ──────────────────────────────────────────────────────── */}
-      <nav className="flex items-center justify-between pb-4 border-b border-white/10">
+      {/* ── Top Nav ─────────────────────────────────────────────────────── */}
+      <nav className="relative z-10 flex items-center justify-between pb-4 border-b border-white/10">
         <Link to="/" className="flex items-center gap-2 group cursor-pointer">
           <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)] flex items-center justify-center shadow-xs transition-transform duration-200 group-hover:scale-105">
             <span className="text-white font-bold text-xs tracking-tight">CN</span>
@@ -409,72 +473,16 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* ── Hero Section — floats above the animated page background ─────── */}
+      {/* ── Hero — pure transparent window to the background ────────────── */}
       {!user && (
-        <section className="relative overflow-hidden rounded-3xl border border-white/10 shadow-2xl" style={{ minHeight: '480px', background: 'transparent' }}>
-
-          {/* Hero Content */}
-          <div className="relative z-10 flex flex-col justify-center h-full px-6 py-14 sm:px-10 md:px-16 md:py-20 max-w-3xl space-y-7">
-            {/* Pill label */}
-            <div className="inline-flex items-center gap-2.5 rounded-full border border-[var(--color-primary)]/40 bg-black/30 backdrop-blur-md px-4 py-1.5 text-xs font-semibold text-amber-300 w-fit transition-transform duration-200 hover:scale-105">
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-              🚀 The Dual-Identity Platform for Developers
-            </div>
-
-            {/* Headline */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.15]"
-              style={{ color: isDark ? '#F5F0FF' : '#1C1410', textShadow: isDark ? '0 2px 24px rgba(0,0,0,0.6)' : '0 2px 16px rgba(255,255,255,0.5)' }}>
-              Build your profile.{' '}
-              <span className="gradient-text">Get honest</span>{' '}
-              code reviews.
-            </h1>
-
-            {/* Subtext */}
-            <p className="text-base sm:text-lg max-w-xl leading-relaxed"
-              style={{ color: isDark ? '#C4B5A8' : '#4A3020', textShadow: isDark ? '0 1px 8px rgba(0,0,0,0.5)' : 'none' }}>
-              One account. Two worlds. Share publicly on{' '}
-              <strong style={{ color: isDark ? '#FDE68A' : '#92400E' }}>Nest Feed</strong>, or switch to{' '}
-              <strong style={{ color: isDark ? '#FDE68A' : '#92400E' }}>Nest Shadow</strong>{' '}
-              for completely anonymous, bias-free code reviews.
-            </p>
-
-            {/* CTA buttons */}
-            <div className="flex flex-wrap items-center gap-4 pt-1">
-              <Link to="/register">
-                <Button variant="primary" size="lg" className="transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] shadow-sm hover:shadow-md">
-                  Get Started — it's free
-                </Button>
-              </Link>
-              <Link to="/login">
-                <Button variant="secondary" size="lg" className="transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] backdrop-blur-sm bg-white/10 border-white/20 text-white hover:bg-white/20">
-                  Sign In
-                </Button>
-              </Link>
-            </div>
-          </div>
-
-          {/* Floating code card */}
-          <div className="absolute right-8 top-10 hidden lg:block pointer-events-none select-none z-10">
-            <div className="p-4 rounded-xl border border-white/10 bg-black/40 backdrop-blur-md shadow-lg">
-              <div className="flex items-center gap-1.5 mb-3">
-                <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
-                <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
-              </div>
-              <pre className="font-mono text-[11px] text-amber-300 leading-relaxed">
-{`// Submit anonymously
-const review = await shadow.submit({
-  code: myCode,
-  identity: 'hidden',
-  bias: false,
-});`}
-              </pre>
-            </div>
-          </div>
-        </section>
+        <section
+          className="relative z-10"
+          style={{ minHeight: '56vh', pointerEvents: 'none' }}
+          aria-hidden="true"
+        />
       )}
 
-      {/* ── Stats Row ───────────────────────────────────────────────────── */}
+      {/* ── Stats Row ────────────────────────────────────────────────────── */}
       {!user && (
         <section className="rounded-2xl border border-white/10 shadow-[var(--shadow-sm)] px-6 py-6" style={{ background: 'rgba(14,12,20,0.55)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
           <div className="grid grid-cols-3 gap-4">
