@@ -16,6 +16,7 @@
 const crypto = require('crypto');
 const env = require('../config/env');
 const { genAI, GEMINI_MODEL, FALLBACK_MODELS } = require('../config/gemini');
+const { geminiCircuitBreaker } = require('../utils/circuitBreaker');
 const aiPrompts = require('./aiPrompts');
 
 // ── In-Memory Selective Response Cache ─────────────────────────────────────
@@ -166,38 +167,65 @@ function validateAndSanitizeReview(data) {
  * timeout management, schema validation, and structured error logging.
  */
 async function callGeminiWithRetry(featureName, prompt, fallback, validatorFn, meta = {}) {
-  const startTime = Date.now();
-  let lastError = null;
-  const apiKeyPrefix = env.GEMINI_API_KEY ? `${env.GEMINI_API_KEY.slice(0, 8)}...` : 'MISSING';
+  return geminiCircuitBreaker.execute(
+    async () => {
+      const startTime = Date.now();
+      let lastError = null;
+      const apiKeyPrefix = env.GEMINI_API_KEY ? `${env.GEMINI_API_KEY.slice(0, 8)}...` : 'MISSING';
 
-  for (const modelName of FALLBACK_MODELS) {
-    for (let attempt = 1; attempt <= env.AI_MAX_RETRIES + 1; attempt++) {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), env.AI_TIMEOUT_MS);
+      for (const modelName of FALLBACK_MODELS) {
+        for (let attempt = 1; attempt <= env.AI_MAX_RETRIES + 1; attempt++) {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), env.AI_TIMEOUT_MS);
 
-      try {
-        const model = genAI.getGenerativeModel({
-          model: modelName,
-          generationConfig: {
-            responseMimeType: 'application/json',
-            maxOutputTokens: 4096,
-            temperature: 0.2,
-          },
-        });
+          try {
+            const model = genAI.getGenerativeModel({
+              model: modelName,
+              generationConfig: {
+                responseMimeType: 'application/json',
+                maxOutputTokens: 4096,
+                temperature: 0.2,
+              },
+            });
 
-        const result = await model.generateContent(prompt, { signal: controller.signal });
-        clearTimeout(timer);
+            const result = await model.generateContent(prompt, { signal: controller.signal });
+            clearTimeout(timer);
 
-        const responseText = result.response.text();
-        const cleanedText = responseText
-          .replace(/^```(?:json)?\n?/, '')
-          .replace(/\n?```$/, '')
-          .trim();
+            const responseText = result.response.text();
+            const cleanedText = responseText
+              .replace(/^```(?:json)?\n?/, '')
+              .replace(/\n?```$/, '')
+              .trim();
 
-        let parsed = null;
-        try {
-          parsed = JSON.parse(cleanedText);
-        } catch (parseErr) {
+            let parsed = null;
+            try {
+              parsed = JSON.parse(cleanedText);
+            } catch (parseErr) {
+              console.warn(`[AIService:${featureName}] JSON parse error on model ${modelName} (attempt ${attempt}):`, parseErr.message);
+              continue;
+            }
+
+            const validated = validatorFn ? validatorFn(parsed) : parsed;
+            if (validated) {
+              return validated;
+            }
+          } catch (err) {
+            clearTimeout(timer);
+            lastError = err;
+            if (!isTransientError(err)) {
+              throw err; // Non-transient errors trigger circuit breaker failure threshold immediately
+            }
+          }
+        }
+      }
+      throw lastError || new Error(`Gemini API call failed for feature ${featureName}`);
+    },
+    () => {
+      console.warn(`[AIService:${featureName}] Circuit Breaker active or API failed. Returning fail-open fallback object.`);
+      return fallback;
+    }
+  );
+}
           try {
             const patched = cleanedText
               .replace(/,\s*([\]}])/g, '$1')
