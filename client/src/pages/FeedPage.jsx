@@ -92,7 +92,6 @@ function FeedPageBackground() {
 
   const draw = useCallback((ctx, W, H, t) => {
     ctx.clearRect(0, 0, W, H);
-    const dark = isDark();
 
     // Check reduced motion preference
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -101,36 +100,28 @@ function FeedPageBackground() {
     // Horizon line height (mountain base & ocean origin)
     const horizonY = H * 0.32;
 
-    // ── 1. SKY BASE GRADIENT (Top to Horizon) ──────────────────────────
+    // ── 1. SKY BASE GRADIENT (Deep Pitch Black to Midnight Violet) ────
     const skyGrd = ctx.createLinearGradient(0, 0, 0, horizonY + 40);
-    if (dark) {
-      skyGrd.addColorStop(0, '#040209');
-      skyGrd.addColorStop(0.4, '#0D061A');
-      skyGrd.addColorStop(0.8, '#1A0B2B');
-      skyGrd.addColorStop(1, '#290E38');
-    } else {
-      skyGrd.addColorStop(0, '#EDE8F5');
-      skyGrd.addColorStop(0.5, '#E4DAF5');
-      skyGrd.addColorStop(1, '#F3E8F8');
-    }
+    skyGrd.addColorStop(0.0, '#040209'); // Pitch Space Black
+    skyGrd.addColorStop(0.4, '#0D061A'); // Deep Midnight Violet
+    skyGrd.addColorStop(0.8, '#1A0B2B'); // Dark Velvet Purple
+    skyGrd.addColorStop(1.0, '#290E38'); // Deep Horizon Purple
     ctx.fillStyle = skyGrd;
     ctx.fillRect(0, 0, W, horizonY + 40);
 
     // ── 2. STARRY SKY & TWINKLING ──────────────────────────────────────
-    if (dark) {
-      starsRef.current.forEach((s) => {
-        const twinkle = s.brightness * (0.45 + 0.55 * Math.sin(s.phase + animTime * s.speed));
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        const hue = s.phase < 1.2 ? '255,240,210' : s.phase < 2.5 ? '210,225,255' : '255,255,255';
-        ctx.fillStyle = `rgba(${hue}, ${twinkle.toFixed(3)})`;
-        ctx.fill();
-      });
-    }
+    starsRef.current.forEach((s) => {
+      const twinkle = s.brightness * (0.45 + 0.55 * Math.sin(s.phase + animTime * s.speed));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      const hue = s.phase < 1.2 ? '255,240,210' : s.phase < 2.5 ? '210,225,255' : '255,255,255';
+      ctx.fillStyle = `rgba(${hue}, ${twinkle.toFixed(3)})`;
+      ctx.fill();
+    });
 
     // ── 3. SHOOTING STAR ──────────────────────────────────────────────
     const sStar = shootingStarRef.current;
-    if (dark && sStar.active && !prefersReducedMotion) {
+    if (sStar.active && !prefersReducedMotion) {
       const alpha = Math.sin((sStar.life / sStar.maxLife) * Math.PI); // Fade in & out
       const headX = sStar.x;
       const headY = sStar.y;
@@ -162,11 +153,10 @@ function FeedPageBackground() {
     const glowY = horizonY - 10;
     const glowRadius = Math.max(W * 0.45, 320);
     const horizonGlow = ctx.createRadialGradient(glowX, glowY, 0, glowX, glowY, glowRadius);
-    const glowAlpha = dark ? 1 : 0.4;
 
-    horizonGlow.addColorStop(0.0, `rgba(255, 130, 0, ${(0.65 * glowAlpha).toFixed(2)})`);  // Fiery Sun Gold
-    horizonGlow.addColorStop(0.35, `rgba(225, 29, 72, ${(0.45 * glowAlpha).toFixed(2)})`); // Magenta Red
-    horizonGlow.addColorStop(0.70, `rgba(147, 51, 234, ${(0.25 * glowAlpha).toFixed(2)})`);// Neon Violet
+    horizonGlow.addColorStop(0.0, 'rgba(255, 130, 0, 0.68)'); // Fiery Sun Gold / Orange
+    horizonGlow.addColorStop(0.35, 'rgba(225, 29, 72, 0.48)'); // Crimson / Magenta Red
+    horizonGlow.addColorStop(0.70, 'rgba(147, 51, 234, 0.28)');// Neon Violet
     horizonGlow.addColorStop(1.0, 'rgba(10, 5, 20, 0)');
 
     ctx.fillStyle = horizonGlow;
@@ -175,7 +165,7 @@ function FeedPageBackground() {
     // ── 5. MULTI-LAYER MOUNTAIN SILHOUETTE ─────────────────────────────
 
     // Layer A: Distant Low Mountains
-    ctx.fillStyle = dark ? '#130926' : '#D1C4EC';
+    ctx.fillStyle = '#130926';
     ctx.beginPath();
     ctx.moveTo(0, horizonY);
     for (let x = 0; x <= W; x += 15) {
@@ -187,11 +177,10 @@ function FeedPageBackground() {
     ctx.closePath();
     ctx.fill();
 
-    // Layer B: Main Prominent Foreground Peaks (Sharp alpine ridges matching reference)
-    ctx.fillStyle = dark ? '#06030C' : '#6A5ACD';
+    // Layer B: Main Prominent Foreground Peaks (Sharp pitch-black alpine ridges)
+    ctx.fillStyle = '#06030C';
     ctx.beginPath();
 
-    // Build natural mountain profile with sharp peaks across screen width
     const mountainPoints = [
       { x: 0, y: horizonY - 15 },
       { x: W * 0.08, y: horizonY - 45 },
@@ -216,37 +205,30 @@ function FeedPageBackground() {
     ctx.closePath();
     ctx.fill();
 
-    // Subtle golden rim outline along main mountain ridge
-    if (dark) {
-      ctx.strokeStyle = 'rgba(245, 158, 11, 0.40)';
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      mountainPoints.forEach((pt, idx) => {
-        if (idx === 0) ctx.moveTo(pt.x, pt.y);
-        else ctx.lineTo(pt.x, pt.y);
-      });
-      ctx.stroke();
-    }
+    // Golden rim stroke along main mountain ridge
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.45)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    mountainPoints.forEach((pt, idx) => {
+      if (idx === 0) ctx.moveTo(pt.x, pt.y);
+      else ctx.lineTo(pt.x, pt.y);
+    });
+    ctx.stroke();
 
     // ── 6. OCEAN BASE (Horizon to Bottom of Screen) ────────────────────
     const oceanHeight = H - horizonY;
     const oceanGrd = ctx.createLinearGradient(0, horizonY, 0, H);
-    if (dark) {
-      oceanGrd.addColorStop(0.0, '#0E071D');
-      oceanGrd.addColorStop(0.3, '#090414');
-      oceanGrd.addColorStop(0.7, '#05020B');
-      oceanGrd.addColorStop(1.0, '#030107');
-    } else {
-      oceanGrd.addColorStop(0.0, '#D8CBEF');
-      oceanGrd.addColorStop(1.0, '#C2B2E6');
-    }
+    oceanGrd.addColorStop(0.0, '#0E071D');
+    oceanGrd.addColorStop(0.3, '#090414');
+    oceanGrd.addColorStop(0.7, '#05020B');
+    oceanGrd.addColorStop(1.0, '#030107');
     ctx.fillStyle = oceanGrd;
     ctx.fillRect(0, horizonY, W, oceanHeight);
 
     // Horizon Water Light Reflection
     const reflGrd = ctx.createLinearGradient(0, horizonY, 0, horizonY + 70);
-    reflGrd.addColorStop(0, dark ? 'rgba(245, 158, 11, 0.25)' : 'rgba(245, 158, 11, 0.15)');
-    reflGrd.addColorStop(0.5, dark ? 'rgba(168, 85, 247, 0.15)' : 'rgba(168, 85, 247, 0.08)');
+    reflGrd.addColorStop(0, 'rgba(245, 158, 11, 0.28)');
+    reflGrd.addColorStop(0.5, 'rgba(168, 85, 247, 0.16)');
     reflGrd.addColorStop(1, 'transparent');
     ctx.fillStyle = reflGrd;
     ctx.fillRect(0, horizonY, W, 70);
@@ -255,7 +237,6 @@ function FeedPageBackground() {
 
     // Horizontal Perspective Wave Lines
     waveLayersRef.current.forEach((wave) => {
-      // Logarithmic spacing fanning out towards screen bottom
       const y = horizonY + Math.pow(wave.progress, 1.8) * oceanHeight;
       const waveAmp = wave.amp * (0.3 + wave.progress * 0.7);
 
@@ -269,34 +250,32 @@ function FeedPageBackground() {
         ctx.lineTo(x, waveY);
       }
 
-      ctx.strokeStyle = dark ? wave.color : 'rgba(100, 70, 180, 0.25)';
+      ctx.strokeStyle = wave.color;
       ctx.lineWidth = 1 + wave.progress * 1.5;
       ctx.stroke();
     });
 
     // Vertical Perspective Grid Lines fanning out from Horizon Center
-    if (dark) {
-      const centerX = W * 0.5;
-      const lineCount = 18;
-      ctx.lineWidth = 1.0;
+    const centerX = W * 0.5;
+    const lineCount = 18;
+    ctx.lineWidth = 1.0;
 
-      for (let i = 0; i <= lineCount; i++) {
-        const factor = (i / lineCount - 0.5) * 2; // -1 to +1
-        const bottomX = centerX + factor * W * 1.2;
+    for (let i = 0; i <= lineCount; i++) {
+      const factor = (i / lineCount - 0.5) * 2; // -1 to +1
+      const bottomX = centerX + factor * W * 1.2;
 
-        const gridGrd = ctx.createLinearGradient(centerX, horizonY, bottomX, H);
-        gridGrd.addColorStop(0, 'rgba(168, 85, 247, 0)');
-        gridGrd.addColorStop(0.2, 'rgba(168, 85, 247, 0.12)');
-        gridGrd.addColorStop(1, 'rgba(59, 130, 246, 0.25)');
+      const gridGrd = ctx.createLinearGradient(centerX, horizonY, bottomX, H);
+      gridGrd.addColorStop(0, 'rgba(168, 85, 247, 0)');
+      gridGrd.addColorStop(0.2, 'rgba(168, 85, 247, 0.12)');
+      gridGrd.addColorStop(1, 'rgba(59, 130, 246, 0.25)');
 
-        ctx.strokeStyle = gridGrd;
-        ctx.beginPath();
-        ctx.moveTo(centerX, horizonY);
-        ctx.lineTo(bottomX, H);
-        ctx.stroke();
-      }
+      ctx.strokeStyle = gridGrd;
+      ctx.beginPath();
+      ctx.moveTo(centerX, horizonY);
+      ctx.lineTo(bottomX, H);
+      ctx.stroke();
     }
-  }, [isDark]);
+  }, []);
 
   const animate = useCallback(() => {
     const canvas = canvasRef.current;
@@ -376,6 +355,7 @@ export default function FeedPage() {
     }
     document.body.style.backgroundColor = 'transparent';
     document.body.classList.add('feed-bg-active');
+    document.documentElement.classList.add('dark-mode');
 
     return () => {
       if (shell) {

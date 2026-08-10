@@ -276,17 +276,18 @@ input[type="search"]::-webkit-search-results-decoration {
 .feed-post-card {
   border-radius: 14px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(13, 8, 24, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(11, 7, 22, 0.88);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
   transition: box-shadow 200ms ease, border-color 200ms ease, transform 200ms ease;
+  color: #F3F4F6;
 }
 
 .feed-post-card:hover {
   border-color: rgba(168, 85, 247, 0.45);
-  box-shadow: 0 8px 30px 0 rgba(168, 85, 247, 0.18);
+  box-shadow: 0 8px 30px 0 rgba(168, 85, 247, 0.22);
 }
 
 /* Remove inner Card border/bg duplicate */
@@ -299,11 +300,12 @@ input[type="search"]::-webkit-search-results-decoration {
 
 /* Sidebar cards on the Feed page: glassmorphic matching treatment */
 .feed-sidebar-card {
-  background: rgba(13, 8, 24, 0.82) !important;
+  background: rgba(11, 7, 22, 0.88) !important;
   backdrop-filter: blur(16px) !important;
   -webkit-backdrop-filter: blur(16px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45) !important;
+  color: #F3F4F6 !important;
 }
 
 /* Ensure no horizontal overflow from the canvas on any screen size */
