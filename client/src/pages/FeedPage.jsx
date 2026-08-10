@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { postsApi } from '../api/postsApi';
@@ -331,20 +332,22 @@ function FeedPageBackground() {
     };
   }, [animate, initScene]);
 
-  return (
+  return createPortal(
     <canvas
       ref={canvasRef}
       aria-hidden="true"
       style={{
         position: 'fixed',
-        inset: 0,
+        top: 0,
+        left: 0,
         width: '100vw',
         height: '100vh',
         zIndex: 0,
         pointerEvents: 'none',
         display: 'block',
       }}
-    />
+    />,
+    document.body
   );
 }
 
