@@ -22,6 +22,8 @@ async function boot() {
   if (env.NODE_ENV !== 'test') {
     try {
       await runMigrations({ exitOnFinish: false });
+      const { warmPool } = require('./src/config/db');
+      await warmPool(4);
     } catch (err) {
       console.error('[boot] DB Migration notice:', err.message);
     }

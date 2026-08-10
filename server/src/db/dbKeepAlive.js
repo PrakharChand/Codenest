@@ -6,9 +6,9 @@
  * on Cloud PostgreSQL hosting providers (Supabase / Render).
  */
 
-const pool = require('../config/db');
+const { warmPool } = require('../config/db');
 
-const HEARTBEAT_INTERVAL_MS = 30000; // 30 seconds
+const HEARTBEAT_INTERVAL_MS = 20000; // 20 seconds
 
 let keepAliveInterval = null;
 
@@ -19,7 +19,7 @@ function startDBKeepAlive() {
 
   keepAliveInterval = setInterval(async () => {
     try {
-      await pool.query('SELECT 1;');
+      await warmPool(4);
     } catch (err) {
       console.warn('[dbKeepAlive] DB heartbeat ping warning:', err.message);
     }

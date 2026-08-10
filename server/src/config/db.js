@@ -78,4 +78,24 @@ async function getClient() {
   return pool.connect();
 }
 
-module.exports = { query, getClient, pool };
+/**
+ * Pre-warms the DB pool by acquiring and immediately releasing
+ * min pool connections during boot so cold-start SSL handshakes
+ * happen before HTTP traffic arrives.
+ */
+async function warmPool(count = 4) {
+  const clients = [];
+  try {
+    for (let i = 0; i < count; i++) {
+      clients.push(await pool.connect());
+    }
+  } catch (err) {
+    console.warn('[db] Pool warmup warning:', err.message);
+  } finally {
+    for (const client of clients) {
+      client.release();
+    }
+  }
+}
+
+module.exports = { query, getClient, warmPool, pool };
