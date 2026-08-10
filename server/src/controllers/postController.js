@@ -57,11 +57,27 @@ async function getBatchPostTags(postIds) {
   return tagMap;
 }
 
+// In-memory cache for default page 1 feed (15-second TTL)
+let feedPage1Cache = null;
+let feedPage1CacheExpiry = 0;
+const FEED_CACHE_TTL_MS = 15 * 1000;
+
+function clearFeedCache() {
+  feedPage1Cache = null;
+  feedPage1CacheExpiry = 0;
+}
+
 // ── GET /api/posts — public feed ─────────────────────────────────────────
 
 async function listPosts(req, res) {
   const { page, limit, offset } = parsePagination(req.query);
   const { tag, search, sort, author_id } = req.query;
+
+  const isDefaultPage1 = page === 1 && limit === 20 && !tag && !search && !sort && !author_id;
+  const now = Date.now();
+  if (isDefaultPage1 && feedPage1Cache && now < feedPage1CacheExpiry) {
+    return res.json(feedPage1Cache);
+  }
 
   const params = [];
   const where  = [`p.visibility = 'public'`];
@@ -138,7 +154,13 @@ async function listPosts(req, res) {
     tags: tagMap[post.id] || [],
   }));
 
-  return res.json(buildPaginatedResponse(data, total, page, limit));
+  const responsePayload = buildPaginatedResponse(data, total, page, limit);
+  if (isDefaultPage1) {
+    feedPage1Cache = responsePayload;
+    feedPage1CacheExpiry = Date.now() + FEED_CACHE_TTL_MS;
+  }
+
+  return res.json(responsePayload);
 }
 
 // ── GET /api/posts/:id — single post ─────────────────────────────────────
@@ -214,6 +236,7 @@ async function createPost(req, res) {
     return newPost;
   });
 
+  clearFeedCache();
   const savedTags = await getPostTags(post.id);
   return res.status(201).json({ ...post, tags: savedTags });
 }
@@ -261,6 +284,7 @@ async function updatePost(req, res) {
     return updated;
   });
 
+  clearFeedCache();
   const savedTags = await getPostTags(post.id);
   return res.json({ ...post, tags: savedTags });
 }
@@ -278,6 +302,7 @@ async function deletePost(req, res) {
   );
 
   if (!rowCount) throw ApiError.forbidden('You do not own this post.');
+  clearFeedCache();
   return res.json({ message: 'Post deleted.' });
 }
 
