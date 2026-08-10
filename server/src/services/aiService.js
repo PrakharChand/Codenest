@@ -164,7 +164,8 @@ function validateAndSanitizeReview(data) {
 
 /**
  * Standardized Gemini API runner with transient retries, 404 model fallback,
- * timeout management, schema validation, and structured error logging.
+ * timeout management, schema validation, and structured error logging,
+ * wrapped in a Circuit Breaker for downstream API resilience.
  */
 async function callGeminiWithRetry(featureName, prompt, fallback, validatorFn, meta = {}) {
   return geminiCircuitBreaker.execute(
@@ -201,140 +202,122 @@ async function callGeminiWithRetry(featureName, prompt, fallback, validatorFn, m
             try {
               parsed = JSON.parse(cleanedText);
             } catch (parseErr) {
-              console.warn(`[AIService:${featureName}] JSON parse error on model ${modelName} (attempt ${attempt}):`, parseErr.message);
-              continue;
+              try {
+                const patched = cleanedText
+                  .replace(/,\s*([\]}])/g, '$1')
+                  .replace(/}\s*[^}]*$/, '}');
+                parsed = JSON.parse(patched);
+              } catch (_) {
+                throw parseErr;
+              }
             }
 
             const validated = validatorFn ? validatorFn(parsed) : parsed;
-            if (validated) {
+
+            if (!validated) {
+              lastError = new Error('AI output failed schema validation');
+              console.warn(
+                JSON.stringify({
+                  level: 'WARN',
+                  service: 'aiService',
+                  feature: featureName,
+                  model: modelName,
+                  attempt,
+                  userId: meta.userId || null,
+                  apiKeyPrefix,
+                  event: 'SCHEMA_VALIDATION_FAILED',
+                })
+              );
+            } else {
+              const duration_ms = Date.now() - startTime;
+              console.log(
+                JSON.stringify({
+                  level: 'INFO',
+                  service: 'aiService',
+                  feature: featureName,
+                  model: modelName,
+                  duration_ms,
+                  attempt,
+                  cached: false,
+                  userId: meta.userId || null,
+                  apiKeyPrefix,
+                  event: 'SUCCESS',
+                })
+              );
               return validated;
             }
           } catch (err) {
             clearTimeout(timer);
             lastError = err;
-            if (!isTransientError(err)) {
-              throw err; // Non-transient errors trigger circuit breaker failure threshold immediately
+
+            const is404 =
+              err.status === 404 ||
+              (err.message && err.message.includes('404')) ||
+              (err.message && err.message.includes('not found')) ||
+              (err.message && err.message.includes('no longer available'));
+
+            if (is404) {
+              console.warn(
+                JSON.stringify({
+                  level: 'WARN',
+                  service: 'aiService',
+                  feature: featureName,
+                  model: modelName,
+                  apiKeyPrefix,
+                  error: err.message,
+                  event: 'MODEL_404_SWITCHING_FALLBACK',
+                })
+              );
+              break;
             }
+
+            const isTransient = isTransientError(err);
+            console.warn(
+              JSON.stringify({
+                level: 'WARN',
+                service: 'aiService',
+                feature: featureName,
+                model: modelName,
+                attempt,
+                maxAttempts: env.AI_MAX_RETRIES + 1,
+                transient: isTransient,
+                userId: meta.userId || null,
+                apiKeyPrefix,
+                error: err.name === 'AbortError' ? 'Timeout' : err.message,
+                event: 'ATTEMPT_FAILED',
+              })
+            );
+
+            if (!isTransient || attempt > env.AI_MAX_RETRIES) {
+              break;
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, attempt * 300));
           }
         }
       }
-      throw lastError || new Error(`Gemini API call failed for feature ${featureName}`);
+
+      const duration_ms = Date.now() - startTime;
+      console.error(
+        JSON.stringify({
+          level: 'ERROR',
+          service: 'aiService',
+          feature: featureName,
+          duration_ms,
+          userId: meta.userId || null,
+          apiKeyPrefix,
+          error: lastError?.message || 'All models failed',
+          event: 'FALLBACK_TRIGGERED',
+        })
+      );
+
+      return fallback;
     },
     () => {
       console.warn(`[AIService:${featureName}] Circuit Breaker active or API failed. Returning fail-open fallback object.`);
       return fallback;
     }
   );
-}
-          try {
-            const patched = cleanedText
-              .replace(/,\s*([\]}])/g, '$1')
-              .replace(/}\s*[^}]*$/, '}');
-            parsed = JSON.parse(patched);
-          } catch (_) {
-            throw parseErr;
-          }
-        }
-        const validated = validatorFn ? validatorFn(parsed) : parsed;
-
-        if (!validated) {
-          lastError = new Error('AI output failed schema validation');
-          console.warn(
-            JSON.stringify({
-              level: 'WARN',
-              service: 'aiService',
-              feature: featureName,
-              model: modelName,
-              attempt,
-              userId: meta.userId || null,
-              apiKeyPrefix,
-              event: 'SCHEMA_VALIDATION_FAILED',
-            })
-          );
-        } else {
-          const duration_ms = Date.now() - startTime;
-          console.log(
-            JSON.stringify({
-              level: 'INFO',
-              service: 'aiService',
-              feature: featureName,
-              model: modelName,
-              duration_ms,
-              attempt,
-              cached: false,
-              userId: meta.userId || null,
-              apiKeyPrefix,
-              event: 'SUCCESS',
-            })
-          );
-          return validated;
-        }
-      } catch (err) {
-        clearTimeout(timer);
-        lastError = err;
-
-        const is404 =
-          err.status === 404 ||
-          (err.message && err.message.includes('404')) ||
-          (err.message && err.message.includes('not found')) ||
-          (err.message && err.message.includes('no longer available'));
-
-        if (is404) {
-          console.warn(
-            JSON.stringify({
-              level: 'WARN',
-              service: 'aiService',
-              feature: featureName,
-              model: modelName,
-              apiKeyPrefix,
-              error: err.message,
-              event: 'MODEL_404_SWITCHING_FALLBACK',
-            })
-          );
-          break; // Break attempt loop to switch to next fallback model immediately
-        }
-
-        const isTransient = isTransientError(err);
-        console.warn(
-          JSON.stringify({
-            level: 'WARN',
-            service: 'aiService',
-            feature: featureName,
-            model: modelName,
-            attempt,
-            maxAttempts: env.AI_MAX_RETRIES + 1,
-            transient: isTransient,
-            userId: meta.userId || null,
-            apiKeyPrefix,
-            error: err.name === 'AbortError' ? 'Timeout' : err.message,
-            event: 'ATTEMPT_FAILED',
-          })
-        );
-
-        if (!isTransient || attempt > env.AI_MAX_RETRIES) {
-          break;
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, attempt * 300));
-      }
-    }
-  }
-
-  const duration_ms = Date.now() - startTime;
-  console.error(
-    JSON.stringify({
-      level: 'ERROR',
-      service: 'aiService',
-      feature: featureName,
-      duration_ms,
-      userId: meta.userId || null,
-      apiKeyPrefix,
-      error: lastError?.message || 'All models failed',
-      event: 'FALLBACK_TRIGGERED',
-    })
-  );
-
-  return fallback;
 }
 
 // ── 1. suggestTags ────────────────────────────────────────────────────────
