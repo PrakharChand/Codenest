@@ -1,10 +1,10 @@
 -- Migration 040: Performance & High-Throughput Index Tuning for CodeNest
 -- Purpose: Accelerate feed queries, live chat lookups, pending AI reviews, and identity verification.
 
--- 1. Partial Index for Active (Non-Banned, Non-Suspended) Users
+-- 1. Partial Index for Active Non-Banned Users
 CREATE INDEX IF NOT EXISTS idx_users_active_lookup 
 ON users(id, email) 
-WHERE is_banned = FALSE AND (suspended_until IS NULL OR suspended_until < NOW());
+WHERE is_banned = FALSE;
 
 -- 2. Composite Index for Author Post Pagination (Feed & User Profile)
 CREATE INDEX IF NOT EXISTS idx_posts_author_created 
