@@ -2,21 +2,28 @@
  * server/src/middleware/latencyTracker.js
  * 
  * Latency Tracking & APM Observability Middleware for CodeNest.
- * Appends X-Response-Time-ms headers to outgoing HTTP responses and
- * logs slow API routes exceeding 500ms latency threshold.
+ * Appends X-Response-Time-ms headers to outgoing HTTP responses safely
+ * and logs slow API routes exceeding 500ms latency threshold.
  */
 
 function latencyTracker(req, res, next) {
-  const startHrTime = process.hrtime();
+  const startTime = Date.now();
+
+  // Safely hook writeHead to set header BEFORE headers stream to client
+  const originalWriteHead = res.writeHead;
+  res.writeHead = function (...args) {
+    if (!res.headersSent) {
+      const durationMs = Date.now() - startTime;
+      res.setHeader('X-Response-Time-ms', durationMs);
+    }
+    return originalWriteHead.apply(res, args);
+  };
 
   res.on('finish', () => {
-    const elapsedHrTime = process.hrtime(startHrTime);
-    const elapsedTimeInMs = Math.round(elapsedHrTime[0] * 1000 + elapsedHrTime[1] / 1e6);
-
-    res.setHeader('X-Response-Time-ms', elapsedTimeInMs);
+    const durationMs = Date.now() - startTime;
 
     // APM Slow Request Warning Alert (> 500ms)
-    if (elapsedTimeInMs > 500) {
+    if (durationMs > 500) {
       console.warn(
         JSON.stringify({
           level: 'WARN',
@@ -24,7 +31,7 @@ function latencyTracker(req, res, next) {
           method: req.method,
           url: req.originalUrl || req.url,
           statusCode: res.statusCode,
-          duration_ms: elapsedTimeInMs,
+          duration_ms: durationMs,
           timestamp: new Date().toISOString()
         })
       );
