@@ -14,6 +14,30 @@ const { verifyAccessToken } = require('../utils/tokens');
 const ApiError              = require('../utils/ApiError');
 const { query }             = require('../config/db');
 
+// In-memory cache for user auth verification (15-second TTL)
+const userAuthCache = new Map();
+const USER_AUTH_TTL_MS = 15 * 1000;
+
+async function getCachedUserAuth(userId) {
+  const cached = userAuthCache.get(userId);
+  if (cached && Date.now() - cached.timestamp < USER_AUTH_TTL_MS) {
+    return cached.user;
+  }
+  const { rows } = await query(
+    'SELECT id, has_anonymous_identity, is_banned, suspended_until FROM users WHERE id = $1',
+    [userId]
+  );
+  const user = rows[0] || null;
+  if (user) {
+    userAuthCache.set(userId, { user, timestamp: Date.now() });
+    if (userAuthCache.size > 2000) {
+      const firstKey = userAuthCache.keys().next().value;
+      userAuthCache.delete(firstKey);
+    }
+  }
+  return user;
+}
+
 /**
  * requireAuth
  *
@@ -35,17 +59,12 @@ async function requireAuth(req, _res, next) {
     const payload = verifyAccessToken(token); // throws ApiError.unauthorized if invalid
     const userId  = parseInt(payload.sub, 10);
 
-    // Load minimal user fields — check for bans and suspensions
-    const { rows } = await query(
-      'SELECT id, has_anonymous_identity, is_banned, suspended_until FROM users WHERE id = $1',
-      [userId]
-    );
+    // Load minimal user fields (cached for 15s) — check for bans and suspensions
+    const user = await getCachedUserAuth(userId);
 
-    if (!rows.length) {
+    if (!user) {
       throw ApiError.unauthorized('User account not found.');
     }
-
-    const user = rows[0];
 
     // Enforce Permanent Ban
     if (user.is_banned) {
@@ -107,20 +126,16 @@ async function optionalAuth(req, _res, next) {
     }
 
     const { verifyAccessToken } = require('../utils/tokens');
-    const { query }             = require('../config/db');
 
     const token   = authHeader.slice(7);
     let payload;
     try { payload = verifyAccessToken(token); } catch { return next(); } // invalid token → guest
 
     const userId = parseInt(payload.sub, 10);
-    const { rows } = await query(
-      'SELECT id, has_anonymous_identity FROM users WHERE id = $1',
-      [userId]
-    );
+    const user   = await getCachedUserAuth(userId);
 
-    if (rows.length) {
-      req.user = { id: rows[0].id, hasAnonymousIdentity: rows[0].has_anonymous_identity };
+    if (user) {
+      req.user = { id: user.id, hasAnonymousIdentity: user.has_anonymous_identity };
     }
 
     next();

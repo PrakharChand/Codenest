@@ -13,7 +13,17 @@
 
 const { query } = require('../config/db');
 
+// In-memory cache for public stats (60-second TTL)
+let statsCache = null;
+let statsCacheExpiry = 0;
+const STATS_TTL_MS = 60 * 1000;
+
 async function getPublicStats(req, res) {
+  const now = Date.now();
+  if (statsCache && now < statsCacheExpiry) {
+    return res.json(statsCache);
+  }
+
   const [
     usersRes,
     postsRes,
@@ -37,7 +47,7 @@ async function getPublicStats(req, res) {
   const totalProjects        = projectsRes.rows[0]?.count || 0;
   const totalCodeSubmissions = submissionsRes.rows[0]?.count || 0;
 
-  return res.json({
+  const payload = {
     totalUsers,
     totalPosts,
     totalReviews,
@@ -52,7 +62,12 @@ async function getPublicStats(req, res) {
     total_communities:      totalCommunities,
     total_projects:         totalProjects,
     total_code_submissions: totalCodeSubmissions,
-  });
+  };
+
+  statsCache = payload;
+  statsCacheExpiry = now + STATS_TTL_MS;
+
+  return res.json(payload);
 }
 
 module.exports = { getPublicStats };

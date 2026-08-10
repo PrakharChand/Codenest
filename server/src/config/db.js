@@ -15,8 +15,8 @@ const { Pool } = require('pg');
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
-  // Pool sizing — sensible defaults for Render free tier and Supabase session-mode
-  max: 10,
+  // Pool sizing — increased to 20 to prevent pool starvation under concurrent loads
+  max: parseInt(process.env.DB_POOL_MAX, 10) || 20,
   idleTimeoutMillis: 30_000,
   connectionTimeoutMillis: 5_000,
 });

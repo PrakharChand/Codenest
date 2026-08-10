@@ -35,14 +35,26 @@ const AUTHOR_CARD = `
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 async function getPostTags(postId) {
+  const tagMap = await getBatchPostTags([postId]);
+  return tagMap[postId] || [];
+}
+
+async function getBatchPostTags(postIds) {
+  if (!postIds || !postIds.length) return {};
   const { rows } = await query(
-    `SELECT t.name FROM tags t
-     JOIN post_tags pt ON pt.tag_id = t.id
-     WHERE pt.post_id = $1
+    `SELECT pt.post_id, t.name
+     FROM post_tags pt
+     JOIN tags t ON t.id = pt.tag_id
+     WHERE pt.post_id = ANY($1::int[])
      ORDER BY t.name`,
-    [postId]
+    [postIds]
   );
-  return rows.map((r) => r.name);
+  const tagMap = {};
+  for (const row of rows) {
+    if (!tagMap[row.post_id]) tagMap[row.post_id] = [];
+    tagMap[row.post_id].push(row.name);
+  }
+  return tagMap;
 }
 
 // ── GET /api/posts — public feed ─────────────────────────────────────────
@@ -118,10 +130,13 @@ async function listPosts(req, res) {
     params
   );
 
-  // Attach tags to each post
-  const data = await Promise.all(
-    rows.map(async (post) => ({ ...post, tags: await getPostTags(post.id) }))
-  );
+  // Batch fetch tags for all posts on this page (1 query instead of N)
+  const postIds = rows.map((post) => post.id);
+  const tagMap  = await getBatchPostTags(postIds);
+  const data    = rows.map((post) => ({
+    ...post,
+    tags: tagMap[post.id] || [],
+  }));
 
   return res.json(buildPaginatedResponse(data, total, page, limit));
 }
