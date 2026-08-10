@@ -109,10 +109,10 @@ export default function AIConnectionSuggestions() {
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-bold text-[var(--text-main)] truncate">{item.name}</div>
                   <p
-                    className="text-[11px] text-[var(--color-primary)] truncate italic mt-0.5"
-                    title={item.reason}
+                    className="text-[11px] text-[var(--text-muted)] truncate mt-0.5"
+                    title={item.reason || item.role}
                   >
-                    {item.reason}
+                    {item.reason || item.role || 'Software Engineer'}
                   </p>
                 </div>
               </div>

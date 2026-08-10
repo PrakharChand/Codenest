@@ -49,6 +49,40 @@ export default function AIRoadmapGenerator() {
     }
   };
 
+  const handleShareToFeed = async () => {
+    if (!roadmap) return;
+    setSharing(true);
+    try {
+      const phasesText = (roadmap.phases || roadmap.weeks || [])
+        .map(
+          (p, idx) =>
+            `**${p.title || `Phase ${idx + 1}`} (${p.duration_weeks || 2} weeks)**\n` +
+            `- **Topics:** ${(p.topics || []).join(', ')}\n` +
+            (p.milestone ? `- **Milestone:** ${p.milestone}` : '')
+        )
+        .join('\n\n');
+
+      const content = `🚀 **AI Learning Roadmap: ${roadmap.summary || 'Developer Growth Plan'}**\n\n` +
+        `**Total Duration:** ${roadmap.total_weeks || 12} weeks\n\n` +
+        `${phasesText}`;
+
+      await postsApi.create({
+        title: `Learning Roadmap: ${roadmap.summary?.slice(0, 60) || 'Developer Growth Plan'}`,
+        content,
+        visibility: 'public',
+        tags: ['learning', 'roadmap', 'growth'],
+      });
+      setShareSuccess(true);
+      toast.success('Roadmap shared to feed!');
+    } catch (err) {
+      toast.error(err.message || 'Failed to share roadmap to feed.');
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const phasesList = roadmap?.phases || roadmap?.weeks || [];
+
   return (
     <Card className="p-6 space-y-5 border border-[var(--border-main)] bg-[var(--bg-surface)] relative overflow-hidden">
       {/* Header */}

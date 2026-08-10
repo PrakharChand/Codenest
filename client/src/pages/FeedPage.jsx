@@ -399,15 +399,6 @@ export default function FeedPage() {
 
         {/* Main Feed Column */}
         <div className="lg:col-span-2 space-y-5">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-main">Your Feed</h1>
-            <Link to="/posts/new">
-              <Button variant="primary" size="sm">
-                + New Post
-              </Button>
-            </Link>
-          </div>
-
           {/* Page Header */}
           <div className="flex items-center justify-between py-1">
             <h1 className="text-2xl font-black tracking-tight text-white">Your Feed</h1>
