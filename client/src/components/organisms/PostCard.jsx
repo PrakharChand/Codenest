@@ -150,12 +150,25 @@ export default function PostCard({ post, onPostDeleted }) {
 
         {/* Tags */}
         {post.tags && post.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 pt-1 pb-1">
-            {post.tags.map((tag, idx) => (
-              <Badge key={idx} variant="primary" size="sm">
-                #{tag}
-              </Badge>
-            ))}
+          <div className="flex flex-wrap gap-1.5 pt-1 pb-1">
+            {post.tags.map((tag, idx) => {
+              const tagColors = [
+                'bg-amber-500/15 text-amber-300 border-amber-500/30',
+                'bg-teal-500/15 text-teal-300 border-teal-500/30',
+                'bg-pink-500/15 text-pink-300 border-pink-500/30',
+                'bg-indigo-500/15 text-indigo-300 border-indigo-500/30',
+                'bg-slate-700/40 text-slate-300 border-slate-600/30',
+              ];
+              const colorClass = tagColors[idx % tagColors.length];
+              return (
+                <span
+                  key={idx}
+                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${colorClass} transition-transform hover:scale-105`}
+                >
+                  {tag}
+                </span>
+              );
+            })}
           </div>
         )}
 

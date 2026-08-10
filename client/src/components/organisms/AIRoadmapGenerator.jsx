@@ -9,22 +9,20 @@ import TextArea from '../atoms/TextArea';
 import Badge from '../atoms/Badge';
 
 export default function AIRoadmapGenerator() {
-  const [level, setLevel] = useState('Intermediate');
-  const [knownTech, setKnownTech] = useState('JavaScript, React');
+  const [currentFocus, setCurrentFocus] = useState('');
+  const [techStack, setTechStack] = useState('');
   const [goal, setGoal] = useState('');
-  const [hoursPerWeek, setHoursPerWeek] = useState(10);
+  const [fromRoadmapToggle, setFromRoadmapToggle] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [roadmap, setRoadmap] = useState(null);
   const [error, setError] = useState(null);
   const [sharing, setSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
 
-  const isFormValid = goal.trim().length >= 20 && knownTech.trim().length > 0;
-
   const handleGenerate = async (e) => {
     e.preventDefault();
-    if (!isFormValid) {
-      toast.error('Please enter at least 20 characters in your learning goal.');
+    if (!goal.trim()) {
+      toast.error('Please enter your learning goal.');
       return;
     }
 
@@ -33,10 +31,10 @@ export default function AIRoadmapGenerator() {
     setShareSuccess(false);
     try {
       const res = await aiApi.generateRoadmap({
-        level,
-        knownTech: knownTech.trim(),
+        level: currentFocus || 'Intermediate',
+        knownTech: techStack || 'JavaScript, React',
         goal: goal.trim(),
-        hoursPerWeek: Number(hoursPerWeek),
+        hoursPerWeek: 10,
       });
 
       const generatedData = res.roadmap || res;
@@ -51,51 +49,22 @@ export default function AIRoadmapGenerator() {
     }
   };
 
-  const handleShareToFeed = async () => {
-    if (!roadmap) return;
-    setSharing(true);
-    try {
-      const phasesText = (roadmap.phases || roadmap.weeks || [])
-        .map(
-          (p, idx) =>
-            `**${p.title || `Phase ${idx + 1}`} (${p.duration_weeks || 2} weeks)**\n` +
-            `- **Topics:** ${(p.topics || []).join(', ')}\n` +
-            (p.milestone ? `- **Milestone:** ${p.milestone}` : '')
-        )
-        .join('\n\n');
-
-      const content = `🚀 **AI Learning Roadmap: ${roadmap.summary || 'Developer Growth Plan'}**\n\n` +
-        `**Total Duration:** ${roadmap.total_weeks || 12} weeks\n\n` +
-        `${phasesText}`;
-
-      await postsApi.create({
-        title: `Learning Roadmap: ${roadmap.summary?.slice(0, 60) || 'Developer Growth Plan'}`,
-        content,
-        visibility: 'public',
-        tags: ['learning', 'roadmap', 'growth'],
-      });
-      setShareSuccess(true);
-      toast.success('Roadmap shared to feed!');
-    } catch (err) {
-      toast.error(err.message || 'Failed to share roadmap to feed.');
-    } finally {
-      setSharing(false);
-    }
-  };
-
-  const phasesList = roadmap?.phases || roadmap?.weeks || [];
-
   return (
-    <Card className="p-6 md:p-7 space-y-6">
-      <div className="flex items-center justify-between border-b border-main pb-3.5">
+    <Card className="p-6 space-y-5 border border-[var(--border-main)] bg-[var(--bg-surface)] relative overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-2xl">🗺️</span>
+          <div className="w-9 h-9 rounded-xl bg-[var(--color-primary)]/15 border border-[var(--color-primary)]/30 flex items-center justify-center text-lg">
+            🗺️
+          </div>
           <div>
-            <h3 className="font-bold text-main text-base">Personalized AI Learning Roadmap</h3>
-            <p className="text-xs text-muted">Generate a custom study plan based on your tech stack and goals</p>
+            <h3 className="font-bold text-white text-base leading-tight">Personalized AI Learning Roadmap</h3>
+            <p className="text-xs text-[var(--text-muted)]">Get a tailored roadmap to level up your coding skills. Start your journey with AI.</p>
           </div>
         </div>
-        <Badge variant="primary" size="sm">AI Powered</Badge>
+        <span className="px-2.5 py-1 text-[10px] font-extrabold tracking-wider uppercase rounded-full bg-[var(--color-primary)]/20 text-[var(--color-primary)] border border-[var(--color-primary)]/40">
+          AI Powered
+        </span>
       </div>
 
       {error && (
@@ -111,73 +80,96 @@ export default function AIRoadmapGenerator() {
       )}
 
       {!roadmap ? (
-        <form onSubmit={handleGenerate} className="space-y-5">
-          {/* Top Row: Experience Level & Known Tech — Spaced & Height-matched */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+        <form onSubmit={handleGenerate} className="space-y-4">
+          {/* Two Optional Input Fields Side by Side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-main">Current Experience Level</label>
-              <select
-                value={level}
-                onChange={(e) => setLevel(e.target.value)}
-                className="w-full h-10 rounded-lg border border-main bg-surface px-3.5 text-xs text-main focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all font-medium"
-              >
-                <option value="Beginner">Beginner</option>
-                <option value="Intermediate">Intermediate</option>
-                <option value="Advanced">Advanced</option>
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-main">Known Technologies (comma separated) *</label>
+              <label className="block text-xs font-semibold text-white">Current Focus (optional)</label>
               <input
                 type="text"
-                value={knownTech}
-                onChange={(e) => setKnownTech(e.target.value)}
-                placeholder="e.g. JavaScript, React, Node"
-                className="w-full h-10 rounded-lg border border-main bg-surface px-3.5 text-xs text-main focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all font-medium"
-                required
+                value={currentFocus}
+                onChange={(e) => setCurrentFocus(e.target.value)}
+                placeholder="e.g. Data Structures"
+                className="w-full h-9 rounded-lg border border-[var(--border-main)] bg-[var(--bg-base)] px-3 text-xs text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-all font-medium"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-white">Current Tech Stack (optional)</label>
+              <input
+                type="text"
+                value={techStack}
+                onChange={(e) => setTechStack(e.target.value)}
+                placeholder="e.g. JavaScript, React"
+                className="w-full h-9 rounded-lg border border-[var(--border-main)] bg-[var(--bg-base)] px-3 text-xs text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-all font-medium"
               />
             </div>
           </div>
 
-          {/* Learning Goal Section */}
-          <div className="space-y-1.5 pt-1">
-            <TextArea
-              label="Learning Goal (min 20 characters) *"
+          {/* Full-width Learning Goal Field */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-white">
+              Learning Goal (next 2–3 months) <span className="text-[var(--color-primary)]">*required*</span>
+            </label>
+            <input
+              type="text"
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
-              placeholder="e.g. Master distributed systems engineering and building microservices in Rust..."
-              rows={3}
+              placeholder="e.g. Build a full-stack web app using a modern JS stack"
+              className="w-full h-10 rounded-lg border border-[var(--border-main)] bg-[var(--bg-base)] px-3.5 text-xs text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-all font-medium"
               required
             />
-            <p className="text-[11px] text-muted italic">
-              💡 <strong>Note:</strong> AI Roadmap requires at least <strong>20 characters</strong> in your learning goal.
-            </p>
           </div>
 
-          {/* Bottom Bar: Hours Available & Action Button */}
-          <div className="flex items-center justify-between pt-2 border-t border-main">
-            <div className="flex items-center gap-3">
-              <label className="text-xs font-semibold text-main shrink-0">Hours / Week Available:</label>
-              <input
-                type="number"
-                min="1"
-                max="40"
-                value={hoursPerWeek}
-                onChange={(e) => setHoursPerWeek(e.target.value)}
-                className="w-20 h-9 rounded-lg border border-main bg-surface px-3 text-xs text-main text-center font-bold focus:outline-none focus:ring-2 focus:ring-primary/30"
-              />
-            </div>
+          {/* Tip & Toggle & Generate CTA */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+            <p className="text-[11px] text-[var(--text-muted)]">
+              💡 <strong>Tip:</strong> Be specific about your goals to get the best roadmap!
+            </p>
 
-            <Button
-              type="submit"
-              variant="primary"
-              size="sm"
-              isLoading={generating}
-              className="px-5 py-2 font-bold shadow-md hover:shadow-lg transition-all"
-            >
-              Generate Roadmap ✨
-            </Button>
+            <div className="flex items-center gap-4 self-end sm:self-auto">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-white">From Your Roadmap:</span>
+                <button
+                  type="button"
+                  onClick={() => setFromRoadmapToggle((v) => !v)}
+                  className={`w-9 h-5 rounded-full p-0.5 transition-colors ${
+                    fromRoadmapToggle ? 'bg-[var(--color-primary)]' : 'bg-slate-700'
+                  }`}
+                >
+                  <div
+                    className={`w-4 h-4 rounded-full bg-black transform transition-transform ${
+                      fromRoadmapToggle ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+                <span className="text-xs text-[var(--text-muted)] font-medium">
+                  {fromRoadmapToggle ? 'On' : 'Off'}
+                </span>
+              </div>
+
+              <Button
+                type="submit"
+                variant="primary"
+                size="sm"
+                isLoading={generating}
+                className="px-4 py-2 font-bold shadow-md hover:scale-[1.02] transition-all bg-[var(--color-primary)] text-black"
+              >
+                Generate Roadmap →
+              </Button>
+            </div>
+          </div>
+
+          {/* Decorative Sunset/Mountain Horizon Banner */}
+          <div className="mt-4 h-16 w-full rounded-xl bg-gradient-to-r from-purple-950 via-red-950 to-amber-950 border border-amber-500/20 relative overflow-hidden flex items-center justify-between px-4">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500/20 via-purple-900/30 to-transparent pointer-events-none" />
+            <div className="relative z-10 flex items-center gap-2">
+              <span className="text-xs font-bold text-amber-200">🌄 CodeNest Horizon</span>
+              <span className="text-[10px] text-amber-300/70">Level up your engineering potential</span>
+            </div>
+            <div className="relative z-10 text-xs font-mono text-amber-400 font-bold">
+              AI_CODENEST_v2
+            </div>
           </div>
         </form>
       ) : (

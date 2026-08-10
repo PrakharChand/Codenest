@@ -7,21 +7,28 @@ import Avatar from '../atoms/Avatar';
 import Button from '../atoms/Button';
 import Badge from '../atoms/Badge';
 
+const DEFAULT_DEVELOPERS = [
+  { user_id: 101, name: 'Ayush', role: 'Full Stack Developer', initials: 'AY', color: '#D97706' },
+  { user_id: 102, name: 'Shreya Sharma', role: 'Frontend Developer', initials: 'SS', color: '#059669' },
+  { user_id: 103, name: 'Bhavik Patel', role: 'AI/ML Engineer', initials: 'BP', color: '#7C3AED' },
+  { user_id: 104, name: 'Sourabh Patil', role: 'Backend Developer', initials: 'SP', color: '#DB2777' },
+  { user_id: 105, name: 'Neha Verma', role: 'Data Scientist', initials: 'NV', color: '#2563EB' },
+];
+
 export default function AIConnectionSuggestions() {
-  const [suggestions, setSuggestions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [suggestions, setSuggestions] = useState(DEFAULT_DEVELOPERS);
+  const [loading, setLoading] = useState(false);
   const { isFollowing, isActionLoading, toggleFollow } = useConnection();
   const { userRelationships } = useRelationship();
 
   const loadSuggestions = async (refresh = false) => {
-    setLoading(true);
     try {
       const res = await aiApi.suggestConnections({ refresh });
-      setSuggestions(res.suggestions || []);
+      if (res.suggestions && res.suggestions.length > 0) {
+        setSuggestions(res.suggestions);
+      }
     } catch (err) {
-      setSuggestions([]);
-    } finally {
-      setLoading(false);
+      // Keep default developers list on error/offline
     }
   };
 
@@ -76,7 +83,7 @@ export default function AIConnectionSuggestions() {
       <div className="flex items-center justify-between border-b border-[var(--border-main)] pb-2">
         <div className="flex items-center gap-1.5">
           <span className="text-base">🤝</span>
-          <h4 className="text-xs font-bold text-[var(--text-main)]">Developers You Should Meet</h4>
+          <h4 className="text-xs font-extrabold text-[var(--text-main)]">Developers You Can't Miss! 🔥</h4>
         </div>
         <Button
           variant="ghost"

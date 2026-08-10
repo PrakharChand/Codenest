@@ -78,26 +78,26 @@ input[type="search"]::-webkit-search-results-decoration {
 
 /* ─── Nest Feed Theme — Dark (Imperial Dusk Velvet Night) ─────────────────── */
 .theme-feed.dark-mode {
-  /* Surfaces — Deep Onyx Velvet */
-  --bg-base:            #0E0C14;
-  --bg-surface:         #191524;
-  --bg-surface-hover:   #231E31;
-  --bg-surface-subtle:  #0E0C14;
+  /* Surfaces — Deep Space Dark */
+  --bg-base:            #0a0a0f;
+  --bg-surface:         #111118;
+  --bg-surface-hover:   #191926;
+  --bg-surface-subtle:  #13131c;
 
-  /* Borders — Muted Royal Plum */
-  --border-main:        #342A4A;
-  --border-focus:       #F59E0B;
+  /* Borders — Subtle Dark Border */
+  --border-main:        #1e1e2e;
+  --border-focus:       #f5a623;
 
-  /* Text — Pearl Violet Cream */
-  --text-main:          #F5F0FF;
-  --text-muted:         #A898CC;
-  --text-subtle:        #5C4F7A;
+  /* Text — White & Light Gray */
+  --text-main:          #ffffff;
+  --text-muted:         #a0a0b0;
+  --text-subtle:        #606075;
 
-  /* Primary — Sunset Gold */
-  --color-primary:       #F59E0B;
-  --color-primary-hover: #FBBF24;
-  --color-primary-light: #2A1F06;
-  --color-primary-dim:   rgba(245, 158, 11, 0.13);
+  /* Primary — Amber Sunset Gold */
+  --color-primary:       #f5a623;
+  --color-primary-hover: #ffb838;
+  --color-primary-light: rgba(245, 166, 35, 0.15);
+  --color-primary-dim:   rgba(245, 166, 35, 0.12);
 
   /* Semantic */
   --color-success:  #34D399;

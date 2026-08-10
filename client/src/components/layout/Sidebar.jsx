@@ -151,73 +151,101 @@ export default function Sidebar() {
         shadow-[var(--shadow-sm)]
       `}
     >
-      {/* ─── Brand ────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2.5 px-5 py-5 border-b border-[var(--border-main)]">
+      {/* ─── Brand Header ─────────────────────────────────────────── */}
+      <div className="flex items-center justify-between px-4 py-4 border-b border-[var(--border-main)]">
         <Link
           to={mode === 'shadow' ? '/shadow/queue' : '/feed'}
-          className="flex items-center gap-2.5 flex-1"
+          className="flex items-center gap-2.5"
         >
-          {/* Logo mark */}
-          <div className="w-8 h-8 rounded-xl bg-[var(--color-primary)] flex items-center justify-center shadow-[var(--shadow-sm)] shrink-0">
-            <span className="text-white font-bold text-sm">CN</span>
+          <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)] flex items-center justify-center font-extrabold text-xs text-black shadow-sm">
+            CN
           </div>
-          <span className="text-base font-bold tracking-tight text-[var(--text-main)]">
+          <span className="text-base font-extrabold tracking-tight text-white">
             Code<span className="text-[var(--color-primary)]">Nest</span>
           </span>
         </Link>
-        {/* Theme toggle — only visible in Feed mode */}
-        <ThemeToggle />
+        <button
+          type="button"
+          onClick={() => navigate('/posts/new')}
+          className="w-6 h-6 rounded-md bg-[var(--bg-surface-hover)] text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-black flex items-center justify-center transition-colors text-sm font-bold"
+          title="Create New Post"
+        >
+          +
+        </button>
       </div>
 
-      {/* ─── Quick search (Feed only) ──────────────────────────────── */}
-      {user && mode === 'feed' && (
+      {/* ─── Quick Search Discussions ───────────────────────────── */}
+      <div className="px-3 py-3 border-b border-[var(--border-main)]">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             const q = e.target.elements.q.value.trim();
             navigate(q ? `/explore?q=${encodeURIComponent(q)}` : '/explore');
           }}
-          className="px-3 py-2.5 border-b border-[var(--border-main)]"
+          className="mb-2.5"
         >
           <div className="relative">
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-subtle)]">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
             </span>
             <input
               name="q"
               type="search"
-              placeholder="Search developers…"
+              placeholder="Search discussions..."
               className="
                 w-full rounded-lg border border-[var(--border-main)] bg-[var(--bg-base)]
-                pl-7 pr-2 py-1.5 text-xs text-[var(--text-main)]
-                placeholder:text-[var(--text-subtle)]
-                focus-visible:outline-none focus-visible:ring-1
-                focus-visible:ring-[var(--color-primary)]/40
-                focus-visible:border-[var(--color-primary)]
+                pl-8 pr-2.5 py-1.5 text-xs text-[var(--text-main)]
+                placeholder:text-[var(--text-muted)]
+                focus:outline-none focus:border-[var(--color-primary)]
                 transition-all duration-150
               "
             />
           </div>
         </form>
-      )}
 
+        {/* Action Buttons: [👤 Post] & [🔥 Invite] */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => navigate('/posts/new')}
+            className="flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold rounded-lg border border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-black transition-all"
+          >
+            <span>👤</span>
+            <span>Post</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (navigator.clipboard) {
+                navigator.clipboard.writeText(window.location.origin);
+                alert('CodeNest invite link copied to clipboard!');
+              }
+            }}
+            className="flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold rounded-lg border border-[var(--border-main)] text-[var(--text-main)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-all"
+          >
+            <span>🔥</span>
+            <span>Invite</span>
+          </button>
+        </div>
+      </div>
 
+      {/* ─── Mode Switcher (Feed vs Shadow) ───────────────────────── */}
       {user && (
-        <div className="px-3 py-3 border-b border-[var(--border-main)]">
+        <div className="px-3 py-2 border-b border-[var(--border-main)]">
           <div
-            className="flex items-center rounded-xl border border-[var(--border-main)] bg-[var(--bg-base)] p-1 gap-1"
+            className="flex items-center rounded-lg border border-[var(--border-main)] bg-[var(--bg-base)] p-1 gap-1"
             role="group"
-            aria-label="Switch between Feed and Shadow mode"
+            aria-label="Switch mode"
           >
             <button
               type="button"
               onClick={() => handleModeToggle('feed')}
-              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 ${
+              className={`flex-1 py-1 text-[11px] font-bold rounded transition-all ${
                 mode === 'feed'
-                  ? 'bg-[var(--bg-surface)] text-[var(--color-primary)] shadow-[var(--shadow-xs)]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                  ? 'bg-[var(--color-primary)] text-black shadow-xs'
+                  : 'text-[var(--text-muted)] hover:text-white'
               }`}
             >
               🌐 Feed
@@ -225,10 +253,10 @@ export default function Sidebar() {
             <button
               type="button"
               onClick={() => handleModeToggle('shadow')}
-              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 ${
+              className={`flex-1 py-1 text-[11px] font-bold rounded transition-all ${
                 mode === 'shadow'
-                  ? 'bg-[var(--bg-surface)] text-[var(--color-primary)] shadow-[var(--shadow-xs)]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                  ? 'bg-[var(--color-primary)] text-black shadow-xs'
+                  : 'text-[var(--text-muted)] hover:text-white'
               }`}
             >
               👤 Shadow
@@ -237,22 +265,16 @@ export default function Sidebar() {
         </div>
       )}
 
-      {/* ─── Navigation ────────────────────────────────────────────── */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
-        {!user && (
-          <>
-            <NavItem to="/" icon={<HomeIcon />} label="Home" active={is('/')} />
-          </>
-        )}
-
+      {/* ─── Navigation List ────────────────────────────────────────── */}
+      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
         {user && mode === 'feed' && (
           <>
             <NavItem to="/feed" icon={<HomeIcon />} label="Home" active={is('/feed')} />
             <NavItem to="/explore" icon={<ExploreIcon />} label="Explore" active={is('/explore')} />
+            <NavItem to="/streak" icon={<span className="text-sm">🔥</span>} label="Current Streak" active={is('/streak')} />
             <NavItem to="/communities" icon={<CommunitiesIcon />} label="Communities" active={is('/communities')} />
-            <NavItem to="/connections" icon={<ConnectionsIcon />} label="Connections" active={is('/connections')} />
             <NavItem to="/chat" icon={<ChatIcon count={chatUnread} />} label="Messages" active={is('/chat')} />
-            <NavItem to="/ai-assistant" icon={<span className="text-base select-none">🤖</span>} label="AI Assistant" active={is('/ai-assistant')} />
+            <NavItem to="/ai-assistant" icon={<span className="text-sm select-none">🤖</span>} label="AI Assistant" active={is('/ai-assistant')} />
             <NavItem
               to="/notifications"
               icon={<BellIcon count={publicUnread} />}
@@ -294,11 +316,13 @@ export default function Sidebar() {
                 size="sm"
               />
               <div className="flex-1 text-left min-w-0">
-                <p className="text-xs font-semibold text-[var(--text-main)] truncate">
+                <p className="text-xs font-bold text-[var(--text-main)] truncate">
                   {mode === 'shadow' ? (user.anonymous_username || 'Anonymous') : user.name}
                 </p>
                 {mode === 'feed' && (
-                  <p className="text-[10px] text-[var(--text-subtle)] truncate">{user.email}</p>
+                  <p className="text-[10px] text-[var(--text-muted)] truncate">
+                    @{user.username || 'prakharChand'}
+                  </p>
                 )}
               </div>
               <SettingsIcon />

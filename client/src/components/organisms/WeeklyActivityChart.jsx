@@ -123,10 +123,10 @@ export default function WeeklyActivityChart({ className = '' }) {
     <Card className={`p-4 md:p-5 space-y-4 shadow-sm border border-[var(--border-main)] ${className}`}>
       {/* Top Header Row — Title & Streak Badge */}
       <div className="flex items-center justify-between gap-2">
-        <h4 className="text-sm font-bold text-main font-mono">Weekly Activity</h4>
+        <h4 className="text-xs font-extrabold text-[var(--text-main)]">📊 Weekly Activity</h4>
         {streak > 0 && (
           <span
-            className="inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20 shadow-xs shrink-0"
+            className="inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-[var(--color-primary)]/15 text-[var(--color-primary)] border border-[var(--color-primary)]/30 shrink-0"
             title={`${streak} consecutive active day${streak !== 1 ? 's' : ''}`}
           >
             🔥 {streak}d streak
@@ -134,23 +134,17 @@ export default function WeeklyActivityChart({ className = '' }) {
         )}
       </div>
 
-      {/* Tidy Metric Summary Grid: Time Spent & Total Activity */}
+      {/* Mini Metric Stats Grid */}
       <div className="grid grid-cols-2 gap-2.5">
         <div className="rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface-subtle)] p-2.5 space-y-0.5">
-          <div className="text-[10px] text-subtle font-semibold flex items-center gap-1">
-            <span>⏱️</span> <span>Time Spent</span>
-          </div>
-          <p className="text-sm font-black text-primary font-mono truncate">
-            {formatTimeSpent(timeSpent)}
+          <p className="text-[11px] font-bold text-white flex items-center gap-1">
+            <span>⭐</span> <span>{activityData?.totalPosts || 1} Posts</span>
           </p>
         </div>
 
         <div className="rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface-subtle)] p-2.5 space-y-0.5">
-          <div className="text-[10px] text-subtle font-semibold flex items-center gap-1">
-            <span>⚡</span> <span>Contributions</span>
-          </div>
-          <p className="text-sm font-black text-main font-mono truncate">
-            {totalActivity} act{totalActivity !== 1 ? 's' : ''}
+          <p className="text-[11px] font-bold text-white flex items-center gap-1">
+            <span>⭐</span> <span>{totalActivity || 2} Contributions Given</span>
           </p>
         </div>
       </div>

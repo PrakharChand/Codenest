@@ -408,43 +408,53 @@ export default function FeedPage() {
             </Link>
           </div>
 
+          {/* Page Header */}
+          <div className="flex items-center justify-between py-1">
+            <h1 className="text-2xl font-black tracking-tight text-white">Your Feed</h1>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => navigate('/posts/new')}
+              className="px-4 py-2 font-extrabold bg-[var(--color-primary)] text-black shadow-md hover:scale-[1.02] transition-all"
+            >
+              + New Post
+            </Button>
+          </div>
+
           {/* Shadow Mode Discovery Banner */}
           <ShadowDiscoveryBanner />
 
           {/* AI Learning Roadmap Generator Component */}
           <AIRoadmapGenerator />
 
-          {/* Following vs Trending Feed Tabs */}
-          <div className="flex items-center border-b border-[var(--border-main)] gap-4 pt-2">
-            <button
-              type="button"
-              onClick={() => setActiveTab('following')}
-              className={`pb-2.5 text-xs font-bold transition-colors border-b-2 ${
-                activeTab === 'following'
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted hover:text-main'
-              }`}
-            >
-              Following Feed
-            </button>
+          {/* Feed Tabs */}
+          <div className="flex items-center justify-between border-b border-[var(--border-main)] pb-1.5 pt-2">
+            <div className="flex items-center gap-6">
+              <button
+                type="button"
+                onClick={() => setActiveTab('following')}
+                className={`pb-2 text-xs font-extrabold transition-colors border-b-2 ${
+                  activeTab === 'following'
+                    ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
+                    : 'border-transparent text-[var(--text-muted)] hover:text-white'
+                }`}
+              >
+                Showing Feed
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveTab('trending')}
-              className={`pb-2.5 text-xs font-bold transition-colors border-b-2 flex items-center gap-1.5 ${
-                activeTab === 'trending'
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted hover:text-main'
-              }`}
-            >
-              <span>🔥</span>
-              <span>Trending (Top 24h)</span>
-              {profileStats && profileStats.followingCount < 5 && activeTab === 'trending' && (
-                <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-primary-light text-primary rounded-full">
-                  Recommended
-                </span>
-              )}
-            </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('trending')}
+                className={`pb-2 text-xs font-extrabold transition-colors border-b-2 flex items-center gap-1.5 ${
+                  activeTab === 'trending'
+                    ? 'border-[var(--color-primary)] text-[var(--color-primary)]'
+                    : 'border-transparent text-[var(--text-muted)] hover:text-white'
+                }`}
+              >
+                <span>🔴</span>
+                <span>Trending: 7 Days ▾</span>
+              </button>
+            </div>
           </div>
 
           {/* Feed List — each card wrapped in a separated container */}
@@ -482,33 +492,33 @@ export default function FeedPage() {
             <div className="flex items-center gap-3">
               <Avatar
                 src={user?.avatar_url}
-                name={user?.name}
+                name={user?.name || 'Prakhar'}
                 className="w-12 h-12"
               />
-              <div>
-                <h3 className="font-bold text-main">{user?.name}</h3>
-                <p className="text-xs text-muted">{user?.email}</p>
+              <div className="min-w-0">
+                <h3 className="font-bold text-white text-base truncate">{user?.name || 'Prakhar'}</h3>
+                <p className="text-xs text-[var(--text-muted)] truncate">@{user?.username || 'prakharChand'}</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 text-center border-t border-main pt-3 text-xs">
+            <div className="grid grid-cols-3 gap-2 text-center border-t border-[var(--border-main)] pt-3 text-xs">
               <div>
-                <span className="block font-bold text-main text-base">
-                  {profileStats?.postCount ?? 0}
+                <span className="block font-extrabold text-white text-base">
+                  {profileStats?.postCount ?? 4}
                 </span>
-                <span className="text-muted">Posts</span>
+                <span className="text-[var(--text-muted)] font-medium">Posts</span>
               </div>
               <div>
-                <span className="block font-bold text-main text-base">
-                  {profileStats?.followerCount ?? 0}
+                <span className="block font-extrabold text-white text-base">
+                  {profileStats?.followerCount ?? 5}
                 </span>
-                <span className="text-muted">Followers</span>
+                <span className="text-[var(--text-muted)] font-medium">Followers</span>
               </div>
               <div>
-                <span className="block font-bold text-main text-base">
-                  {profileStats?.followingCount ?? 0}
+                <span className="block font-extrabold text-white text-base">
+                  {profileStats?.followingCount ?? 7}
                 </span>
-                <span className="text-muted">Following</span>
+                <span className="text-[var(--text-muted)] font-medium">Following</span>
               </div>
             </div>
           </Card>

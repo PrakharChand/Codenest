@@ -79,6 +79,7 @@ export default function AppRoutes() {
         <Route path="/communities/:id/admin" element={<ProtectedRoute><AppShell><CommunityAdminPage /></AppShell></ProtectedRoute>} />
         <Route path="/connections" element={<ProtectedRoute><AppShell><ConnectionsPage /></AppShell></ProtectedRoute>} />
         <Route path="/explore" element={<ProtectedRoute><AppShell><ExplorePage /></AppShell></ProtectedRoute>} />
+        <Route path="/streak" element={<ProtectedRoute><AppShell><ExplorePage /></AppShell></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><AppShell><NotificationsPage /></AppShell></ProtectedRoute>} />
         <Route path="/chat" element={<ProtectedRoute><AppShell><ChatPage /></AppShell></ProtectedRoute>} />
 
