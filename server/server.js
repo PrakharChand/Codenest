@@ -37,6 +37,8 @@ async function boot() {
     startAIReviewCron();
     const { initIndexer } = require('./src/services/knowledgeIndexer');
     initIndexer();
+    const { startDBKeepAlive } = require('./src/db/dbKeepAlive');
+    startDBKeepAlive();
   }
 }
 

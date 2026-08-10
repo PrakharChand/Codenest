@@ -35,9 +35,12 @@ const aiRoutes           = require('./routes/aiRoutes');
 const statsRoutes        = require('./routes/statsRoutes');
 const sseRoutes          = require('./routes/sseRoutes');
 const { idempotencyGuard } = require('./middleware/idempotency');
+const { latencyTracker }   = require('./middleware/latencyTracker');
 
 const app = express();
 app.set('trust proxy', 1);
+
+app.use(latencyTracker); // APM Latency & Response-Time Tracking
 
 // ── Core middleware ────────────────────────────────────────────────────────
 
