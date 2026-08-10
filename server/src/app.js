@@ -83,7 +83,7 @@ app.use(cors({
     if (isOriginAllowed(origin)) {
       return callback(null, true);
     }
-    return callback(new Error(`CORS: origin '${origin}' not allowed`));
+    return callback(null, false);
   },
   credentials: true, // Required for httpOnly refresh-token cookie cross-origin
 }));

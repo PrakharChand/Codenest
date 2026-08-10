@@ -17,19 +17,24 @@ export function NotificationProvider({ children }) {
   const fetchUnreadCounts = useCallback(async () => {
     if (!user) return;
     try {
-      const [pubRes, shRes, chatRes] = await Promise.all([
+      const results = await Promise.allSettled([
         notificationsApi.list('public'),
-        notificationsApi.list('shadow'),
+        user?.has_anonymous_identity ? notificationsApi.list('shadow') : Promise.resolve({ data: [] }),
         chatApi.getUnreadCount(),
       ]);
 
-      const pubList = pubRes.data || [];
-      const shList = shRes.data || [];
-
-      setPublicUnread(pubList.filter((n) => !n.is_read).length);
-      setShadowUnread(shList.filter((n) => !n.is_read).length);
-      setChatUnread(chatRes?.unreadCount || 0);
-    } catch (err) {
+      if (results[0].status === 'fulfilled') {
+        const pubList = results[0].value?.data || [];
+        setPublicUnread(pubList.filter((n) => !n.is_read).length);
+      }
+      if (results[1].status === 'fulfilled') {
+        const shList = results[1].value?.data || [];
+        setShadowUnread(shList.filter((n) => !n.is_read).length);
+      }
+      if (results[2].status === 'fulfilled') {
+        setChatUnread(results[2].value?.unreadCount || 0);
+      }
+    } catch (_) {
       // Quiet degradation
     }
   }, [user]);

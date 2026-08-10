@@ -22,6 +22,14 @@ export default function PaginatedList({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const queryParamsKey = React.useMemo(() => {
+    try {
+      return JSON.stringify(queryParams || {});
+    } catch (_) {
+      return '';
+    }
+  }, [queryParams]);
+
   const loadData = useCallback(
     async (pageToLoad = 1) => {
       const currentParams = { page: pageToLoad, limit, ...queryParams };
@@ -54,7 +62,7 @@ export default function PaginatedList({
         setLoading(false);
       }
     },
-    [fetchData, limit, JSON.stringify(queryParams)]
+    [fetchData, limit, queryParamsKey]
   );
 
   useEffect(() => {
@@ -74,7 +82,7 @@ export default function PaginatedList({
       }
     });
     return unsubscribe;
-  }, [pagination.page, limit, JSON.stringify(queryParams)]);
+  }, [pagination.page, limit, queryParamsKey]);
 
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
