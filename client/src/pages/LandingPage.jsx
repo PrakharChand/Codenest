@@ -91,32 +91,40 @@ export default function LandingPage() {
         title="Build Public Reputation & Get Honest Code Reviews"
         description="CodeNest is a dual-identity developer platform. Share tech insights publicly on Nest Feed or get 100% anonymous, bias-free code reviews on Nest Shadow."
       />
-      {/* ── Top nav bar for logged-out visitors ───────────────────── */}
-      {!user && (
-        <nav className="flex items-center justify-between pb-2 border-b border-[var(--border-main)]/50">
-          <div className="flex items-center gap-2 group cursor-pointer">
-            <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)] flex items-center justify-center shadow-xs transition-transform duration-200 group-hover:scale-105">
-              <span className="text-white font-bold text-xs tracking-tight">CN</span>
-            </div>
-            <span className="text-base font-bold text-[var(--text-main)] transition-colors duration-200 group-hover:text-[var(--color-primary)]">
-              Code<span className="text-[var(--color-primary)]">Nest</span>
-            </span>
+      {/* ── Top nav bar ─────────────────────────────────────────────────── */}
+      <nav className="flex items-center justify-between pb-4 border-b border-[var(--border-main)]/50">
+        <Link to="/" className="flex items-center gap-2 group cursor-pointer">
+          <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)] flex items-center justify-center shadow-xs transition-transform duration-200 group-hover:scale-105">
+            <span className="text-white font-bold text-xs tracking-tight">CN</span>
           </div>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <Link to="/login">
-              <Button variant="secondary" size="sm" className="transition-all duration-200 hover:scale-[1.02] active:scale-95">
-                Sign In
+          <span className="text-base font-bold text-[var(--text-main)] transition-colors duration-200 group-hover:text-[var(--color-primary)]">
+            Code<span className="text-[var(--color-primary)]">Nest</span>
+          </span>
+        </Link>
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          {user ? (
+            <Link to="/feed">
+              <Button variant="primary" size="sm" className="transition-all duration-200 hover:scale-[1.02] active:scale-95 shadow-xs">
+                Go to Feed 🚀
               </Button>
             </Link>
-            <Link to="/register">
-              <Button variant="primary" size="sm" className="transition-all duration-200 hover:scale-[1.02] active:scale-95 shadow-xs hover:shadow-sm">
-                Get Started
-              </Button>
-            </Link>
-          </div>
-        </nav>
-      )}
+          ) : (
+            <>
+              <Link to="/login">
+                <Button variant="secondary" size="sm" className="transition-all duration-200 hover:scale-[1.02] active:scale-95">
+                  Sign In
+                </Button>
+              </Link>
+              <Link to="/register">
+                <Button variant="primary" size="sm" className="transition-all duration-200 hover:scale-[1.02] active:scale-95 shadow-xs hover:shadow-sm">
+                  Get Started
+                </Button>
+              </Link>
+            </>
+          )}
+        </div>
+      </nav>
 
       {/* ── Hero Section (logged-out only) ─────────────────────────────── */}
       {!user && (

@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
  * Desktop (≥ lg): fixed Sidebar (240px) on left, content pushed right.
  * Mobile (< lg):  no sidebar, BottomNav fixed at bottom, content has pb-32 clearance.
  */
-export default function AppShell({ children, className = '' }) {
+export default function AppShell({ children, className = '', hideSidebar = false }) {
   const { user, setUser } = useAuth();
   const [verifying, setVerifying] = useState(false);
   const isUnverified = user && user.verified === false;
@@ -34,11 +34,11 @@ export default function AppShell({ children, className = '' }) {
 
   return (
     <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-main)]">
-      {/* Fixed left sidebar — desktop only */}
-      <Sidebar />
+      {/* Fixed left sidebar — desktop only (hidden when hideSidebar is true) */}
+      {!hideSidebar && <Sidebar />}
 
-      {/* Main content area — offset on desktop, full-width on mobile */}
-      <div className="lg:pl-60">
+      {/* Main content area — offset on desktop when sidebar active, full-width when hideSidebar */}
+      <div className={hideSidebar ? 'w-full' : 'lg:pl-60'}>
         {/* Persistent Email Verification Banner for unverified users */}
         {isUnverified && (
           <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-center text-xs font-semibold text-amber-500 flex items-center justify-center gap-3 flex-wrap">
@@ -56,7 +56,7 @@ export default function AppShell({ children, className = '' }) {
 
         <main
           className={`
-            mx-auto max-w-5xl px-4 sm:px-6 py-8
+            ${hideSidebar ? 'mx-auto max-w-7xl px-4 sm:px-8 py-8' : 'mx-auto max-w-5xl px-4 sm:px-6 py-8'}
             pb-32 lg:pb-10
             page-enter
             ${className}
@@ -67,7 +67,7 @@ export default function AppShell({ children, className = '' }) {
       </div>
 
       {/* Fixed bottom nav — mobile only */}
-      <BottomNav />
+      {!hideSidebar && <BottomNav />}
 
       {/* Auto-triggered 3-step Onboarding Modal for new users */}
       <OnboardingModal />

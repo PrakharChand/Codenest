@@ -58,7 +58,7 @@ export default function AppRoutes() {
     <Suspense fallback={<PageLoader />}>
       <Routes>
         {/* ─── Public Unprotected Routes ────────────────────────────────────── */}
-        <Route path="/" element={<PublicRoute><AppShell><LandingPage /></AppShell></PublicRoute>} />
+        <Route path="/" element={<PublicRoute><AppShell hideSidebar><LandingPage /></AppShell></PublicRoute>} />
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
         <Route path="/oauth-callback" element={<PublicRoute><OAuthCallbackPage /></PublicRoute>} />
