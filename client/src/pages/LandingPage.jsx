@@ -459,11 +459,11 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* ── Hero — animated canvas fills section bg, content layered above ── */}
+      {/* ── Hero — full-width animated background, content in max-w container ── */}
       {!user && (
         <section
-          className="relative z-10 overflow-hidden rounded-2xl"
-          style={{ minHeight: '68vh', border: '1px solid rgba(255,255,255,0.08)' }}
+          className="relative z-10 overflow-hidden -mx-4 sm:-mx-8"
+          style={{ minHeight: '68vh' }}
         >
           {/* Animated background canvas — fills the entire section */}
           <div
@@ -487,71 +487,77 @@ export default function LandingPage() {
             }}
           />
 
-          {/* Left: headline + subtext + CTAs */}
-          <div className="relative flex flex-col justify-center h-full px-6 py-14 sm:px-10 md:px-14 md:py-20 max-w-2xl space-y-6" style={{ zIndex: 2 }}>
-
-            {/* Pill */}
-            <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold w-fit"
-              style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(10px)', border: '1px solid rgba(245,158,11,0.35)', color: '#FCD34D' }}>
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-              🚀 The Dual-Identity Platform for Developers
-            </div>
-
-            {/* Headline */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.12]"
-              style={{ color: '#F5F0FF', textShadow: '0 2px 32px rgba(0,0,0,0.7)' }}>
-              Build your profile.{' '}
-              <span className="gradient-text">Get honest</span>{' '}
-              code reviews.
-            </h1>
-
-            {/* Subtext */}
-            <p className="text-base sm:text-lg leading-relaxed max-w-lg"
-              style={{ color: '#D4C4B0', textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}>
-              One account. Two worlds. Share publicly on{' '}
-              <strong style={{ color: '#FDE68A' }}>Nest Feed</strong>, or switch to{' '}
-              <strong style={{ color: '#FDE68A' }}>Nest Shadow</strong>{' '}
-              for completely anonymous, bias-free code reviews.
-            </p>
-
-            {/* CTAs */}
-            <div className="flex flex-wrap items-center gap-4 pt-1">
-              <Link to="/register">
-                <Button variant="primary" size="lg" className="transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] shadow-md hover:shadow-lg">
-                  Get Started — it's free
-                </Button>
-              </Link>
-              <Link to="/login">
-                <button
-                  className="text-sm font-semibold transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
-                  style={{ color: '#F5F0FF', textShadow: '0 1px 6px rgba(0,0,0,0.5)' }}
-                >
-                  Sign In →
-                </button>
-              </Link>
-            </div>
-          </div>
-
-          {/* Right: floating code card */}
+          {/* Re-contained inner layout — matches AppShell padding exactly */}
           <div
-            className="absolute right-6 top-1/2 -translate-y-1/2 hidden lg:block select-none"
-            style={{ maxWidth: '300px', zIndex: 2 }}
+            className="relative mx-auto max-w-7xl px-4 sm:px-8"
+            style={{ zIndex: 2, minHeight: '68vh', display: 'flex', alignItems: 'center' }}
           >
-            <div className="p-5 rounded-2xl shadow-2xl"
-              style={{ background: 'rgba(10,8,16,0.72)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <div className="flex items-center gap-1.5 mb-3">
-                <div className="w-3 h-3 rounded-full bg-rose-500/80" />
-                <div className="w-3 h-3 rounded-full bg-amber-500/80" />
-                <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+            {/* Left: text content */}
+            <div className="flex flex-col justify-center py-14 md:py-20 max-w-2xl space-y-6">
+
+              {/* Pill */}
+              <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold w-fit"
+                style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(10px)', border: '1px solid rgba(245,158,11,0.35)', color: '#FCD34D' }}>
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                🚀 The Dual-Identity Platform for Developers
               </div>
-              <pre className="font-mono text-[12px] leading-relaxed" style={{ color: '#FCD34D' }}>
+
+              {/* Headline */}
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.12]"
+                style={{ color: '#F5F0FF', textShadow: '0 2px 32px rgba(0,0,0,0.7)' }}>
+                Build your profile.{' '}
+                <span className="gradient-text">Get honest</span>{' '}
+                code reviews.
+              </h1>
+
+              {/* Subtext */}
+              <p className="text-base sm:text-lg leading-relaxed max-w-lg"
+                style={{ color: '#D4C4B0', textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}>
+                One account. Two worlds. Share publicly on{' '}
+                <strong style={{ color: '#FDE68A' }}>Nest Feed</strong>, or switch to{' '}
+                <strong style={{ color: '#FDE68A' }}>Nest Shadow</strong>{' '}
+                for completely anonymous, bias-free code reviews.
+              </p>
+
+              {/* CTAs */}
+              <div className="flex flex-wrap items-center gap-4 pt-1">
+                <Link to="/register">
+                  <Button variant="primary" size="lg" className="transition-all duration-200 hover:scale-[1.03] active:scale-[0.97] shadow-md hover:shadow-lg">
+                    Get Started — it's free
+                  </Button>
+                </Link>
+                <Link to="/login">
+                  <button
+                    className="text-sm font-semibold transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
+                    style={{ color: '#F5F0FF', textShadow: '0 1px 6px rgba(0,0,0,0.5)' }}
+                  >
+                    Sign In →
+                  </button>
+                </Link>
+              </div>
+            </div>
+
+            {/* Right: floating code card — desktop only */}
+            <div
+              className="hidden lg:block absolute right-8 select-none"
+              style={{ top: '50%', transform: 'translateY(-50%)', maxWidth: '290px', zIndex: 2 }}
+            >
+              <div className="p-5 rounded-2xl shadow-2xl"
+                style={{ background: 'rgba(10,8,16,0.72)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div className="flex items-center gap-1.5 mb-3">
+                  <div className="w-3 h-3 rounded-full bg-rose-500/80" />
+                  <div className="w-3 h-3 rounded-full bg-amber-500/80" />
+                  <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+                </div>
+                <pre className="font-mono text-[12px] leading-relaxed" style={{ color: '#FCD34D' }}>
 {`// Submit anonymously
 const review = await shadow.submit({
   code: myCode,
   identity: 'hidden',
   bias: false,
 });`}
-              </pre>
+                </pre>
+              </div>
             </div>
           </div>
         </section>
