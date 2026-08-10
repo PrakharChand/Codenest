@@ -37,10 +37,12 @@ const sseRoutes          = require('./routes/sseRoutes');
 const { idempotencyGuard } = require('./middleware/idempotency');
 const { latencyTracker }   = require('./middleware/latencyTracker');
 const { securityHeaders }  = require('./middleware/securityHeaders');
+const { requestTracer }    = require('./middleware/requestTracer');
 
 const app = express();
 app.set('trust proxy', 1);
 
+app.use(requestTracer);    // Distributed X-Request-ID Correlation Tracing
 app.use(securityHeaders); // Production Security Headers (HSTS, CSP, X-Frame-Options)
 app.use(latencyTracker);   // APM Latency & Response-Time Tracking
 
