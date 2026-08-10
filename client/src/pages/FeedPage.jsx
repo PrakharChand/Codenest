@@ -48,14 +48,14 @@ export default function FeedPage() {
   }, [user, tabInitialized]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 xl:gap-10">
         <SEO
           title="Public Developer Feed"
           description="Browse the latest developer posts, code snippets, engineering discussions, and technology insights on CodeNest."
         />
 
         {/* Main Feed Column */}
-        <div className="lg:col-span-2 space-y-5">
+        <div className="lg:col-span-8 space-y-6">
           {/* Page Header */}
           <div className="flex items-center justify-between py-1">
             <h1 className="text-2xl font-black tracking-tight text-white">Your Feed</h1>
@@ -134,7 +134,7 @@ export default function FeedPage() {
         </div>
 
         {/* Sidebar Column: Stats, AI Connection Suggestions, & Real Weekly Activity Chart */}
-        <div className="space-y-5">
+        <div className="lg:col-span-4 space-y-6">
           {/* User Card Summary */}
           <Card className="p-5 md:p-6 space-y-4 feed-sidebar-card">
             <div className="flex items-center gap-3">

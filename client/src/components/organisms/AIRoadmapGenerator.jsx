@@ -84,65 +84,65 @@ export default function AIRoadmapGenerator() {
   const phasesList = roadmap?.phases || roadmap?.weeks || [];
 
   return (
-    <Card className="p-6 space-y-5 border border-[var(--border-main)] bg-[var(--bg-surface)] relative overflow-hidden">
+    <Card className="p-7 sm:p-8 space-y-6 border border-[var(--border-main)] bg-[var(--bg-surface)] relative overflow-hidden shadow-xl">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[var(--color-primary)]/15 border border-[var(--color-primary)]/30 flex items-center justify-center text-lg">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-[var(--color-primary)]/15 border border-[var(--color-primary)]/30 flex items-center justify-center text-xl shrink-0">
             🗺️
           </div>
           <div>
-            <h3 className="font-bold text-white text-base leading-tight">Personalized AI Learning Roadmap</h3>
-            <p className="text-xs text-[var(--text-muted)]">Get a tailored roadmap to level up your coding skills. Start your journey with AI.</p>
+            <h3 className="font-extrabold text-white text-lg leading-tight">Personalized AI Learning Roadmap</h3>
+            <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5">Get a tailored roadmap to level up your coding skills. Start your journey with AI.</p>
           </div>
         </div>
-        <span className="px-2.5 py-1 text-[10px] font-extrabold tracking-wider uppercase rounded-full bg-[var(--color-primary)]/20 text-[var(--color-primary)] border border-[var(--color-primary)]/40">
+        <span className="px-3 py-1 text-[11px] font-extrabold tracking-wider uppercase rounded-full bg-[var(--color-primary)]/20 text-[var(--color-primary)] border border-[var(--color-primary)]/40 shrink-0">
           AI Powered
         </span>
       </div>
 
       {error && (
-        <div className="rounded-lg border border-danger/30 bg-danger/10 p-3 text-xs text-danger font-medium">
+        <div className="rounded-xl border border-danger/30 bg-danger/10 p-3.5 text-xs text-danger font-medium">
           {error}
         </div>
       )}
 
       {shareSuccess && (
-        <div className="rounded-lg border border-success/30 bg-success/10 p-3 text-xs text-success font-medium">
+        <div className="rounded-xl border border-success/30 bg-success/10 p-3.5 text-xs text-success font-medium">
           ✓ Roadmap shared successfully to Nest Feed!
         </div>
       )}
 
       {!roadmap ? (
-        <form onSubmit={handleGenerate} className="space-y-4">
+        <form onSubmit={handleGenerate} className="space-y-5">
           {/* Two Optional Input Fields Side by Side */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-white">Current Focus (optional)</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-2">
+              <label className="block text-xs sm:text-sm font-bold text-white">Current Focus (optional)</label>
               <input
                 type="text"
                 value={currentFocus}
                 onChange={(e) => setCurrentFocus(e.target.value)}
                 placeholder="e.g. Data Structures"
-                className="w-full h-9 rounded-lg border border-[var(--border-main)] bg-[var(--bg-base)] px-3 text-xs text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-all font-medium"
+                className="w-full h-11 rounded-xl border border-[var(--border-main)] bg-[var(--bg-base)] px-4 text-xs sm:text-sm text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-all font-medium"
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-white">Current Tech Stack (optional)</label>
+            <div className="space-y-2">
+              <label className="block text-xs sm:text-sm font-bold text-white">Current Tech Stack (optional)</label>
               <input
                 type="text"
                 value={techStack}
                 onChange={(e) => setTechStack(e.target.value)}
                 placeholder="e.g. JavaScript, React"
-                className="w-full h-9 rounded-lg border border-[var(--border-main)] bg-[var(--bg-base)] px-3 text-xs text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-all font-medium"
+                className="w-full h-11 rounded-xl border border-[var(--border-main)] bg-[var(--bg-base)] px-4 text-xs sm:text-sm text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-all font-medium"
               />
             </div>
           </div>
 
           {/* Full-width Learning Goal Field */}
-          <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-white">
+          <div className="space-y-2">
+            <label className="block text-xs sm:text-sm font-bold text-white">
               Learning Goal (next 2–3 months) <span className="text-[var(--color-primary)]">*required*</span>
             </label>
             <input
@@ -150,7 +150,7 @@ export default function AIRoadmapGenerator() {
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
               placeholder="e.g. Build a full-stack web app using a modern JS stack"
-              className="w-full h-10 rounded-lg border border-[var(--border-main)] bg-[var(--bg-base)] px-3.5 text-xs text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-all font-medium"
+              className="w-full h-12 rounded-xl border border-[var(--border-main)] bg-[var(--bg-base)] px-4 text-xs sm:text-sm text-white placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--color-primary)] transition-all font-medium"
               required
             />
           </div>

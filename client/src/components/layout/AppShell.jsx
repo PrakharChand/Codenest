@@ -56,7 +56,7 @@ export default function AppShell({ children, className = '', hideSidebar = false
 
         <main
           className={`
-            ${fullWidth ? 'w-full' : hideSidebar ? 'mx-auto max-w-7xl px-4 sm:px-8 py-8' : 'mx-auto max-w-5xl px-4 sm:px-6 py-8'}
+            ${fullWidth ? 'w-full' : hideSidebar ? 'mx-auto max-w-7xl px-4 sm:px-8 py-8' : 'mx-auto max-w-7xl px-4 sm:px-8 py-8'}
             pb-32 lg:pb-10
             page-enter
             ${className}
