@@ -36,11 +36,13 @@ const statsRoutes        = require('./routes/statsRoutes');
 const sseRoutes          = require('./routes/sseRoutes');
 const { idempotencyGuard } = require('./middleware/idempotency');
 const { latencyTracker }   = require('./middleware/latencyTracker');
+const { securityHeaders }  = require('./middleware/securityHeaders');
 
 const app = express();
 app.set('trust proxy', 1);
 
-app.use(latencyTracker); // APM Latency & Response-Time Tracking
+app.use(securityHeaders); // Production Security Headers (HSTS, CSP, X-Frame-Options)
+app.use(latencyTracker);   // APM Latency & Response-Time Tracking
 
 // ── Core middleware ────────────────────────────────────────────────────────
 
@@ -97,10 +99,14 @@ app.use(passport.initialize());
 // Global rate limiter — individual routes apply stricter authLimiter/aiLimiter
 app.use(generalLimiter);
 
-// ── Health check ──────────────────────────────────────────────────────────
+const { performDeepHealthCheck } = require('./services/healthService');
 
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// ── Health check (Deep Dependency Diagnostics) ────────────────────────────
+
+app.get('/health', async (_req, res) => {
+  const result = await performDeepHealthCheck();
+  const statusCode = result.status === 'ok' ? 200 : 503;
+  res.status(statusCode).json(result);
 });
 
 // ── API routes ────────────────────────────────────────────────────────────
