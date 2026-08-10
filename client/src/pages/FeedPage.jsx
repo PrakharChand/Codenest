@@ -16,162 +16,285 @@ import SEO from '../components/atoms/SEO';
 
 // ─── Feed Page Animated Background ─────────────────────────────────────────
 // A fixed canvas that covers the full viewport behind all feed content.
-// Uses CodeNest's purple/blue/gold palette: stars, nebula glows, aurora waves.
+// Features: Starry sky, Shooting stars, Mountain silhouettes, Horizon backlight glow, and Flowing 3D Ocean Waves.
 function FeedPageBackground() {
   const canvasRef = useRef(null);
   const animRef   = useRef(null);
   const frameRef  = useRef(0);
 
-  // Particle fields
-  const starsRef   = useRef([]);
-  const dustRef    = useRef([]);
-  const glowsRef   = useRef([]);
-  const wavesRef   = useRef([]);
+  // Scene references
+  const starsRef        = useRef([]);
+  const shootingStarRef = useRef({ active: false, timer: 0 });
+  const waveLayersRef   = useRef([]);
 
   const isDark = useCallback(() =>
     document.documentElement.classList.contains('dark-mode'), []);
 
   const initScene = useCallback((W, H) => {
-    // Fine twinkling stars
-    starsRef.current = Array.from({ length: 260 }, () => ({
+    // 1. Natural twinkling stars
+    starsRef.current = Array.from({ length: 280 }, () => ({
       x: Math.random() * W,
-      y: Math.random() * H,
-      r: Math.random() * 1.4 + 0.3,
+      y: Math.random() * H * 0.45, // Scattered across upper sky
+      r: Math.random() * 1.5 + 0.3,
       phase: Math.random() * Math.PI * 2,
-      speed: Math.random() * 0.007 + 0.002,
-      brightness: Math.random() * 0.6 + 0.3,
+      speed: Math.random() * 0.009 + 0.003,
+      brightness: Math.random() * 0.7 + 0.3,
     }));
 
-    // Slow-drifting dust/pollen particles
-    dustRef.current = Array.from({ length: 55 }, () => ({
-      x: Math.random() * W,
-      y: Math.random() * H,
-      r: Math.random() * 2.2 + 0.8,
-      vx: (Math.random() - 0.5) * 0.22,
-      vy: (Math.random() - 0.5) * 0.14,
-      phase: Math.random() * Math.PI * 2,
-      alpha: Math.random() * 0.25 + 0.08,
-    }));
+    // 2. Animated wave layers for the 3D Ocean
+    waveLayersRef.current = Array.from({ length: 18 }, (_, i) => {
+      const progress = (i + 1) / 18;
+      return {
+        progress,
+        speed: 0.005 + progress * 0.004,
+        amp: 3 + progress * 10,
+        freq: 0.004 + progress * 0.002,
+        offset: Math.random() * Math.PI * 2,
+        color: i % 3 === 0
+          ? `rgba(168, 85, 247, ${(0.18 + progress * 0.30).toFixed(2)})`   // Neon Purple
+          : i % 3 === 1
+          ? `rgba(59, 130, 246, ${(0.15 + progress * 0.28).toFixed(2)})`   // Neon Blue / Cyan
+          : `rgba(245, 158, 11, ${(0.10 + progress * 0.22).toFixed(2)})`,  // Sunset Amber
+      };
+    });
+  }, []);
 
-    // Large atmospheric nebula glows (static radial blobs)
-    glowsRef.current = [
-      { x: W * 0.15, y: H * 0.22, rx: W * 0.28, ry: H * 0.22, color: '120,80,200', alpha: 0.10 },
-      { x: W * 0.78, y: H * 0.55, rx: W * 0.30, ry: H * 0.25, color: '30,90,180',  alpha: 0.09 },
-      { x: W * 0.50, y: H * 0.85, rx: W * 0.35, ry: H * 0.18, color: '200,120,30', alpha: 0.08 },
-      { x: W * 0.88, y: H * 0.12, rx: W * 0.20, ry: H * 0.16, color: '160,60,210', alpha: 0.07 },
-      { x: W * 0.30, y: H * 0.70, rx: W * 0.22, ry: H * 0.14, color: '20,140,200', alpha: 0.07 },
-    ];
-
-    // Aurora/wave layers at varying heights
-    wavesRef.current = Array.from({ length: 4 }, (_, i) => ({
-      offset: Math.random() * Math.PI * 2,
-      speed:  0.004 + i * 0.002,
-      amp:    18 + i * 12,
-      yBase:  0.22 + i * 0.20,
-      freq:   0.003 + i * 0.0015,
-      alpha:  0.055 - i * 0.010,
-      color:  i % 2 === 0 ? '100,60,220' : '30,100,200',
-    }));
+  // Helper to spawn shooting stars every ~5 seconds
+  const updateShootingStar = useCallback((W, H) => {
+    const star = shootingStarRef.current;
+    if (!star.active) {
+      star.timer = (star.timer || 0) + 1;
+      // Spawn roughly every 280-360 frames (~5 seconds at 60fps)
+      if (star.timer > 280 + Math.random() * 80) {
+        star.active = true;
+        star.timer = 0;
+        star.x = Math.random() * W * 0.7 + W * 0.1;
+        star.y = Math.random() * H * 0.2 + H * 0.05;
+        const angle = (Math.random() * 15 + 25) * (Math.PI / 180); // 25-40 deg diagonal
+        const speed = 12 + Math.random() * 6;
+        star.vx = Math.cos(angle) * speed;
+        star.vy = Math.sin(angle) * speed;
+        star.len = 90 + Math.random() * 40;
+        star.life = 0;
+        star.maxLife = 70; // ~1.15 seconds
+      }
+    } else {
+      star.x += star.vx;
+      star.y += star.vy;
+      star.life += 1;
+      if (star.life >= star.maxLife || star.x > W || star.y > H) {
+        star.active = false;
+        star.timer = 0;
+      }
+    }
   }, []);
 
   const draw = useCallback((ctx, W, H, t) => {
     ctx.clearRect(0, 0, W, H);
     const dark = isDark();
 
-    // ── Base sky gradient ────────────────────────────────────────────────
-    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    // Check reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const animTime = prefersReducedMotion ? 0 : t;
+
+    // Horizon line height (mountain base & ocean origin)
+    const horizonY = H * 0.32;
+
+    // ── 1. SKY BASE GRADIENT (Top to Horizon) ──────────────────────────
+    const skyGrd = ctx.createLinearGradient(0, 0, 0, horizonY + 40);
     if (dark) {
-      sky.addColorStop(0,    '#080612');
-      sky.addColorStop(0.40, '#0D0A1E');
-      sky.addColorStop(0.75, '#100C1A');
-      sky.addColorStop(1,    '#0A0810');
+      skyGrd.addColorStop(0, '#040209');
+      skyGrd.addColorStop(0.4, '#0D061A');
+      skyGrd.addColorStop(0.8, '#1A0B2B');
+      skyGrd.addColorStop(1, '#290E38');
     } else {
-      sky.addColorStop(0,    '#F4EFFF');
-      sky.addColorStop(0.35, '#EDE8FF');
-      sky.addColorStop(0.70, '#E8F0FF');
-      sky.addColorStop(1,    '#EDF4FF');
+      skyGrd.addColorStop(0, '#EDE8F5');
+      skyGrd.addColorStop(0.5, '#E4DAF5');
+      skyGrd.addColorStop(1, '#F3E8F8');
     }
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = skyGrd;
+    ctx.fillRect(0, 0, W, horizonY + 40);
 
-    // ── Nebula atmospheric glows ─────────────────────────────────────────
-    glowsRef.current.forEach((g) => {
-      const pulse = 1 + 0.06 * Math.sin(t * 0.004 + g.x);
-      const rx = g.rx * pulse;
-      const ry = g.ry * pulse;
-      const a = dark ? g.alpha : g.alpha * 0.45;
-
-      ctx.save();
-      // Scale to make the radialGradient appear elliptical
-      ctx.translate(g.x, g.y);
-      ctx.scale(rx, ry);
-      const grd = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
-      grd.addColorStop(0,   `rgba(${g.color},${(a * 1.6).toFixed(3)})`);
-      grd.addColorStop(0.5, `rgba(${g.color},${(a * 0.7).toFixed(3)})`);
-      grd.addColorStop(1,   `rgba(${g.color},0)`);
-      ctx.fillStyle = grd;
-      ctx.beginPath();
-      ctx.arc(0, 0, 1, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    });
-
-    // ── Twinkling stars ──────────────────────────────────────────────────
+    // ── 2. STARRY SKY & TWINKLING ──────────────────────────────────────
     if (dark) {
-      starsRef.current.forEach((star) => {
-        const twinkle = star.brightness * (0.5 + 0.5 * Math.sin(star.phase + t * star.speed));
+      starsRef.current.forEach((s) => {
+        const twinkle = s.brightness * (0.45 + 0.55 * Math.sin(s.phase + animTime * s.speed));
         ctx.beginPath();
-        ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
-        // Colour-tint: amber/white/blue randomly
-        const hue = star.phase < 1.0 ? '255,240,200' : star.phase < 2.5 ? '200,210,255' : '255,255,255';
-        ctx.fillStyle = `rgba(${hue},${twinkle.toFixed(3)})`;
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        const hue = s.phase < 1.2 ? '255,240,210' : s.phase < 2.5 ? '210,225,255' : '255,255,255';
+        ctx.fillStyle = `rgba(${hue}, ${twinkle.toFixed(3)})`;
         ctx.fill();
       });
     }
 
-    // ── Drifting dust/pollen particles ───────────────────────────────────
-    dustRef.current.forEach((d) => {
-      const pulse = d.alpha * (0.6 + 0.4 * Math.sin(d.phase + t * 0.003));
-      ctx.beginPath();
-      ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-      const col = dark ? '180,150,255' : '120,80,200';
-      ctx.fillStyle = `rgba(${col},${(pulse * (dark ? 1 : 0.5)).toFixed(3)})`;
-      ctx.fill();
-    });
+    // ── 3. SHOOTING STAR ──────────────────────────────────────────────
+    const sStar = shootingStarRef.current;
+    if (dark && sStar.active && !prefersReducedMotion) {
+      const alpha = Math.sin((sStar.life / sStar.maxLife) * Math.PI); // Fade in & out
+      const headX = sStar.x;
+      const headY = sStar.y;
+      const tailX = headX - (sStar.vx / 12) * sStar.len;
+      const tailY = headY - (sStar.vy / 12) * sStar.len;
 
-    // ── Aurora / flowing wave bands ──────────────────────────────────────
-    wavesRef.current.forEach((wave) => {
-      const wy = H * wave.yBase;
+      const starGrd = ctx.createLinearGradient(tailX, tailY, headX, headY);
+      starGrd.addColorStop(0, 'rgba(168, 85, 247, 0)');
+      starGrd.addColorStop(0.6, `rgba(245, 158, 11, ${(alpha * 0.7).toFixed(2)})`);
+      starGrd.addColorStop(1, `rgba(255, 255, 255, ${alpha.toFixed(2)})`);
+
+      ctx.strokeStyle = starGrd;
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.moveTo(0, wy);
-      for (let x = 0; x <= W; x += 5) {
-        const y = wy
-          + Math.sin(x * wave.freq + t * wave.speed + wave.offset) * wave.amp
-          + Math.sin(x * wave.freq * 1.6 + t * wave.speed * 0.6 + wave.offset + 1.2) * wave.amp * 0.4;
-        ctx.lineTo(x, y);
+      ctx.moveTo(tailX, tailY);
+      ctx.lineTo(headX, headY);
+      ctx.stroke();
+
+      // Glowing head spark
+      ctx.beginPath();
+      ctx.arc(headX, headY, 2.4, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 255, 255, ${alpha.toFixed(2)})`;
+      ctx.fill();
+    }
+
+    // ── 4. HORIZON SUNSET BACKLIGHT GLOW (behind Mountains) ───────────
+    const glowX = W * 0.5;
+    const glowY = horizonY - 10;
+    const glowRadius = Math.max(W * 0.45, 320);
+    const horizonGlow = ctx.createRadialGradient(glowX, glowY, 0, glowX, glowY, glowRadius);
+    const glowAlpha = dark ? 1 : 0.4;
+
+    horizonGlow.addColorStop(0.0, `rgba(255, 130, 0, ${(0.65 * glowAlpha).toFixed(2)})`);  // Fiery Sun Gold
+    horizonGlow.addColorStop(0.35, `rgba(225, 29, 72, ${(0.45 * glowAlpha).toFixed(2)})`); // Magenta Red
+    horizonGlow.addColorStop(0.70, `rgba(147, 51, 234, ${(0.25 * glowAlpha).toFixed(2)})`);// Neon Violet
+    horizonGlow.addColorStop(1.0, 'rgba(10, 5, 20, 0)');
+
+    ctx.fillStyle = horizonGlow;
+    ctx.fillRect(0, horizonY - glowRadius * 0.6, W, glowRadius * 1.2);
+
+    // ── 5. MULTI-LAYER MOUNTAIN SILHOUETTE ─────────────────────────────
+
+    // Layer A: Distant Low Mountains
+    ctx.fillStyle = dark ? '#130926' : '#D1C4EC';
+    ctx.beginPath();
+    ctx.moveTo(0, horizonY);
+    for (let x = 0; x <= W; x += 15) {
+      const peak = Math.sin(x * 0.005) * 25 + Math.sin(x * 0.012) * 15 + Math.cos(x * 0.003) * 35;
+      ctx.lineTo(x, horizonY - 20 - Math.abs(peak));
+    }
+    ctx.lineTo(W, horizonY + 10);
+    ctx.lineTo(0, horizonY + 10);
+    ctx.closePath();
+    ctx.fill();
+
+    // Layer B: Main Prominent Foreground Peaks (Sharp alpine ridges matching reference)
+    ctx.fillStyle = dark ? '#06030C' : '#6A5ACD';
+    ctx.beginPath();
+
+    // Build natural mountain profile with sharp peaks across screen width
+    const mountainPoints = [
+      { x: 0, y: horizonY - 15 },
+      { x: W * 0.08, y: horizonY - 45 },
+      { x: W * 0.16, y: horizonY - 18 },
+      { x: W * 0.24, y: horizonY - 70 }, // Peak 1
+      { x: W * 0.32, y: horizonY - 35 },
+      { x: W * 0.42, y: horizonY - 95 }, // Main Central High Peak
+      { x: W * 0.52, y: horizonY - 40 },
+      { x: W * 0.62, y: horizonY - 80 }, // Peak 2
+      { x: W * 0.72, y: horizonY - 30 },
+      { x: W * 0.82, y: horizonY - 65 }, // Peak 3
+      { x: W * 0.91, y: horizonY - 20 },
+      { x: W, y: horizonY - 40 },
+    ];
+
+    ctx.moveTo(0, horizonY + 5);
+    mountainPoints.forEach((pt) => {
+      ctx.lineTo(pt.x, pt.y);
+    });
+    ctx.lineTo(W, horizonY + 15);
+    ctx.lineTo(0, horizonY + 15);
+    ctx.closePath();
+    ctx.fill();
+
+    // Subtle golden rim outline along main mountain ridge
+    if (dark) {
+      ctx.strokeStyle = 'rgba(245, 158, 11, 0.40)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      mountainPoints.forEach((pt, idx) => {
+        if (idx === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      });
+      ctx.stroke();
+    }
+
+    // ── 6. OCEAN BASE (Horizon to Bottom of Screen) ────────────────────
+    const oceanHeight = H - horizonY;
+    const oceanGrd = ctx.createLinearGradient(0, horizonY, 0, H);
+    if (dark) {
+      oceanGrd.addColorStop(0.0, '#0E071D');
+      oceanGrd.addColorStop(0.3, '#090414');
+      oceanGrd.addColorStop(0.7, '#05020B');
+      oceanGrd.addColorStop(1.0, '#030107');
+    } else {
+      oceanGrd.addColorStop(0.0, '#D8CBEF');
+      oceanGrd.addColorStop(1.0, '#C2B2E6');
+    }
+    ctx.fillStyle = oceanGrd;
+    ctx.fillRect(0, horizonY, W, oceanHeight);
+
+    // Horizon Water Light Reflection
+    const reflGrd = ctx.createLinearGradient(0, horizonY, 0, horizonY + 70);
+    reflGrd.addColorStop(0, dark ? 'rgba(245, 158, 11, 0.25)' : 'rgba(245, 158, 11, 0.15)');
+    reflGrd.addColorStop(0.5, dark ? 'rgba(168, 85, 247, 0.15)' : 'rgba(168, 85, 247, 0.08)');
+    reflGrd.addColorStop(1, 'transparent');
+    ctx.fillStyle = reflGrd;
+    ctx.fillRect(0, horizonY, W, 70);
+
+    // ── 7. FLOWING 3D OCEAN WAVE LINES & SYNTHWAVE GRID ───────────────
+
+    // Horizontal Perspective Wave Lines
+    waveLayersRef.current.forEach((wave) => {
+      // Logarithmic spacing fanning out towards screen bottom
+      const y = horizonY + Math.pow(wave.progress, 1.8) * oceanHeight;
+      const waveAmp = wave.amp * (0.3 + wave.progress * 0.7);
+
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+
+      for (let x = 0; x <= W; x += 8) {
+        const waveY = y
+          + Math.sin(x * wave.freq + animTime * wave.speed + wave.offset) * waveAmp
+          + Math.sin(x * wave.freq * 2.2 + animTime * wave.speed * 0.7) * (waveAmp * 0.4);
+        ctx.lineTo(x, waveY);
       }
-      ctx.lineTo(W, H);
-      ctx.lineTo(0, H);
-      ctx.closePath();
 
-      const wg = ctx.createLinearGradient(0, wy - wave.amp, 0, wy + wave.amp * 2);
-      const a = dark ? wave.alpha : wave.alpha * 0.4;
-      wg.addColorStop(0,   `rgba(${wave.color},${(a * 1.8).toFixed(3)})`);
-      wg.addColorStop(0.5, `rgba(${wave.color},${(a).toFixed(3)})`);
-      wg.addColorStop(1,   `rgba(${wave.color},0)`);
-      ctx.fillStyle = wg;
-      ctx.fill();
+      ctx.strokeStyle = dark ? wave.color : 'rgba(100, 70, 180, 0.25)';
+      ctx.lineWidth = 1 + wave.progress * 1.5;
+      ctx.stroke();
     });
 
-    // ── Subtle golden horizon accent ─────────────────────────────────────
-    const horizY = H * 0.72;
-    const horizGrd = ctx.createLinearGradient(0, horizY - 60, 0, horizY + 80);
-    const hAlpha = dark ? 0.06 : 0.03;
-    horizGrd.addColorStop(0,   `rgba(245,158,11,0)`);
-    horizGrd.addColorStop(0.4, `rgba(245,158,11,${hAlpha})`);
-    horizGrd.addColorStop(1,   `rgba(245,158,11,0)`);
-    ctx.fillStyle = horizGrd;
-    ctx.fillRect(0, horizY - 60, W, 140);
+    // Vertical Perspective Grid Lines fanning out from Horizon Center
+    if (dark) {
+      const centerX = W * 0.5;
+      const lineCount = 18;
+      ctx.lineWidth = 1.0;
+
+      for (let i = 0; i <= lineCount; i++) {
+        const factor = (i / lineCount - 0.5) * 2; // -1 to +1
+        const bottomX = centerX + factor * W * 1.2;
+
+        const gridGrd = ctx.createLinearGradient(centerX, horizonY, bottomX, H);
+        gridGrd.addColorStop(0, 'rgba(168, 85, 247, 0)');
+        gridGrd.addColorStop(0.2, 'rgba(168, 85, 247, 0.12)');
+        gridGrd.addColorStop(1, 'rgba(59, 130, 246, 0.25)');
+
+        ctx.strokeStyle = gridGrd;
+        ctx.beginPath();
+        ctx.moveTo(centerX, horizonY);
+        ctx.lineTo(bottomX, H);
+        ctx.stroke();
+      }
+    }
   }, [isDark]);
 
   const animate = useCallback(() => {
@@ -181,21 +304,12 @@ function FeedPageBackground() {
     const W = canvas.width;
     const H = canvas.height;
 
+    updateShootingStar(W, H);
     draw(ctx, W, H, frameRef.current);
-
-    // Drift dust particles
-    dustRef.current.forEach((d) => {
-      d.x += d.vx;
-      d.y += d.vy;
-      if (d.x < -10) d.x = W + 10;
-      if (d.x > W + 10) d.x = -10;
-      if (d.y < -10) d.y = H + 10;
-      if (d.y > H + 10) d.y = -10;
-    });
 
     frameRef.current += 1;
     animRef.current = requestAnimationFrame(animate);
-  }, [draw]);
+  }, [draw, updateShootingStar]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -240,7 +354,7 @@ export default function FeedPage() {
   const navigate = useNavigate();
   const [profileStats, setProfileStats] = useState(null);
 
-  // Fix 10: Default to 'trending' tab if user has < 5 connections, else 'following'
+  // Default to 'trending' tab if user has < 5 connections, else 'following'
   const [activeTab, setActiveTab] = useState('following');
   const [tabInitialized, setTabInitialized] = useState(false);
 
@@ -311,13 +425,13 @@ export default function FeedPage() {
             </Link>
           </div>
 
-          {/* Fix 11: Shadow Mode Discovery Banner */}
+          {/* Shadow Mode Discovery Banner */}
           <ShadowDiscoveryBanner />
 
           {/* AI Learning Roadmap Generator Component */}
           <AIRoadmapGenerator />
 
-          {/* Fix 10: Following vs Trending Feed Tabs */}
+          {/* Following vs Trending Feed Tabs */}
           <div className="flex items-center border-b border-[var(--border-main)] gap-4 pt-2">
             <button
               type="button"
