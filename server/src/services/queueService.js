@@ -47,8 +47,14 @@ const aiReviewQueue = new LocalAsyncQueue('AIReviewQueue');
 emailQueue.process(async (job) => {
   const emailService = require('./emailService');
   if (job.name === 'sendViolationWarning') {
-    const { email, username, strikeNumber, reason } = job.data;
-    await emailService.sendViolationWarningEmail({ email, username, strikeNumber, reason });
+    const { email, name, username, violationCount, strikeNumber, reason, contentSnippet } = job.data;
+    await emailService.sendViolationWarningEmail({
+      email,
+      name: name || username,
+      violationCount: violationCount || strikeNumber || 1,
+      reason,
+      contentSnippet
+    });
   }
 });
 

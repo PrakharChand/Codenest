@@ -13,15 +13,18 @@ async function withTransactionRetry(transactionFn, { maxRetries = 3, initialDela
 
   while (attempt < maxRetries) {
     attempt++;
-    const client = await pool.connect();
+    let client;
 
     try {
+      client = await pool.connect();
       await client.query('BEGIN');
       const result = await transactionFn(client);
       await client.query('COMMIT');
       return result;
     } catch (err) {
-      await client.query('ROLLBACK').catch(() => {});
+      if (client) {
+        await client.query('ROLLBACK').catch(() => {});
+      }
 
       // PostgreSQL Deadlock (40P01) or Serialization Failure (40001)
       const isDeadlock = err.code === '40P01' || err.code === '40001';
@@ -35,7 +38,7 @@ async function withTransactionRetry(transactionFn, { maxRetries = 3, initialDela
         throw err;
       }
     } finally {
-      client.release();
+      if (client) client.release();
     }
   }
 }
