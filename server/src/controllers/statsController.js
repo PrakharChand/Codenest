@@ -32,12 +32,12 @@ async function getPublicStats(req, res) {
     projectsRes,
     submissionsRes,
   ] = await Promise.all([
-    query('SELECT COUNT(*)::int AS count FROM users'),
-    query('SELECT COUNT(*)::int AS count FROM posts'),
-    query('SELECT COUNT(*)::int AS count FROM shadow_reviews'),
-    query('SELECT COUNT(*)::int AS count FROM communities'),
-    query('SELECT COUNT(*)::int AS count FROM user_roadmaps'),
-    query('SELECT COUNT(*)::int AS count FROM shadow_submissions'),
+    query('SELECT COUNT(*)::int AS count FROM users').catch(() => ({ rows: [{ count: 0 }] })),
+    query('SELECT COUNT(*)::int AS count FROM posts').catch(() => ({ rows: [{ count: 0 }] })),
+    query('SELECT COUNT(*)::int AS count FROM shadow_reviews').catch(() => ({ rows: [{ count: 0 }] })),
+    query('SELECT COUNT(*)::int AS count FROM communities').catch(() => ({ rows: [{ count: 0 }] })),
+    query('SELECT COUNT(*)::int AS count FROM user_roadmaps').catch(() => ({ rows: [{ count: 0 }] })),
+    query('SELECT COUNT(*)::int AS count FROM shadow_submissions').catch(() => ({ rows: [{ count: 0 }] })),
   ]);
 
   const totalUsers           = usersRes.rows[0]?.count || 0;

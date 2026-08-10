@@ -18,7 +18,7 @@ const { parsePagination, buildPaginatedResponse }  = require('../utils/paginate'
 // Per-user in-memory notification cache (3-second TTL).
 // Key: `${userId}:${context}` — small footprint, auto-expires.
 const notifCache = new Map();
-const NOTIF_TTL_MS = 3_000;
+const NOTIF_TTL_MS = 5_000;
 
 function getCacheKey(userId, context) {
   return `${userId}:${context || 'all'}`;
