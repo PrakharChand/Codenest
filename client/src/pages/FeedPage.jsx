@@ -13,7 +13,7 @@ import ShadowDiscoveryBanner from '../components/organisms/ShadowDiscoveryBanner
 import Button from '../components/atoms/Button';
 import Card from '../components/atoms/Card';
 import Avatar from '../components/atoms/Avatar';
-import SEO from '../components/atoms/SEO';
+import ThemeToggle from '../components/atoms/ThemeToggle';
 
 // ─── Main Feed Page ─────────────────────────────────────────────────────────
 export default function FeedPage() {
@@ -59,14 +59,17 @@ export default function FeedPage() {
           {/* Page Header */}
           <div className="flex items-center justify-between py-1">
             <h1 className="text-2xl font-black tracking-tight text-white">Your Feed</h1>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => navigate('/posts/new')}
-              className="px-4 py-2 font-extrabold bg-[var(--color-primary)] text-black shadow-md hover:scale-[1.02] transition-all"
-            >
-              + New Post
-            </Button>
+            <div className="flex items-center gap-3">
+              <ThemeToggle showLabel className="px-3 py-1.5 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] text-white text-xs font-bold transition-all shadow-sm" />
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => navigate('/posts/new')}
+                className="px-4 py-2 font-extrabold bg-[var(--color-primary)] text-black shadow-md hover:scale-[1.02] transition-all"
+              >
+                + New Post
+              </Button>
+            </div>
           </div>
 
           {/* Shadow Mode Discovery Banner */}

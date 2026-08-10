@@ -325,7 +325,10 @@ export default function Sidebar() {
                   </p>
                 )}
               </div>
-              <SettingsIcon />
+              <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                <ThemeToggle />
+                <SettingsIcon />
+              </div>
             </button>
 
             {/* User dropdown */}
