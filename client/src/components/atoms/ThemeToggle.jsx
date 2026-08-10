@@ -13,10 +13,9 @@ import React from 'react';
 import { useTheme } from '../../context/ThemeContext';
 
 export default function ThemeToggle({ showLabel = false, className = '' }) {
-  const { isShadow, feedTheme, toggleFeedTheme } = useTheme();
-
-  // Don't render in Shadow mode — it's always dark
-  if (isShadow) return null;
+  const themeCtx = useTheme();
+  if (!themeCtx || themeCtx.isShadow) return null;
+  const { feedTheme, toggleFeedTheme } = themeCtx;
 
   const isDark = feedTheme === 'dark';
 

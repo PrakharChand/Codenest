@@ -148,7 +148,13 @@ export function ThemeProvider({ children, mode = 'feed' }) {
 export function useTheme() {
   const context = useContext(ThemeContext);
   if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider');
+    return {
+      isShadow: false,
+      feedTheme: 'dark',
+      toggleFeedTheme: () => {},
+      setFeedTheme: () => {},
+      clearThemePreference: () => {},
+    };
   }
   return context;
 }
