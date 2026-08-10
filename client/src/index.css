@@ -1,7 +1,7 @@
 /* ──────────────────────────────────────────────────────────────────────────
    CodeNest Design System — index.css
-   Redesign: Deep Violet + Slate (Feed) / Cyan-Teal + Zinc (Shadow)
-   Aesthetic direction: Premium & Sophisticated (Stripe / Figma feel)
+   Redesign: Desert Dusk Royal — Imperial Velvet × Sunset Gold × Terracotta
+   Aesthetic direction: Warm, Luxurious, Premium — Royal Night Market Vibes
    ────────────────────────────────────────────────────────────────────────── */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -31,40 +31,40 @@ input[type="search"]::-webkit-search-results-decoration {
   display: none;
 }
 
-/* ─── Nest Feed Theme — Light (default) Deep Violet + Warm Slate ──────────── */
+/* ─── Nest Feed Theme — Light (Desert Sand Ivory) ─────────────────────────── */
 :root,
 .theme-feed {
-  /* Surfaces */
-  --bg-base:            #F8F7FF;
+  /* Surfaces — Warm Ivory Desert Sand */
+  --bg-base:            #FDFBF7;
   --bg-surface:         #FFFFFF;
-  --bg-surface-hover:   #F3F0FF;
-  --bg-surface-subtle:  #FAF9FF;
+  --bg-surface-hover:   #FDF4E7;
+  --bg-surface-subtle:  #FAF6EF;
 
-  /* Borders */
-  --border-main:        #DDD6FE;
-  --border-focus:       #7C3AED;
+  /* Borders — Warm Sand Tan */
+  --border-main:        #E8D9C4;
+  --border-focus:       #D97706;
 
-  /* Text */
-  --text-main:          #1C1033;
-  --text-muted:         #5B5475;
-  --text-subtle:        #9E97B8;
+  /* Text — Deep Walnut Mahogany */
+  --text-main:          #1C1410;
+  --text-muted:         #6B5240;
+  --text-subtle:        #A8896B;
 
-  /* Primary — Deep Violet */
-  --color-primary:       #7C3AED;
-  --color-primary-hover: #6D28D9;
-  --color-primary-light: #EDE9FE;
-  --color-primary-dim:   rgba(124, 58, 237, 0.1);
+  /* Primary — Sunset Amber Gold */
+  --color-primary:       #D97706;
+  --color-primary-hover: #B45309;
+  --color-primary-light: #FEF3C7;
+  --color-primary-dim:   rgba(217, 119, 6, 0.10);
 
   /* Semantic */
-  --color-success:  #10B981;
-  --color-danger:   #EF4444;
+  --color-success:  #059669;
+  --color-danger:   #DC2626;
   --color-warning:  #F59E0B;
 
-  /* Elevation shadows — violet-tinted */
-  --shadow-xs: 0 1px 2px 0 rgba(124, 58, 237, 0.06);
-  --shadow-sm: 0 1px 4px 0 rgba(124, 58, 237, 0.08), 0 1px 2px -1px rgba(124, 58, 237, 0.06);
-  --shadow-md: 0 4px 16px -2px rgba(124, 58, 237, 0.12), 0 2px 6px -2px rgba(124, 58, 237, 0.07);
-  --shadow-lg: 0 20px 48px -8px rgba(124, 58, 237, 0.18), 0 8px 20px -4px rgba(124, 58, 237, 0.10);
+  /* Elevation shadows — warm amber-tinted */
+  --shadow-xs: 0 1px 2px 0 rgba(180, 83, 9, 0.07);
+  --shadow-sm: 0 1px 4px 0 rgba(180, 83, 9, 0.10), 0 1px 2px -1px rgba(180, 83, 9, 0.07);
+  --shadow-md: 0 4px 16px -2px rgba(180, 83, 9, 0.14), 0 2px 6px -2px rgba(180, 83, 9, 0.08);
+  --shadow-lg: 0 20px 48px -8px rgba(180, 83, 9, 0.20), 0 8px 20px -4px rgba(180, 83, 9, 0.12);
 
   /* Border radius scale */
   --radius-sm: 8px;
@@ -76,39 +76,39 @@ input[type="search"]::-webkit-search-results-decoration {
   --sidebar-width: 240px;
 }
 
-/* ─── Nest Feed Theme — Dark (Ocean Blue) ────────────────────────────────── */
+/* ─── Nest Feed Theme — Dark (Imperial Dusk Velvet Night) ─────────────────── */
 .theme-feed.dark-mode {
-  /* Surfaces — deep ocean blue-grey */
-  --bg-base:            #0D1117;
-  --bg-surface:         #161B22;
-  --bg-surface-hover:   #21262D;
-  --bg-surface-subtle:  #0D1117;
+  /* Surfaces — Deep Onyx Velvet */
+  --bg-base:            #0E0C14;
+  --bg-surface:         #191524;
+  --bg-surface-hover:   #231E31;
+  --bg-surface-subtle:  #0E0C14;
 
-  /* Borders */
-  --border-main:        #30363D;
-  --border-focus:       #7C3AED;
+  /* Borders — Muted Royal Plum */
+  --border-main:        #342A4A;
+  --border-focus:       #F59E0B;
 
-  /* Text */
-  --text-main:          #E6EDF3;
-  --text-muted:         #8B949E;
-  --text-subtle:        #484F58;
+  /* Text — Pearl Violet Cream */
+  --text-main:          #F5F0FF;
+  --text-muted:         #A898CC;
+  --text-subtle:        #5C4F7A;
 
-  /* Primary — keep Deep Violet */
-  --color-primary:       #A78BFA;
-  --color-primary-hover: #8B5CF6;
-  --color-primary-light: #1E1433;
-  --color-primary-dim:   rgba(167, 139, 250, 0.12);
+  /* Primary — Sunset Gold */
+  --color-primary:       #F59E0B;
+  --color-primary-hover: #FBBF24;
+  --color-primary-light: #2A1F06;
+  --color-primary-dim:   rgba(245, 158, 11, 0.13);
 
   /* Semantic */
-  --color-success:  #3FB950;
-  --color-danger:   #F85149;
-  --color-warning:  #E3B341;
+  --color-success:  #34D399;
+  --color-danger:   #F87171;
+  --color-warning:  #FCD34D;
 
-  /* Elevation shadows — dark */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
-  --shadow-sm: 0 1px 4px 0 rgba(0, 0, 0, 0.5), 0 1px 2px -1px rgba(167, 139, 250, 0.08);
-  --shadow-md: 0 4px 16px -2px rgba(0, 0, 0, 0.6), 0 2px 6px -2px rgba(167, 139, 250, 0.10);
-  --shadow-lg: 0 20px 48px -8px rgba(0, 0, 0, 0.8), 0 8px 20px -4px rgba(167, 139, 250, 0.12);
+  /* Elevation shadows — deep velvet dark */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.50);
+  --shadow-sm: 0 1px 4px 0 rgba(0, 0, 0, 0.60), 0 1px 2px -1px rgba(245, 158, 11, 0.07);
+  --shadow-md: 0 4px 16px -2px rgba(0, 0, 0, 0.70), 0 2px 6px -2px rgba(245, 158, 11, 0.10);
+  --shadow-lg: 0 20px 48px -8px rgba(0, 0, 0, 0.85), 0 8px 20px -4px rgba(245, 158, 11, 0.14);
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -118,40 +118,40 @@ input[type="search"]::-webkit-search-results-decoration {
 }
 
 
-/* ─── Nest Shadow Theme — Cyan-Teal + Zinc Midnight ─────────────────────── */
+/* ─── Nest Shadow Theme — Terracotta Rose + Deep Charcoal Midnight ─────────── */
 .theme-shadow,
 .dark {
-  /* Surfaces */
-  --bg-base:            #09090B;
-  --bg-surface:         #18181B;
-  --bg-surface-hover:   #27272A;
-  --bg-surface-subtle:  #09090B;
+  /* Surfaces — Deep Charcoal Onyx */
+  --bg-base:            #100B0F;
+  --bg-surface:         #1A1218;
+  --bg-surface-hover:   #261B22;
+  --bg-surface-subtle:  #100B0F;
 
-  /* Borders */
-  --border-main:        #3F3F46;
-  --border-focus:       #06B6D4;
+  /* Borders — Muted Rose Dusk */
+  --border-main:        #3D2535;
+  --border-focus:       #E17055;
 
-  /* Text */
-  --text-main:          #FAFAFA;
-  --text-muted:         #A1A1AA;
-  --text-subtle:        #71717A;
+  /* Text — Soft Petal White */
+  --text-main:          #FAF0EE;
+  --text-muted:         #C49A8F;
+  --text-subtle:        #7A5050;
 
-  /* Primary — Cyan-Teal */
-  --color-primary:       #06B6D4;
-  --color-primary-hover: #0891B2;
-  --color-primary-light: #164E63;
-  --color-primary-dim:   rgba(6, 182, 212, 0.12);
+  /* Primary — Terracotta Rose Coral */
+  --color-primary:       #E17055;
+  --color-primary-hover: #D4614A;
+  --color-primary-light: #2D1410;
+  --color-primary-dim:   rgba(225, 112, 85, 0.12);
 
   /* Semantic */
-  --color-success:  #10B981;
+  --color-success:  #34D399;
   --color-danger:   #F87171;
-  --color-warning:  #FBBF24;
+  --color-warning:  #FCD34D;
 
-  /* Elevation shadows — dark */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
-  --shadow-sm: 0 1px 4px 0 rgba(0, 0, 0, 0.5), 0 1px 2px -1px rgba(6, 182, 212, 0.06);
-  --shadow-md: 0 4px 16px -2px rgba(0, 0, 0, 0.6), 0 2px 6px -2px rgba(6, 182, 212, 0.08);
-  --shadow-lg: 0 20px 48px -8px rgba(0, 0, 0, 0.8), 0 8px 20px -4px rgba(6, 182, 212, 0.10);
+  /* Elevation shadows — warm rose-tinged dark */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.50);
+  --shadow-sm: 0 1px 4px 0 rgba(0, 0, 0, 0.60), 0 1px 2px -1px rgba(225, 112, 85, 0.06);
+  --shadow-md: 0 4px 16px -2px rgba(0, 0, 0, 0.70), 0 2px 6px -2px rgba(225, 112, 85, 0.09);
+  --shadow-lg: 0 20px 48px -8px rgba(0, 0, 0, 0.85), 0 8px 20px -4px rgba(225, 112, 85, 0.12);
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -203,25 +203,25 @@ input[type="search"]::-webkit-search-results-decoration {
   animation: fadeInUp 220ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
-/* ─── Gradient text utility ──────────────────────────────────────────────── */
+/* ─── Gradient text utility — Desert Dusk Royal ─────────────────────────── */
 .gradient-text {
-  background: linear-gradient(135deg, var(--color-primary) 0%, #a855f7 50%, #ec4899 100%);
+  background: linear-gradient(135deg, #D97706 0%, #E17055 50%, #F59E0B 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* ─── Hero gradient backgrounds ──────────────────────────────────────────── */
+/* ─── Hero gradient backgrounds — warm desert dusk glow ─────────────────── */
 .hero-gradient {
   background:
-    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(124, 58, 237, 0.15) 0%, transparent 70%),
-    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(168, 85, 247, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(217, 119, 6, 0.13) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(225, 112, 85, 0.08) 0%, transparent 60%),
     var(--bg-base);
 }
 .hero-gradient-dark {
   background:
-    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(6, 182, 212, 0.12) 0%, transparent 70%),
-    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(6, 182, 212, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(245, 158, 11, 0.14) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(225, 112, 85, 0.08) 0%, transparent 60%),
     var(--bg-base);
 }
 
@@ -234,19 +234,19 @@ input[type="search"]::-webkit-search-results-decoration {
 /* ─── Glassmorphism ──────────────────────────────────────────────────────── */
 :root,
 .theme-feed {
-  --bg-surface-glass: rgba(255, 255, 255, 0.82);
+  --bg-surface-glass: rgba(253, 251, 247, 0.84);
 }
 
 .theme-feed.dark-mode {
-  --bg-surface-glass: rgba(22, 27, 34, 0.82);
+  --bg-surface-glass: rgba(25, 21, 36, 0.85);
 }
 
 .theme-shadow {
-  --bg-surface-glass: rgba(24, 24, 27, 0.85);
+  --bg-surface-glass: rgba(26, 18, 24, 0.87);
 }
 
 .theme-shadow.dark-mode {
-  --bg-surface-glass: rgba(24, 24, 27, 0.85);
+  --bg-surface-glass: rgba(26, 18, 24, 0.87);
 }
 
 .glass {
