@@ -93,187 +93,55 @@ function FeedPageBackground() {
   const draw = useCallback((ctx, W, H, t) => {
     ctx.clearRect(0, 0, W, H);
 
-    // Check reduced motion preference
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const animTime = prefersReducedMotion ? 0 : t;
 
-    // Horizon line height (mountain base & ocean origin)
-    const horizonY = H * 0.32;
+    // ── 1. CLEAN DEEP SPACE BASE (#0a0a0f) ─────────────────────────────
+    ctx.fillStyle = '#0a0a0f';
+    ctx.fillRect(0, 0, W, H);
 
-    // ── 1. SKY BASE GRADIENT (Deep Pitch Black to Midnight Violet) ────
-    const skyGrd = ctx.createLinearGradient(0, 0, 0, horizonY + 40);
-    skyGrd.addColorStop(0.0, '#040209'); // Pitch Space Black
-    skyGrd.addColorStop(0.4, '#0D061A'); // Deep Midnight Violet
-    skyGrd.addColorStop(0.8, '#1A0B2B'); // Dark Velvet Purple
-    skyGrd.addColorStop(1.0, '#290E38'); // Deep Horizon Purple
-    ctx.fillStyle = skyGrd;
-    ctx.fillRect(0, 0, W, horizonY + 40);
+    // Subtle ambient top glow
+    const topGlow = ctx.createRadialGradient(W * 0.5, 0, 0, W * 0.5, 0, W * 0.6);
+    topGlow.addColorStop(0, 'rgba(245, 166, 35, 0.04)');
+    topGlow.addColorStop(1, 'transparent');
+    ctx.fillStyle = topGlow;
+    ctx.fillRect(0, 0, W, H * 0.4);
 
-    // ── 2. STARRY SKY & TWINKLING ──────────────────────────────────────
+    // ── 2. STARRY SKY & NATURAL TWINKLE ────────────────────────────────
     starsRef.current.forEach((s) => {
-      const twinkle = s.brightness * (0.45 + 0.55 * Math.sin(s.phase + animTime * s.speed));
+      const twinkle = s.brightness * (0.35 + 0.65 * Math.sin(s.phase + animTime * s.speed));
       ctx.beginPath();
       ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-      const hue = s.phase < 1.2 ? '255,240,210' : s.phase < 2.5 ? '210,225,255' : '255,255,255';
-      ctx.fillStyle = `rgba(${hue}, ${twinkle.toFixed(3)})`;
+      ctx.fillStyle = `rgba(255, 255, 255, ${twinkle.toFixed(3)})`;
       ctx.fill();
     });
 
-    // ── 3. SHOOTING STAR ──────────────────────────────────────────────
+    // ── 3. DIAGONAL SHOOTING STAR ─────────────────────────────────────
     const sStar = shootingStarRef.current;
     if (sStar.active && !prefersReducedMotion) {
-      const alpha = Math.sin((sStar.life / sStar.maxLife) * Math.PI); // Fade in & out
+      const alpha = Math.sin((sStar.life / sStar.maxLife) * Math.PI);
       const headX = sStar.x;
       const headY = sStar.y;
       const tailX = headX - (sStar.vx / 12) * sStar.len;
       const tailY = headY - (sStar.vy / 12) * sStar.len;
 
       const starGrd = ctx.createLinearGradient(tailX, tailY, headX, headY);
-      starGrd.addColorStop(0, 'rgba(168, 85, 247, 0)');
-      starGrd.addColorStop(0.6, `rgba(245, 158, 11, ${(alpha * 0.7).toFixed(2)})`);
+      starGrd.addColorStop(0, 'rgba(245, 166, 35, 0)');
+      starGrd.addColorStop(0.7, `rgba(245, 166, 35, ${(alpha * 0.6).toFixed(2)})`);
       starGrd.addColorStop(1, `rgba(255, 255, 255, ${alpha.toFixed(2)})`);
 
       ctx.strokeStyle = starGrd;
-      ctx.lineWidth = 2.2;
+      ctx.lineWidth = 1.8;
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(tailX, tailY);
       ctx.lineTo(headX, headY);
       ctx.stroke();
 
-      // Glowing head spark
       ctx.beginPath();
-      ctx.arc(headX, headY, 2.4, 0, Math.PI * 2);
+      ctx.arc(headX, headY, 2.0, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(255, 255, 255, ${alpha.toFixed(2)})`;
       ctx.fill();
-    }
-
-    // ── 4. HORIZON SUNSET BACKLIGHT GLOW (behind Mountains) ───────────
-    const glowX = W * 0.5;
-    const glowY = horizonY - 10;
-    const glowRadius = Math.max(W * 0.45, 320);
-    const horizonGlow = ctx.createRadialGradient(glowX, glowY, 0, glowX, glowY, glowRadius);
-
-    horizonGlow.addColorStop(0.0, 'rgba(255, 130, 0, 0.68)'); // Fiery Sun Gold / Orange
-    horizonGlow.addColorStop(0.35, 'rgba(225, 29, 72, 0.48)'); // Crimson / Magenta Red
-    horizonGlow.addColorStop(0.70, 'rgba(147, 51, 234, 0.28)');// Neon Violet
-    horizonGlow.addColorStop(1.0, 'rgba(10, 5, 20, 0)');
-
-    ctx.fillStyle = horizonGlow;
-    ctx.fillRect(0, horizonY - glowRadius * 0.6, W, glowRadius * 1.2);
-
-    // ── 5. MULTI-LAYER MOUNTAIN SILHOUETTE ─────────────────────────────
-
-    // Layer A: Distant Low Mountains
-    ctx.fillStyle = '#130926';
-    ctx.beginPath();
-    ctx.moveTo(0, horizonY);
-    for (let x = 0; x <= W; x += 15) {
-      const peak = Math.sin(x * 0.005) * 25 + Math.sin(x * 0.012) * 15 + Math.cos(x * 0.003) * 35;
-      ctx.lineTo(x, horizonY - 20 - Math.abs(peak));
-    }
-    ctx.lineTo(W, horizonY + 10);
-    ctx.lineTo(0, horizonY + 10);
-    ctx.closePath();
-    ctx.fill();
-
-    // Layer B: Main Prominent Foreground Peaks (Sharp pitch-black alpine ridges)
-    ctx.fillStyle = '#06030C';
-    ctx.beginPath();
-
-    const mountainPoints = [
-      { x: 0, y: horizonY - 15 },
-      { x: W * 0.08, y: horizonY - 45 },
-      { x: W * 0.16, y: horizonY - 18 },
-      { x: W * 0.24, y: horizonY - 70 }, // Peak 1
-      { x: W * 0.32, y: horizonY - 35 },
-      { x: W * 0.42, y: horizonY - 95 }, // Main Central High Peak
-      { x: W * 0.52, y: horizonY - 40 },
-      { x: W * 0.62, y: horizonY - 80 }, // Peak 2
-      { x: W * 0.72, y: horizonY - 30 },
-      { x: W * 0.82, y: horizonY - 65 }, // Peak 3
-      { x: W * 0.91, y: horizonY - 20 },
-      { x: W, y: horizonY - 40 },
-    ];
-
-    ctx.moveTo(0, horizonY + 5);
-    mountainPoints.forEach((pt) => {
-      ctx.lineTo(pt.x, pt.y);
-    });
-    ctx.lineTo(W, horizonY + 15);
-    ctx.lineTo(0, horizonY + 15);
-    ctx.closePath();
-    ctx.fill();
-
-    // Golden rim stroke along main mountain ridge
-    ctx.strokeStyle = 'rgba(245, 158, 11, 0.45)';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    mountainPoints.forEach((pt, idx) => {
-      if (idx === 0) ctx.moveTo(pt.x, pt.y);
-      else ctx.lineTo(pt.x, pt.y);
-    });
-    ctx.stroke();
-
-    // ── 6. OCEAN BASE (Horizon to Bottom of Screen) ────────────────────
-    const oceanHeight = H - horizonY;
-    const oceanGrd = ctx.createLinearGradient(0, horizonY, 0, H);
-    oceanGrd.addColorStop(0.0, '#0E071D');
-    oceanGrd.addColorStop(0.3, '#090414');
-    oceanGrd.addColorStop(0.7, '#05020B');
-    oceanGrd.addColorStop(1.0, '#030107');
-    ctx.fillStyle = oceanGrd;
-    ctx.fillRect(0, horizonY, W, oceanHeight);
-
-    // Horizon Water Light Reflection
-    const reflGrd = ctx.createLinearGradient(0, horizonY, 0, horizonY + 70);
-    reflGrd.addColorStop(0, 'rgba(245, 158, 11, 0.28)');
-    reflGrd.addColorStop(0.5, 'rgba(168, 85, 247, 0.16)');
-    reflGrd.addColorStop(1, 'transparent');
-    ctx.fillStyle = reflGrd;
-    ctx.fillRect(0, horizonY, W, 70);
-
-    // ── 7. FLOWING 3D OCEAN WAVE LINES & SYNTHWAVE GRID ───────────────
-
-    // Horizontal Perspective Wave Lines
-    waveLayersRef.current.forEach((wave) => {
-      const y = horizonY + Math.pow(wave.progress, 1.8) * oceanHeight;
-      const waveAmp = wave.amp * (0.3 + wave.progress * 0.7);
-
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-
-      for (let x = 0; x <= W; x += 8) {
-        const waveY = y
-          + Math.sin(x * wave.freq + animTime * wave.speed + wave.offset) * waveAmp
-          + Math.sin(x * wave.freq * 2.2 + animTime * wave.speed * 0.7) * (waveAmp * 0.4);
-        ctx.lineTo(x, waveY);
-      }
-
-      ctx.strokeStyle = wave.color;
-      ctx.lineWidth = 1 + wave.progress * 1.5;
-      ctx.stroke();
-    });
-
-    // Vertical Perspective Grid Lines fanning out from Horizon Center
-    const centerX = W * 0.5;
-    const lineCount = 18;
-    ctx.lineWidth = 1.0;
-
-    for (let i = 0; i <= lineCount; i++) {
-      const factor = (i / lineCount - 0.5) * 2; // -1 to +1
-      const bottomX = centerX + factor * W * 1.2;
-
-      const gridGrd = ctx.createLinearGradient(centerX, horizonY, bottomX, H);
-      gridGrd.addColorStop(0, 'rgba(168, 85, 247, 0)');
-      gridGrd.addColorStop(0.2, 'rgba(168, 85, 247, 0.12)');
-      gridGrd.addColorStop(1, 'rgba(59, 130, 246, 0.25)');
-
-      ctx.strokeStyle = gridGrd;
-      ctx.beginPath();
-      ctx.moveTo(centerX, horizonY);
-      ctx.lineTo(bottomX, H);
-      ctx.stroke();
     }
   }, []);
 
