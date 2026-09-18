@@ -41,26 +41,16 @@ async function verify() {
 
   // ── 1. Migration count ────────────────────────────────────────────────
   console.log('── Migration tracking ─────────────────────');
-  await check('_migrations table has exactly 18 rows', async () => {
-    const { rows } = await query('SELECT COUNT(*) FROM _migrations');
-    const count = parseInt(rows[0].count);
-    if (count !== 18) throw new Error(`Expected 18, got ${count}`);
-  });
+  const fs = require('fs');
+  const path = require('path');
+  const migrationsDir = path.join(__dirname, 'migrations');
+  const expectedFiles = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
 
-  await check('All 18 migration filenames present', async () => {
+  await check(`_migrations table has all ${expectedFiles.length} migrations applied`, async () => {
     const { rows } = await query('SELECT filename FROM _migrations ORDER BY filename');
-    const names = rows.map(r => r.filename);
-    const expected = [
-      '001_users.sql','002_posts.sql','003_comments.sql','004_likes.sql',
-      '005_connections.sql','006_communities.sql','007_community_members.sql',
-      '008_community_posts.sql','009_tags.sql','010_post_tags.sql',
-      '011_shadow_submissions.sql','012_shadow_reviews.sql',
-      '013_shadow_helpful_votes.sql','014_shadow_community_posts.sql',
-      '015_notifications.sql','016_indexes.sql','017_anon_adjectives.sql',
-      '018_anon_animals.sql',
-    ];
-    const missing = expected.filter(e => !names.includes(e));
-    if (missing.length) throw new Error(`Missing: ${missing.join(', ')}`);
+    const names = new Set(rows.map(r => r.filename));
+    const missing = expectedFiles.filter(e => !names.has(e));
+    if (missing.length) throw new Error(`Missing applied migrations: ${missing.join(', ')}`);
   });
 
   // ── 2. users table — Rule 1 (both identities in one row) ─────────────
@@ -213,6 +203,20 @@ async function verify() {
       throw new Error('Should have been rejected');
     } catch (err) {
       if (err.message === 'Should have been rejected') throw err;
+    }
+  });
+
+  // ── 7. RLS Defense-in-Depth check ─────────────────────────────────────
+  console.log('\n── RLS defense-in-depth ───────────────────');
+  await check('All public user tables have Row Level Security enabled', async () => {
+    const { rows } = await query(`
+      SELECT tablename, rowsecurity
+      FROM pg_tables
+      WHERE schemaname = 'public' AND rowsecurity = false
+    `);
+    if (rows.length > 0) {
+      const unsecure = rows.map(r => r.tablename).join(', ');
+      throw new Error(`Tables without RLS: ${unsecure}`);
     }
   });
 
